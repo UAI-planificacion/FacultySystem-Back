@@ -1,0 +1,156 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "../generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+
+model Faculty {
+    id          String @id @default(ulid())
+    name        String @unique
+    description String?
+
+    subjects    Subject[]
+    staff       Staff[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name])
+}
+
+
+model Subject {
+    id              String @id
+    name            String @unique
+    startDate       DateTime?
+    endDate         DateTime?
+    students        Int
+    costCenterId    String
+
+    faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+    facultyId   String
+
+    requests    Request[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name, facultyId])
+}
+
+
+enum Role {
+    ADMIN
+    EDITOR
+    VIEWER
+}
+
+
+model Staff {
+    id          String @id @default(ulid())
+    name        String
+    email       String @unique
+    role        Role @default(VIEWER)
+
+    faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+    facultyId   String
+
+    staffCreate Request[] @relation("staffCreate")
+    staffUpdate Request[] @relation("staffUpdate")
+
+    requestDetails    RequestDetail[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name, facultyId, email, role])
+}
+
+
+enum Status {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+
+model Request {
+    id              String @id @default(ulid())
+    status          Status @default(PENDING)
+    isConsecutive   Boolean @default(false)
+    description     String? // of staff
+    comment         String? // of admin
+
+    staffCreateId   String
+    staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
+
+    staffUpdateId   String?
+    staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
+
+    subjectId   String
+    subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+    details     RequestDetail[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([status])
+}
+
+
+enum SpaceType {
+    ROOM
+    AUDITORIUM
+    COMMUNIC
+    LAB
+    LABPC
+    DIS
+    GARAGE
+    CORE
+}
+
+
+enum Size {
+    XS
+    XE
+    S
+    SE
+    MS
+    M
+    L
+    XL
+    XXL
+}
+
+
+model RequestDetail {
+    id              String @id @default(ulid())
+    minimum         Int?
+    maximum         Int?
+    spaceType       SpaceType?
+    spaceSize       Size?
+    costCenterId    String?
+    inAfternoon     Boolean @default(false)
+    building        String?
+    description     String? // of staff
+    comment         String? // of admin
+    //section     String
+    //moduleDayId String?
+
+    staffUpdateId   String?
+    staffUpdate     Staff? @relation(fields: [staffUpdateId], references: [id], onDelete: Cascade)
+
+    requestId   String
+    request     Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([requestId])
+}
