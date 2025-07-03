@@ -5,30 +5,48 @@ import { UpdateStaffDto } from './dto/update-staff.dto';
 
 @Controller('staff')
 export class StaffController {
-  constructor(private readonly staffService: StaffService) {}
+    constructor(
+        private readonly staffService: StaffService
+    ) {}
 
-  @Post()
-  create(@Body() createStaffDto: CreateStaffDto) {
-    return this.staffService.create(createStaffDto);
-  }
 
-  @Get()
-  findAll() {
-    return this.staffService.findAll();
-  }
+    @Post()
+    create(
+        @Body() createStaffDto: CreateStaffDto
+    ) {
+        return this.staffService.create( createStaffDto );
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.staffService.findOne(+id);
-  }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStaffDto: UpdateStaffDto) {
-    return this.staffService.update(+id, updateStaffDto);
-  }
+    @Get( 'all/:facultyId' )
+    findAll(
+        @Param( 'facultyId' ) facultyId: string
+    ) {
+        return this.staffService.findAll( facultyId );
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.staffService.remove(+id);
-  }
+
+    @Get( ':id' )
+    findOne(
+        @Param( 'id' ) id: string
+    ) {
+        return this.staffService.findOne( id );
+    }
+
+
+    @Patch( ':id' )
+    update(
+        @Param('id') id: string,
+        @Body() updateStaffDto: UpdateStaffDto
+    ) {
+        return this.staffService.update( id, updateStaffDto );
+    }
+
+
+    @Delete( ':id' )
+    remove(
+        @Param( 'id' ) id: string
+    ) {
+        return this.staffService.remove( id );
+    }
 }
