@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { RequestsModule } from './requests/requests.module';
+import { RequestDetailsModule } from './request-details/request-details.module';
+import { ProfessorsModule } from './professors/professors.module';
 
 import { AppController }    from '@app/app.controller';
 import { FacultiesModule }  from '@faculties/faculties.module';
@@ -12,7 +15,10 @@ import { ConfigModule }     from '@config/config.module';
         FacultiesModule,
         StaffModule,
         SubjectsModule,
-        ConfigModule
+        ConfigModule,
+        RequestsModule,
+        RequestDetailsModule,
+        ProfessorsModule
     ],
     controllers : [AppController],
     providers   : [],
