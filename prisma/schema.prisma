@@ -13,6 +13,7 @@ model Faculty {
     id          String @id @default(ulid())
     name        String @unique
     description String?
+    isActive    Boolean @default(true)
 
     subjects    Subject[]
     staff       Staff[]
@@ -31,6 +32,7 @@ model Subject {
     endDate         DateTime?
     students        Int
     costCenterId    String
+    isActive        Boolean @default(true)
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String
@@ -56,6 +58,7 @@ model Staff {
     name        String
     email       String @unique
     role        Role @default(VIEWER)
+    isActive    Boolean @default(true)
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String
@@ -63,7 +66,8 @@ model Staff {
     staffCreate Request[] @relation("staffCreate")
     staffUpdate Request[] @relation("staffUpdate")
 
-    requestDetails    RequestDetail[]
+    requestDetails    RequestDetail[] @relation("staffCreate")
+    requestDetailsUpdate RequestDetail[] @relation("staffUpdate")
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -76,6 +80,7 @@ enum Status {
     PENDING
     APPROVED
     REJECTED
+    REVIEWING
 }
 
 
@@ -129,22 +134,48 @@ enum Size {
 }
 
 
+enum Nivel {
+    PREGRADO
+    FIRST_GRADE
+    SECOND_GRADE
+}
+
+
+enum Building {
+    A
+    B
+    C
+    D
+    E
+    F
+}
+
+
 model RequestDetail {
     id              String @id @default(ulid())
-    minimum         Int?
+    minimum         Int? 
     maximum         Int?
     spaceType       SpaceType?
     spaceSize       Size?
     costCenterId    String?
     inAfternoon     Boolean @default(false)
-    building        String?
+    building        Building?
     description     String? // of staff
     comment         String? // of admin
-    //section     String
-    //moduleDayId String?
+    moduleId        String?
+    days            String[] @default([])
+    spaceId         String?
+    isPriority      Boolean @default(false) // *profesor, dia y módulo no son null, se le da prioridad
+    nivel           Nivel @default(PREGRADO)
+
+    professorId     String?
+    professor       Professor? @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+    staffCreateId   String?
+    staffCreate     Staff? @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
 
     staffUpdateId   String?
-    staffUpdate     Staff? @relation(fields: [staffUpdateId], references: [id], onDelete: Cascade)
+    staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
 
     requestId   String
     request     Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
@@ -153,4 +184,17 @@ model RequestDetail {
     updatedAt DateTime @updatedAt
 
     @@index([requestId])
+}
+
+
+model Professor {
+    id      String @id
+    name    String
+    email   String? @unique
+    isMock  Boolean @default(false)  // * Profesor de prueba se puede ir asignando 
+
+    requestDetails RequestDetail[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
