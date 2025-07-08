@@ -4,6 +4,14 @@ import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-val
 export class BasicSubjectDto {
 
     @ApiProperty({
+        description: 'The id of the subject',
+        example: 'sub-1234567890',
+    })
+    @IsString()
+    @IsNotEmpty()
+    id: string;
+
+    @ApiProperty({
         description: 'The name of the subject',
         example: 'Mathematics 101',
     })
