@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+
 import { PrismaClient } from 'generated/prisma';
 
 import { PrismaException }  from '@app/config/prisma-catch';
@@ -12,35 +13,39 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         this.$connect();
     }
 
+
     async create( createSubjectDto: CreateSubjectDto ) {
         try {
             return await this.subject.create({
                 data: createSubjectDto,
             });
-        } catch (error) {
-            throw PrismaException.catch(error, 'Failed to create subject');
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to create subject' );
         }
     }
 
-    async findAll(facultyId: string) {
+
+    async findAll( facultyId: string ) {
         return await this.subject.findMany({
             where: { facultyId }
         });
     }
 
-    async findOne(id: string) {
+
+    async findOne( id: string ) {
         const subject = await this.subject.findUnique({ 
             where: { id },
         });
 
-        if (!subject) {
-            throw new NotFoundException('Subject not found');
+        if ( !subject ) {
+            throw new NotFoundException( 'Subject not found' );
         }
 
         return subject;
     }
 
-    async update(id: string, updateSubjectDto: UpdateSubjectDto) {
+
+    async update( id: string, updateSubjectDto: UpdateSubjectDto ) {
         try {
             return await this.subject.update({
                 where: { id },
@@ -52,16 +57,17 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
                     costCenterId    : updateSubjectDto.costCenterId
                 }
             });
-        } catch (error) {
-            throw PrismaException.catch(error, 'Failed to update subject');
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update subject' );
         }
     }
 
-    async remove(id: string) {
+
+    async remove( id: string ) {
         try {
             return await this.subject.delete({ where: { id } });
-        } catch (error) {
-            throw PrismaException.catch(error, 'Failed to delete subject');
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to delete subject' );
         }
     }
 }
