@@ -2,9 +2,10 @@ import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
-import { PrismaException }  from '@app/config/prisma-catch';
-import { CreateFacultyDto } from '@faculties/dto/create-faculty.dto';
-import { UpdateFacultyDto } from '@faculties/dto/update-faculty.dto';
+import { PrismaException }          from '@app/config/prisma-catch';
+import { CreateFacultyDto }         from '@faculties/dto/create-faculty.dto';
+import { UpdateFacultyDto }         from '@faculties/dto/update-faculty.dto';
+import { Faculty, FacultyResponse } from '@faculties/entities/faculty.entity';
 
 
 @Injectable()
@@ -21,9 +22,60 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
         }
     }
 
+    async findAll() : Promise<FacultyResponse> {
+        const totalSubjects     = await this.subject.count();
+        const totalPersonnel    = await this.staff.count();
+        const totalRequests     = await this.request.count();
+        const facultiesCounts   = await this.faculty.findMany({
+            select: {
+                id          : true,
+                name        : true,
+                description : true,
+                isActive    : true,
+                createdAt   : true,
+                updatedAt   : true,
+                _count      : {
+                    select: {
+                        staff       : true,
+                        subjects    : true,
+                    },
+                },
+                subjects: {
+                    select: {
+                        _count: {
+                            select: {
+                                requests: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
 
-    async findAll() {
-        return await this.faculty.findMany();
+        const faculties: Faculty[] = facultiesCounts.map( faculty => {
+            const totalRequests = faculty.subjects.reduce(( sum, subject ) => {
+                return sum + subject._count.requests;
+            }, 0);
+
+            return {
+                id              : faculty.id,
+                name            : faculty.name,
+                description     : faculty.description || undefined,
+                totalSubjects   : faculty._count.subjects,
+                totalPersonnel  : faculty._count.staff,
+                totalRequests,
+                isActive        : faculty.isActive,
+                createdAt       : faculty.createdAt,
+                updatedAt       : faculty.updatedAt,
+            };
+        });
+
+        return {
+            totalSubjects,
+            totalPersonnel,
+            totalRequests,
+            faculties,
+        };
     }
 
 
