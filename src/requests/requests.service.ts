@@ -15,18 +15,8 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
 
     async create( createRequestDto: CreateRequestDto ) {
-        const { details, ...rest } = createRequestDto;
-
         try {
-            const request       = await this.request.create({ data: rest });
-            const detailsData   = details.map(( detail ) => ({
-                ...detail,
-                requestId   : request.id,
-                isPriority  : !!detail.professorId && ( detail.days.length > 0 ) && !!detail.moduleId
-            }));
-
-            await this.requestDetail.createMany({ data: detailsData });
-
+            const request = await this.request.create({ data: createRequestDto });
             return request;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request' );
@@ -35,16 +25,65 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
 
     async findAll( facultyId: string ) {
-        return await this.request.findMany({
+        const requests = await this.request.findMany({
+            select : {
+                id              : true,
+                title           : true,
+                status          : true,
+                isConsecutive   : true,
+                description     : true,
+                comment         : true,
+                createdAt       : true,
+                updatedAt       : true,
+                staffCreate     : {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                },
+                staffUpdate     : {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                },
+                subject         : {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                _count: {
+                    select: {
+                        details: true
+                    }
+                }
+            },
             where: {
                 subject: {
                     facultyId
                 }
-            },
-            include: {
-                details: true,
-            },
+            }
         });
+
+        return requests.map(( request ) => ({
+            id              : request.id,
+            title           : request.title,
+            status          : request.status,
+            isConsecutive   : request.isConsecutive,
+            description     : request.description,
+            comment         : request.comment,
+            createdAt       : request.createdAt,
+            updatedAt       : request.updatedAt,
+            staffCreate     : request.staffCreate,
+            staffUpdate     : request.staffUpdate,
+            subject         : request.subject,
+            totalDetails    : request._count.details
+        }));
     }
 
 
