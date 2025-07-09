@@ -24,7 +24,49 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
 
     async findAll( requestId: string ) {
-        return await this.requestDetail.findMany({ where: { requestId }});
+        return await this.requestDetail.findMany({
+            select: {
+                id              : true,
+                requestId       : true,
+                minimum         : true,
+                maximum         : true,
+                spaceType       : true,
+                spaceSize       : true,
+                costCenterId    : true,
+                inAfternoon     : true,
+                building        : true,
+                description     : true,
+                moduleId        : true,
+                days            : true,
+                spaceId         : true,
+                isPriority      : true,
+                level           : true,
+                createdAt       : true,
+                updatedAt       : true,
+                professor       : {
+                    select: {
+                        id      : true,
+                        name    : true,
+                        email   : true,
+                    }
+                },
+                staffUpdate: {
+                    select: {
+                        id      : true,
+                        name    : true,
+                        email   : true,
+                    }
+                },
+                staffCreate: {
+                    select: {
+                        id      : true,
+                        name    : true,
+                        email   : true,
+                    }
+                },
+            },
+            where: { requestId }
+        });
     }
 
 
