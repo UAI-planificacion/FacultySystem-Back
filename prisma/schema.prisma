@@ -86,6 +86,7 @@ enum Status {
 
 model Request {
     id              String @id @default(ulid())
+    title           String
     status          Status @default(PENDING)
     isConsecutive   Boolean @default(false)
     description     String? // of staff
@@ -134,7 +135,7 @@ enum Size {
 }
 
 
-enum Nivel {
+enum Level {
     PREGRADO
     FIRST_GRADE
     SECOND_GRADE
@@ -166,7 +167,7 @@ model RequestDetail {
     days            String[] @default([])
     spaceId         String?
     isPriority      Boolean @default(false) // *profesor, dia y módulo no son null, se le da prioridad
-    nivel           Nivel @default(PREGRADO)
+    level           Level @default(PREGRADO)
 
     professorId     String?
     professor       Professor? @relation(fields: [professorId], references: [id], onDelete: Cascade)
