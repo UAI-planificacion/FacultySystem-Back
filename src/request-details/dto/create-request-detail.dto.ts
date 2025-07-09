@@ -14,8 +14,7 @@ import {
 }               from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { Nivel, Size, SpaceType }   from 'generated/prisma';
-import { Building }                 from 'generated/prisma';
+import { Level, Size, SpaceType, Building } from 'generated/prisma';
 
 
 export class CreateRequestDetailDto {
@@ -118,14 +117,14 @@ export class CreateRequestDetailDto {
     isPriority: boolean = false;
 
     @ApiPropertyOptional({ 
-        enum        : Object.values( Nivel ),
-        default     : Nivel.PREGRADO,
+        enum        : Object.values( Level ),
+        default     : Level.PREGRADO,
         description : 'Education level'
     })
     @IsOptional()
     @IsString()
-    @IsEnum( Nivel )
-    nivel: Nivel = Nivel.PREGRADO;
+    @IsEnum( Level )
+    nivel: Level = Level.PREGRADO;
 
     @ApiPropertyOptional({ description: 'Professor ID' })
     @IsOptional()
