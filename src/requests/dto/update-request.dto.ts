@@ -1,6 +1,6 @@
 import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
-import { IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 import { BasicRequestDto }  from '@requests/dto/basic-request.dto';
 import { CommentDto }       from '@requests/dto/comment.dto';
@@ -14,6 +14,7 @@ export class UpdateRequestDto extends IntersectionType( BasicRequestDto, Comment
     })
     @IsString()
     @Length( 26, 26 )
+    @IsOptional()
     staffUpdatedId?: string;
 
 }

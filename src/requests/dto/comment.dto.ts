@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-import { IsString, Length } from 'class-validator';
+import { IsOptional, IsString, Length } from 'class-validator';
 
 
 export class CommentDto {
@@ -11,6 +11,7 @@ export class CommentDto {
     })
     @IsString()
     @Length( 0, 255 )
+    @IsOptional()
     comment?: string;
 
 }
