@@ -14,9 +14,22 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
+    #getIsPriority( requestDetail :CreateRequestDetailDto | UpdateRequestDetailDto ) {
+        return !!requestDetail.professorId    &&
+            !!requestDetail.moduleId       &&
+            !!requestDetail.spaceId        &&
+            requestDetail.days.length > 0;
+    }
+
+
     async create( createRequestDetailDto: CreateRequestDetailDto ) {
+        const isPriority = this.#getIsPriority( createRequestDetailDto );
+
         try {
-            return await this.requestDetail.create({ data: createRequestDetailDto });
+            return await this.requestDetail.create({ data: {
+                ...createRequestDetailDto,
+                isPriority
+            }});
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request detail' );
         }
@@ -82,8 +95,16 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
 
     async update( id: string, updateRequestDetailDto: UpdateRequestDetailDto ) {
+        const isPriority = this.#getIsPriority( updateRequestDetailDto );
+
         try {
-            return await this.requestDetail.update({ where: { id }, data: updateRequestDetailDto });
+            return await this.requestDetail.update({
+                where: { id },
+                data: {
+                    ...updateRequestDetailDto,
+                    isPriority
+                }
+            });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update request detail' );
         }
