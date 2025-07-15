@@ -15,9 +15,9 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
 
     #getIsPriority( requestDetail :CreateRequestDetailDto | UpdateRequestDetailDto ) {
-        return !!requestDetail.professorId    &&
-            !!requestDetail.moduleId       &&
-            !!requestDetail.spaceId        &&
+        return !!requestDetail.professorId  &&
+            !!requestDetail.moduleId        &&
+            !!requestDetail.spaceId         &&
             requestDetail.days.length > 0;
     }
 
@@ -56,13 +56,7 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
                 level           : true,
                 createdAt       : true,
                 updatedAt       : true,
-                professor       : {
-                    select: {
-                        id      : true,
-                        name    : true,
-                        email   : true,
-                    }
-                },
+                professorId     : true,
                 staffUpdate: {
                     select: {
                         id      : true,
