@@ -18,7 +18,6 @@
             "@staff/*"              : ["src/staff/*"],
             "@requests/*"           : ["src/requests/*"],
             "@request-details/*"    : ["src/request-details/*"],
-            "@professors/*"         : ["src/professors/*"],
         },
         "incremental": true,
         "skipLibCheck": true,
