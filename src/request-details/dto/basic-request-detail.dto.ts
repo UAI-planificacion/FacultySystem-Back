@@ -7,7 +7,6 @@ import {
     IsInt,
     IsOptional,
     IsString,
-    IsUUID,
     Length,
     Max,
     Min
@@ -90,7 +89,7 @@ export class BasicRequestDetailDto {
 
     @ApiPropertyOptional({ description: 'Module ID' })
     @IsOptional()
-    @IsUUID()
+    @Length( 0, 3 )
     moduleId?: string;
 
     @ApiPropertyOptional({
@@ -121,9 +120,7 @@ export class BasicRequestDetailDto {
     @ApiPropertyOptional({ description: 'Professor ID' })
     @IsOptional()
     @IsString()
-    @Length( 0, 26 )
+    @Length( 0, 30 )
     professorId?: string;
-
-
 
 }
