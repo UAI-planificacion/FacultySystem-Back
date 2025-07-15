@@ -49,7 +49,8 @@ export class StaffService extends PrismaClient implements OnModuleInit {
                 data: {
                     name    : updateStaffDto.name,
                     email   : updateStaffDto.email,
-                    role    : updateStaffDto.role
+                    role    : updateStaffDto.role,
+                    isActive: updateStaffDto.isActive
                 }
             });
         } catch (error) {
