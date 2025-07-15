@@ -170,7 +170,6 @@ model RequestDetail {
     level           Level @default(PREGRADO)
 
     professorId     String?
-    professor       Professor? @relation(fields: [professorId], references: [id], onDelete: Cascade)
 
     staffCreateId   String?
     staffCreate     Staff? @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
@@ -185,17 +184,4 @@ model RequestDetail {
     updatedAt DateTime @updatedAt
 
     @@index([requestId])
-}
-
-
-model Professor {
-    id      String @id
-    name    String
-    email   String? @unique
-    isMock  Boolean @default(false)  // * Profesor de prueba se puede ir asignando 
-
-    requestDetails RequestDetail[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
 }
