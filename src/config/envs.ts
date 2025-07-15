@@ -7,6 +7,13 @@ export const envSchema = z.object({
     API_PREFIX      : z.string().default('api'),
     API_DOC_PREFIX  : z.string().default('docs'),
     CORS_ORIGIN     : z.string().default('*'),
+
+    // DB
+    PGDATABASE      : z.string(),
+    PGHOST          : z.string(),
+    PGPASSWORD      : z.string(),
+    PGPORT          : z.string(),
+    PGUSER          : z.string(),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
