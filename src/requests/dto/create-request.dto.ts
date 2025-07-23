@@ -15,7 +15,7 @@ export class CreateRequestDto extends BasicRequestDto {
         example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
     })
     @IsString()
-    @Length( 26, 26 )
+    @Length( 25, 25 )
     staffCreateId: string;
 
 }
