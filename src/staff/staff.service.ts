@@ -32,7 +32,14 @@ export class StaffService extends PrismaClient implements OnModuleInit {
 
 
     async findOne( id: string ) {
-        const staff = await this.staff.findUnique({ where: { id }});
+        const staff = await this.staff.findFirst({
+            where: {
+                OR: [
+                    { id },
+                    { email: id },
+                ],
+            },
+        });
 
         if ( !staff ) {
             throw new NotFoundException( 'Staff not found' );
