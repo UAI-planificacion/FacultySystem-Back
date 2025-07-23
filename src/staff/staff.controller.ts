@@ -1,9 +1,10 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { StaffService } from './staff.service';
-import { CreateStaffDto } from './dto/create-staff.dto';
-import { UpdateStaffDto } from './dto/update-staff.dto';
 
-@Controller('staff')
+import { StaffService }     from '@staff/staff.service';
+import { CreateStaffDto }   from '@staff/dto/create-staff.dto';
+import { UpdateStaffDto }   from '@staff/dto/update-staff.dto';
+
+@Controller( 'staff' )
 export class StaffController {
     constructor(
         private readonly staffService: StaffService
@@ -36,7 +37,7 @@ export class StaffController {
 
     @Patch( ':id' )
     update(
-        @Param('id') id: string,
+        @Param( 'id' ) id: string,
         @Body() updateStaffDto: UpdateStaffDto
     ) {
         return this.staffService.update( id, updateStaffDto );
@@ -49,4 +50,5 @@ export class StaffController {
     ) {
         return this.staffService.remove( id );
     }
+
 }
