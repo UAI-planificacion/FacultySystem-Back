@@ -1,21 +1,10 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { IntersectionType } from '@nestjs/swagger';
 
-import {
-    IsString,
-    Length,
-} from 'class-validator';
-
-import { BasicRequestDto } from '@requests/dto/basic-request.dto';
+import { BasicRequestDto }  from '@requests/dto/basic-request.dto';
+import { StaffCreateIdDTO } from '@requests/dto/staff-create-id.dto';
 
 
-export class CreateRequestDto extends BasicRequestDto {
-
-    @ApiProperty({ 
-        description : 'ID of the staff member creating the request',
-        example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
-    })
-    @IsString()
-    @Length( 25, 25 )
-    staffCreateId: string;
-
-}
+export class CreateRequestDto extends IntersectionType(
+    BasicRequestDto,
+    StaffCreateIdDTO
+) {}
