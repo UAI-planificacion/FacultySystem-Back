@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
 
-import { PrismaClient } from 'generated/prisma';
+import { Prisma, PrismaClient } from 'generated/prisma';
 
 import { PrismaException }  from '@app/config/prisma-catch';
 import { CreateRequestDto } from '@requests/dto/create-request.dto';
@@ -104,10 +104,28 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
 
     async update( id: string, updateRequestDto: UpdateRequestDto ) {
+        const data: Prisma.RequestUpdateInput = { ...updateRequestDto };
+
+        if ( updateRequestDto.subjectId !== undefined ) {
+            delete ( data as any ).subjectId; 
+
+            data.subject = {
+                connect: { id: updateRequestDto.subjectId }
+            };
+        }
+
+        if ( updateRequestDto.staffUpdateId ) {
+            delete (data as any).staffUpdateId;
+
+            data.staffUpdate = {
+                connect: { id: updateRequestDto.staffUpdateId }
+            };
+        } 
+
         try {
             return await this.request.update({
                 where: { id },
-                data: updateRequestDto
+                data
             });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update request' );
