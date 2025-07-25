@@ -69,6 +69,8 @@ model Staff {
     requestDetails    RequestDetail[] @relation("staffCreate")
     requestDetailsUpdate RequestDetail[] @relation("staffUpdate")
 
+    comments Comment[]
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -102,6 +104,7 @@ model Request {
     subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
     details     RequestDetail[]
+    comments Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -177,11 +180,36 @@ model RequestDetail {
     staffUpdateId   String?
     staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
 
-    requestId   String
-    request     Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+    requestId       String
+    request         Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+    comments Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([requestId])
+}
+
+
+model Comment {
+	id          	String @id @default(ulid())
+	content     	String
+
+	request         Request?        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+	requestId     	String?
+
+    requestDetail   RequestDetail? @relation(fields: [requestDetailId], references: [id], onDelete: Cascade)
+    requestDetailId String?
+
+    staff           Staff?         @relation(fields: [staffId], references: [id], onDelete: Cascade)
+    staffId         String?
+
+    adminName       String?
+    adminEmail      String?
+
+	createdAt   	DateTime @default(now())
+	updatedAt   	DateTime @updatedAt
+
+	@@index([requestId, requestDetailId])
 }
