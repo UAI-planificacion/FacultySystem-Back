@@ -7,18 +7,22 @@ import { SubjectsModule }       from '@subjects/subjects.module';
 import { ConfigModule }         from '@config/config.module';
 import { RequestsModule }       from '@requests/requests.module';
 import { RequestDetailsModule } from '@request-details/request-details.module';
+import { SseModule }            from '@sse/sse.module';
+import { CommentsModule }       from '@comments/comments.module';
 
 
 @Module({
-    imports     : [
+    imports: [
         FacultiesModule,
         StaffModule,
         SubjectsModule,
         ConfigModule,
         RequestsModule,
         RequestDetailsModule,
+        SseModule,
+        CommentsModule,
     ],
-    controllers : [AppController],
+    controllers : [ AppController ],
     providers   : [],
 })
 export class AppModule {}
