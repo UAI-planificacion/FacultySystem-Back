@@ -18,6 +18,8 @@
             "@staff/*"              : ["src/staff/*"],
             "@requests/*"           : ["src/requests/*"],
             "@request-details/*"    : ["src/request-details/*"],
+            "@sse/*"                : ["src/sse/*"],
+            "@comments/*"           : ["src/comments/*"]
         },
         "incremental": true,
         "skipLibCheck": true,
