@@ -91,8 +91,7 @@ model Request {
     title           String
     status          Status @default(PENDING)
     isConsecutive   Boolean @default(false)
-    description     String? // of staff
-    comment         String? // of admin
+    description     String?
 
     staffCreateId   String
     staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
@@ -164,8 +163,7 @@ model RequestDetail {
     costCenterId    String?
     inAfternoon     Boolean @default(false)
     building        Building?
-    description     String? // of staff
-    comment         String? // of admin
+    description     String?
     moduleId        String?
     days            String[] @default([])
     spaceId         String?
