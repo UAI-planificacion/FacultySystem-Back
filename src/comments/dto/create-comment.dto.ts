@@ -1,56 +1,14 @@
-import { 
-	IsString, 
-	IsOptional, 
-	IsUUID, 
-	IsEmail, 
-	ValidateIf, 
-	IsNotEmpty,
-	ValidationArguments,
-	ValidatorConstraint,
-	ValidatorConstraintInterface 
-} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+import { 
+	IsString,
+	IsOptional,
+	IsEmail,
+	ValidateIf,
+	IsNotEmpty,
+    Length,
+} from 'class-validator';
 
-/**
- * Custom validator to ensure either requestId or requestDetailId is provided, but not both null
- */
-@ValidatorConstraint({ name: 'RequestOrDetailRequired', async: false })
-export class RequestOrDetailRequiredConstraint implements ValidatorConstraintInterface {
-
-    validate(value: any, args: ValidationArguments): boolean {
-        const object = args.object as CreateCommentDto;
-        const hasRequestId = typeof object.requestId === 'string' && object.requestId.trim() !== '';
-        const hasRequestDetailId = typeof object.requestDetailId === 'string' && object.requestDetailId.trim() !== '';
-
-        return (hasRequestId && !hasRequestDetailId) || (!hasRequestId && hasRequestDetailId);
-    }
-
-    defaultMessage(args: ValidationArguments): string {
-        return 'Either requestId or requestDetailId must be provided, but not both or neither.';
-    }
-}
-
-
-/**
- * Custom validator to ensure either staffId or (adminName and adminEmail) is provided
- */
-@ValidatorConstraint({ name: 'StaffOrAdminAuthorRequired', async: false })
-export class StaffOrAdminAuthorRequiredConstraint implements ValidatorConstraintInterface {
-
-    validate(value: any, args: ValidationArguments): boolean {
-        const object = args.object as CreateCommentDto;
-        const hasStaffId = typeof object.staffId === 'string' && object.staffId.trim() !== '';
-        const hasAdminData = typeof object.adminName === 'string' && object.adminName.trim() !== '' &&
-            typeof object.adminEmail === 'string' && object.adminEmail.trim() !== '';
-
-        return (hasStaffId && !hasAdminData) || (!hasStaffId && hasAdminData);
-    }
-
-    defaultMessage(args: ValidationArguments): string {
-        return 'A comment must have a Staff author (staffId) OR an Admin author (adminName and adminEmail), but not both or neither.';
-    }
-}
 
 export class CreateCommentDto {
 
@@ -69,7 +27,7 @@ export class CreateCommentDto {
 	})
 	@IsOptional()
 	@IsString()
-	@IsUUID()
+	@Length( 24, 26 )
 	requestId?: string;
 
 
@@ -79,7 +37,7 @@ export class CreateCommentDto {
 	})
 	@IsOptional()
 	@IsString()
-	@IsUUID()
+	@Length( 24, 26 )
 	requestDetailId?: string;
 
 
@@ -89,7 +47,7 @@ export class CreateCommentDto {
 	})
 	@IsOptional()
 	@IsString()
-	@IsUUID()
+	@Length( 24, 26 )
 	staffId?: string;
 
 
@@ -113,4 +71,5 @@ export class CreateCommentDto {
 	@ValidateIf( ( o ) => !o.staffId )
 	@IsNotEmpty()
 	adminEmail?: string;
+
 }
