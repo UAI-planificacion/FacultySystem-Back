@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
 
 import { Prisma, PrismaClient } from 'generated/prisma';
 
-import { PrismaException }  from '@app/config/prisma-catch';
+import { PrismaException }  from '@config/prisma-catch';
 import { CreateRequestDto } from '@requests/dto/create-request.dto';
 import { UpdateRequestDto } from '@requests/dto/update-request.dto';
 
@@ -32,7 +32,6 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 status          : true,
                 isConsecutive   : true,
                 description     : true,
-                comment         : true,
                 createdAt       : true,
                 updatedAt       : true,
                 staffCreate     : {
@@ -76,7 +75,6 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             status          : request.status,
             isConsecutive   : request.isConsecutive,
             description     : request.description,
-            comment         : request.comment,
             createdAt       : request.createdAt,
             updatedAt       : request.updatedAt,
             staffCreate     : request.staffCreate,
