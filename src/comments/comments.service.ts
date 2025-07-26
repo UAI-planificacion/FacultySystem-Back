@@ -1,9 +1,11 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
 import { CreateCommentDto } from '@comments/dto/create-comment.dto';
 import { UpdateCommentDto } from '@comments/dto/update-comment.dto';
+import { PrismaException }  from '@config/prisma-catch';
+
 
 @Injectable()
 export class CommentsService extends PrismaClient implements OnModuleInit {
@@ -16,16 +18,33 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
             const comment = await this.comment.create({
                 data: createCommentDto
             });
-            return comment;
-        } catch (error) {
-            throw new Error('Failed to create comment');
+
+            return this.findOne( comment.id );
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to create comment' );
+        }
+    }
+
+    #selectComment = {
+        id          : true,
+        content     : true,
+        adminEmail  : true,
+        adminName   : true,
+        createdAt   : true,
+        updatedAt   : true,
+        staff       : {
+            select: {
+                name    : true,
+                email   : true
+            }
         }
     }
 
     async findAllByRequestId( requestId: string ) {
         return await this.comment.findMany({
-            where: {
-                requestId,
+            select  : this.#selectComment,
+            where   : {
+                requestId
             },
             orderBy: {
                 createdAt: 'desc'
@@ -35,7 +54,8 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
 
     async findAllByRequestDetailId( requestDetailId: string ) {
         return await this.comment.findMany({
-            where: {
+            select  : this.#selectComment,
+            where   : {
                 requestDetailId,
             },
             orderBy: {
@@ -45,11 +65,22 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
     }
 
     async findOne( id: string ) {
-        return await this.comment.findUnique({
+        const comment = await this.comment.findUnique({
+            select : {
+                ...this.#selectComment,
+                requestId       : true,
+                requestDetailId : true
+            },
             where: {
                 id
             }
         });
+
+        if ( !comment ) {
+            throw new NotFoundException( 'Comment not found' );
+        }
+
+        return comment;
     }
 
     async update( id: string, updateCommentDto: UpdateCommentDto ) {
@@ -60,9 +91,10 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
                 },
                 data: updateCommentDto
             });
-            return comment;
-        } catch (error) {
-            throw new Error('Failed to update comment');
+
+            return this.findOne( comment.id );
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update comment' );
         }
     }
 
@@ -73,9 +105,10 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
                     id
                 }
             });
+
             return comment;
-        } catch (error) {
-            throw new Error('Failed to remove comment');
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to remove comment' );
         }
     }
 
