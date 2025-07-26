@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes } from '@nestjs/common';
 
-import { CommentsService }  from '@comments/comments.service';
-import { CreateCommentDto } from '@comments/dto/create-comment.dto';
-import { UpdateCommentDto } from '@comments/dto/update-comment.dto';
+import { CommentsService }          from '@comments/comments.service';
+import { CreateCommentDto }         from '@comments/dto/create-comment.dto';
+import { UpdateCommentDto }         from '@comments/dto/update-comment.dto';
+import { CommentValidationPipe }    from '@comments/pipes/comment-validation.pipe';
 
 
 @Controller( 'comments' )
@@ -13,6 +14,7 @@ export class CommentsController {
     ) {}
 
     @Post()
+    @UsePipes( CommentValidationPipe )
     create(
         @Body() createCommentDto: CreateCommentDto
     ) {
@@ -21,7 +23,7 @@ export class CommentsController {
 
     @Get( 'request/:id' )
     findAllByRequestId(
-        @Param('id') id: string,
+        @Param( 'id' ) id: string,
     ) {
         return this.commentService.findAllByRequestId( id );
     }
