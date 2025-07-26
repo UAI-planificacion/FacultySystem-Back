@@ -49,7 +49,6 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
                 inAfternoon     : true,
                 building        : true,
                 description     : true,
-                comment         : true,
                 moduleId        : true,
                 days            : true,
                 spaceId         : true,
