@@ -4,11 +4,21 @@ import { CreateRequestDetailDto }   from '@request-details/dto/create-request-de
 import { UpdateRequestDetailDto }   from '@request-details/dto/update-request-detail.dto';
 import { PrismaClient }             from 'generated/prisma';
 
-import { PrismaException } from '@app/config/prisma-catch';
+import { PrismaException }  from '@config/prisma-catch';
+import { SseService }       from '@sse/sse.service';
+import { EnumAction, Type } from '@sse/sse.model';
 
 
 @Injectable()
 export class RequestDetailsService extends PrismaClient implements OnModuleInit {
+
+    constructor(
+		private readonly sseService: SseService,
+    ) {
+        super();
+    }
+
+
     onModuleInit() {
         this.$connect();
     }
@@ -26,10 +36,18 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         const isPriority = this.#getIsPriority( createRequestDetailDto );
 
         try {
-            return await this.requestDetail.create({ data: {
+            const requestDetail = await this.requestDetail.create({ data: {
                 ...createRequestDetailDto,
                 isPriority
             }});
+
+            this.sseService.emitEvent({
+                message : requestDetail,
+                action  : EnumAction.CREATE,
+                type    : Type.DETAIL
+            });
+
+            return requestDetail;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request detail' );
         }
@@ -92,13 +110,21 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         const isPriority = this.#getIsPriority( updateRequestDetailDto );
 
         try {
-            return await this.requestDetail.update({
+            const requestDetail = await this.requestDetail.update({
                 where: { id },
                 data: {
                     ...updateRequestDetailDto,
                     isPriority
                 }
             });
+
+            this.sseService.emitEvent({
+                message : requestDetail,
+                action  : EnumAction.UPDATE,
+                type    : Type.DETAIL
+            });
+
+            return requestDetail
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update request detail' );
         }
@@ -107,7 +133,15 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
     async remove( id: string ) {
         try {
-            return await this.requestDetail.delete({ where: { id }});
+            const requestDetail = await this.requestDetail.delete({ where: { id }});
+
+            this.sseService.emitEvent({
+                message : requestDetail,
+                action  : EnumAction.DELETE,
+                type    : Type.DETAIL
+            });
+
+            return requestDetail;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete request detail' );
         }
