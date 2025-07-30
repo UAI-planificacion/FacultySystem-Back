@@ -2,14 +2,16 @@ import { Injectable } from '@nestjs/common';
 
 import { Observable, Subject } from 'rxjs';
 
+import { EmitEvent } from '@sse/sse.model';
+
 
 @Injectable()
 export class SseService {
 
-    private eventSubject: Subject<any> = new Subject();
+    private eventSubject: Subject<EmitEvent> = new Subject();
 
-    emitEvent( data: any ): void {
-        this.eventSubject.next( data );
+    emitEvent( emitEvent: EmitEvent ): void {
+        this.eventSubject.next( emitEvent );
     }
 
     getEvents(): Observable<any> {
