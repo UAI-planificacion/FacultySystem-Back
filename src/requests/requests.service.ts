@@ -5,19 +5,89 @@ import { Prisma, PrismaClient } from 'generated/prisma';
 import { PrismaException }  from '@config/prisma-catch';
 import { CreateRequestDto } from '@requests/dto/create-request.dto';
 import { UpdateRequestDto } from '@requests/dto/update-request.dto';
+import { SseService }       from '@sse/sse.service';
+import { EnumAction, Type } from '@sse/sse.model';
 
 
 @Injectable()
 export class RequestsService extends PrismaClient implements OnModuleInit {
+
+    constructor(
+		private readonly sseService: SseService,
+    ) {
+        super();
+    }
+
     onModuleInit() {
         this.$connect();
+    }
+
+    #requestMap = ( request ) => ({
+        id              : request.id,
+        title           : request.title,
+        status          : request.status,
+        isConsecutive   : request.isConsecutive,
+        description     : request.description,
+        createdAt       : request.createdAt,
+        updatedAt       : request.updatedAt,
+        staffCreate     : request.staffCreate,
+        staffUpdate     : request.staffUpdate,
+        subject         : request.subject,
+        totalDetails    : request._count.details,
+        facultyId       : request.staffCreate.facultyId
+    })
+
+    #selectRequest = {
+        id              : true,
+        title           : true,
+        status          : true,
+        isConsecutive   : true,
+        description     : true,
+        createdAt       : true,
+        updatedAt       : true,
+        staffCreate     : {
+            select: {
+                id          : true,
+                name        : true,
+                email       : true,
+                role        : true,
+                facultyId   : true
+            }
+        },
+        staffUpdate     : {
+            select: {
+                id      : true,
+                name    : true,
+                email   : true,
+                role    : true
+            }
+        },
+        subject         : {
+            select: {
+                id      : true,
+                name    : true,
+            }
+        },
+        _count: {
+            select: {
+                details: true
+            }
+        }
     }
 
 
     async create( createRequestDto: CreateRequestDto ) {
         try {
-            const request = await this.request.create({ data: createRequestDto });
-            return request;
+            const request       = await this.request.create({ data: createRequestDto });
+            const requestData   = await this.findOne( request.id );
+
+            this.sseService.emitEvent({
+                message : requestData,
+                action  : EnumAction.CREATE,
+                type    : Type.REQUEST
+            });
+
+            return requestData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request' );
         }
@@ -26,78 +96,29 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
     async findAll( facultyId: string ) {
         const requests = await this.request.findMany({
-            select : {
-                id              : true,
-                title           : true,
-                status          : true,
-                isConsecutive   : true,
-                description     : true,
-                createdAt       : true,
-                updatedAt       : true,
-                staffCreate     : {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        role: true
-                    }
-                },
-                staffUpdate     : {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        role: true
-                    }
-                },
-                subject         : {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                },
-                _count: {
-                    select: {
-                        details: true
-                    }
-                }
-            },
-            where: {
+            select  : this.#selectRequest,
+            where   : {
                 subject: {
                     facultyId
                 }
             }
         });
 
-        return requests.map(( request ) => ({
-            id              : request.id,
-            title           : request.title,
-            status          : request.status,
-            isConsecutive   : request.isConsecutive,
-            description     : request.description,
-            createdAt       : request.createdAt,
-            updatedAt       : request.updatedAt,
-            staffCreate     : request.staffCreate,
-            staffUpdate     : request.staffUpdate,
-            subject         : request.subject,
-            totalDetails    : request._count.details
-        }));
+        return requests.map(( request ) =>  this.#requestMap( request ));
     }
 
 
     async findOne( id: string ) {
         const request = await this.request.findUnique({
-            where: { id },
-            include: {
-                details: true,
-            },
+            select  : this.#selectRequest,
+            where   : { id },
         });
 
         if ( !request ) {
             throw new NotFoundException( 'Request not found' );
         }
 
-        return request;
+        return this.#requestMap( request );
     }
 
 
@@ -113,7 +134,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         }
 
         if ( updateRequestDto.staffUpdateId ) {
-            delete (data as any).staffUpdateId;
+            delete ( data as any ).staffUpdateId;
 
             data.staffUpdate = {
                 connect: { id: updateRequestDto.staffUpdateId }
@@ -121,10 +142,20 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         } 
 
         try {
-            return await this.request.update({
+            const requestUpdated = await this.request.update({
                 where: { id },
                 data
             });
+
+            const requestData = await this.findOne( requestUpdated.id );
+
+            this.sseService.emitEvent({
+                message : requestData,
+                action  : EnumAction.UPDATE,
+                type    : Type.REQUEST
+            });
+
+            return requestData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update request' );
         }
@@ -133,7 +164,15 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
     async remove( id: string ) {
         try {
-            return await this.request.delete({ where: { id } });
+            const requestDeleted = await this.request.delete({ where: { id } });
+
+            this.sseService.emitEvent({
+                message : requestDeleted,
+                action  : EnumAction.DELETE,
+                type    : Type.REQUEST
+            });
+
+            return requestDeleted;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete request' );
         }
