@@ -7,8 +7,8 @@ import {
     Res,
 } from '@nestjs/common';
 
-import { SseService } from '@sse/sse.service';
-import { EnumAction } from '@sse/sse.model';
+import { SseService }       from '@sse/sse.service';
+import { EnumAction, Type } from '@sse/sse.model';
 
 
 @Controller( 'sse' )
@@ -42,8 +42,11 @@ export class SseController {
 
     @Post( 'emit' )
     emitExampleEvent(): void {
-        const data = { message: 'Este es un evento SSE', action: EnumAction.CREATE };
-        this.sseService.emitEvent( data );
+        this.sseService.emitEvent({
+            message : 'Este es un evento SSE',
+            action  : EnumAction.CREATE,
+            type    : Type.TEST
+        });
     }
 
 }
