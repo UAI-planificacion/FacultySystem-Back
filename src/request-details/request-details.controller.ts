@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Request } from 'express';
+
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 
 import { RequestDetailsService }    from '@request-details/request-details.service';
 import { CreateRequestDetailDto }   from '@request-details/dto/create-request-detail.dto';
@@ -14,9 +16,11 @@ export class RequestDetailsController {
 
     @Post()
     create(
-        @Body() createRequestDetailDto: CreateRequestDetailDto
+        @Body() createRequestDetailDto: CreateRequestDetailDto,
+        @Req() request: Request,
     ) {
-        return this.requestDetailsService.create( createRequestDetailDto );
+        const origin = request.headers['origin'];
+        return this.requestDetailsService.create( createRequestDetailDto, origin );
     }
 
 
@@ -39,17 +43,21 @@ export class RequestDetailsController {
     @Patch( ':id' )
     update(
         @Param( 'id' ) id: string,
-        @Body() updateRequestDetailDto: UpdateRequestDetailDto
+        @Body() updateRequestDetailDto: UpdateRequestDetailDto,
+        @Req() request: Request,
     ) {
-        return this.requestDetailsService.update( id, updateRequestDetailDto );
+        const origin = request.headers['origin'];
+        return this.requestDetailsService.update( id, updateRequestDetailDto, origin );
     }
 
 
     @Delete( ':id' )
     remove(
-        @Param( 'id' ) id: string
+        @Param( 'id' ) id: string,
+        @Req() request: Request,
     ) {
-        return this.requestDetailsService.remove( id );
+        const origin = request.headers['origin'];
+        return this.requestDetailsService.remove( id, origin );
     }
 
 }
