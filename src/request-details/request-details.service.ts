@@ -32,7 +32,10 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    async create( createRequestDetailDto: CreateRequestDetailDto ) {
+    async create(
+        createRequestDetailDto  : CreateRequestDetailDto,
+        origin                  : string | undefined
+    ) {
         const isPriority = this.#getIsPriority( createRequestDetailDto );
 
         try {
@@ -44,7 +47,8 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
             this.sseService.emitEvent({
                 message : requestDetail,
                 action  : EnumAction.CREATE,
-                type    : Type.DETAIL
+                type    : Type.DETAIL,
+                origin
             });
 
             return requestDetail;
@@ -106,7 +110,12 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    async update( id: string, updateRequestDetailDto: UpdateRequestDetailDto ) {
+    async update(
+        id                      : string,
+        updateRequestDetailDto  : UpdateRequestDetailDto,
+        origin                  : string | undefined
+
+    ) {
         const isPriority = this.#getIsPriority( updateRequestDetailDto );
 
         try {
@@ -121,7 +130,8 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
             this.sseService.emitEvent({
                 message : requestDetail,
                 action  : EnumAction.UPDATE,
-                type    : Type.DETAIL
+                type    : Type.DETAIL,
+                origin
             });
 
             return requestDetail
@@ -131,7 +141,8 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    async remove( id: string ) {
+    async remove( id: string, origin: string | undefined ) {
+
         try {
             const requestData = await this.findOne( id );
             await this.requestDetail.delete({ where: { id }});
@@ -139,7 +150,8 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
             this.sseService.emitEvent({
                 message : requestData,
                 action  : EnumAction.DELETE,
-                type    : Type.DETAIL
+                type    : Type.DETAIL,
+                origin
             });
 
             return requestData;
