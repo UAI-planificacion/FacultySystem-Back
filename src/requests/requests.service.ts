@@ -76,7 +76,10 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async create( createRequestDto: CreateRequestDto ) {
+    async create(
+        createRequestDto    : CreateRequestDto,
+        origin              : string | undefined
+    ) {
         try {
             const request       = await this.request.create({ data: createRequestDto });
             const requestData   = await this.findOne( request.id );
@@ -84,7 +87,8 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             this.sseService.emitEvent({
                 message : requestData,
                 action  : EnumAction.CREATE,
-                type    : Type.REQUEST
+                type    : Type.REQUEST,
+                origin
             });
 
             return requestData;
@@ -122,7 +126,11 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async update( id: string, updateRequestDto: UpdateRequestDto ) {
+    async update(
+        id: string,
+        updateRequestDto: UpdateRequestDto,
+        origin: string | undefined
+    ) {
         const data: Prisma.RequestUpdateInput = { ...updateRequestDto };
 
         if ( updateRequestDto.subjectId !== undefined ) {
@@ -152,7 +160,8 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             this.sseService.emitEvent({
                 message : requestData,
                 action  : EnumAction.UPDATE,
-                type    : Type.REQUEST
+                type    : Type.REQUEST,
+                origin
             });
 
             return requestData;
@@ -162,7 +171,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async remove( id: string ) {
+    async remove( id: string, origin: string | undefined ) {
         try {
             const requestData = await this.findOne( id );
             await this.request.delete({ where: { id } });
@@ -170,7 +179,8 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             this.sseService.emitEvent({
                 message : requestData,
                 action  : EnumAction.DELETE,
-                type    : Type.REQUEST
+                type    : Type.REQUEST,
+                origin
             });
 
             return requestData;
