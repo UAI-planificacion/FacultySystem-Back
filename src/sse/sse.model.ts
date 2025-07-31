@@ -6,11 +6,13 @@ export enum EnumAction  {
 
 export enum Type {
     REQUEST = 'request',
-    DETAIL  = 'detail'
+    DETAIL  = 'detail',
+    TEST    = 'test'
 }
 
 export interface EmitEvent {
     message : any;
     action  : EnumAction;
-    type?   : Type
+    type    : Type;
+    origin? : string | undefined;
 }
