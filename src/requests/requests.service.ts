@@ -164,15 +164,16 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
     async remove( id: string ) {
         try {
-            const requestDeleted = await this.request.delete({ where: { id } });
+            const requestData = await this.findOne( id );
+            await this.request.delete({ where: { id } });
 
             this.sseService.emitEvent({
-                message : requestDeleted,
+                message : requestData,
                 action  : EnumAction.DELETE,
                 type    : Type.REQUEST
             });
 
-            return requestDeleted;
+            return requestData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete request' );
         }

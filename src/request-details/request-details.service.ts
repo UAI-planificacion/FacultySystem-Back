@@ -24,7 +24,7 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    #getIsPriority( requestDetail :CreateRequestDetailDto | UpdateRequestDetailDto ) {
+    #getIsPriority( requestDetail: CreateRequestDetailDto | UpdateRequestDetailDto ) {
         return !!requestDetail.professorId  &&
             !!requestDetail.moduleId        &&
             !!requestDetail.spaceId         &&
@@ -75,7 +75,7 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
                 createdAt       : true,
                 updatedAt       : true,
                 professorId     : true,
-                staffUpdate: {
+                staffUpdate     : {
                     select: {
                         id      : true,
                         name    : true,
@@ -133,15 +133,16 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
     async remove( id: string ) {
         try {
-            const requestDetail = await this.requestDetail.delete({ where: { id }});
+            const requestData = await this.findOne( id );
+            await this.requestDetail.delete({ where: { id }});
 
             this.sseService.emitEvent({
-                message : requestDetail,
+                message : requestData,
                 action  : EnumAction.DELETE,
                 type    : Type.DETAIL
             });
 
-            return requestDetail;
+            return requestData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete request detail' );
         }
