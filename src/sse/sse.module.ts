@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 
-import { SseController }    from './sse.controller';
-import { SseService }       from './sse.service';
+import { SseController }    from '@sse/sse.controller';
+import { SseService }       from '@sse/sse.service';
 
 
 @Module({
