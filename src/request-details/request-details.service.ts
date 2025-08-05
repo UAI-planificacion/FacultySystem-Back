@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
 
+import { PrismaClient } from 'generated/prisma';
+
 import { CreateRequestDetailDto }   from '@request-details/dto/create-request-detail.dto';
 import { UpdateRequestDetailDto }   from '@request-details/dto/update-request-detail.dto';
-import { PrismaClient }             from 'generated/prisma';
-
-import { PrismaException }  from '@config/prisma-catch';
-import { SseService }       from '@sse/sse.service';
-import { EnumAction, Type } from '@sse/sse.model';
+import { PrismaException }          from '@config/prisma-catch';
+import { SseService }               from '@sse/sse.service';
+import { EnumAction, Type }         from '@sse/sse.model';
 
 
 @Injectable()
@@ -114,7 +114,6 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         id                      : string,
         updateRequestDetailDto  : UpdateRequestDetailDto,
         origin                  : string | undefined
-
     ) {
         const isPriority = this.#getIsPriority( updateRequestDetailDto );
 
@@ -142,7 +141,6 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
 
 
     async remove( id: string, origin: string | undefined ) {
-
         try {
             const requestData = await this.findOne( id );
             await this.requestDetail.delete({ where: { id }});
