@@ -14,7 +14,7 @@ export class SseService {
         this.eventSubject.next( emitEvent );
     }
 
-    getEvents(): Observable<any> {
+    getEvents(): Observable<EmitEvent> {
         return this.eventSubject.asObservable();
     }
 
