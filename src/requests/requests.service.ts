@@ -18,9 +18,11 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         super();
     }
 
+
     onModuleInit() {
         this.$connect();
     }
+
 
     #requestMap = ( request ) => ({
         id              : request.id,
@@ -28,6 +30,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         status          : request.status,
         isConsecutive   : request.isConsecutive,
         description     : request.description,
+        periodId        : request.periodId,
         createdAt       : request.createdAt,
         updatedAt       : request.updatedAt,
         staffCreate     : request.staffCreate,
@@ -37,12 +40,14 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         facultyId       : request.staffCreate.facultyId
     })
 
+
     #selectRequest = {
         id              : true,
         title           : true,
         status          : true,
         isConsecutive   : true,
         description     : true,
+        periodId        : true,
         createdAt       : true,
         updatedAt       : true,
         staffCreate     : {
@@ -127,9 +132,9 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
 
     async update(
-        id: string,
-        updateRequestDto: UpdateRequestDto,
-        origin: string | undefined
+        id                  : string,
+        updateRequestDto    : UpdateRequestDto,
+        origin              : string | undefined
     ) {
         const data: Prisma.RequestUpdateInput = { ...updateRequestDto };
 
