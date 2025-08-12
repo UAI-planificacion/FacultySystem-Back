@@ -9,11 +9,17 @@ import {
     IsString,
     Length,
     Max,
-    Min
+    Min,
+    ValidateNested
 }               from 'class-validator';
+import {
+    Size,
+    SpaceType,
+    Building
+}               from 'generated/prisma';
 import { Type } from 'class-transformer';
 
-import { Level, Size, SpaceType, Building } from 'generated/prisma';
+import { CreateRequestDetailModuleDto } from '@request-detail-modules/dto/create-request-detail-module.dto';
 
 
 export class BasicRequestDetailDto {
@@ -87,40 +93,32 @@ export class BasicRequestDetailDto {
     @Length( 0, 255 )
     description?: string;
 
-    @ApiPropertyOptional({ description: 'Module ID' })
-    @IsOptional()
-    @Length( 0, 3 )
-    moduleId?: string;
-
-    @ApiPropertyOptional({
-        type        : [String],
-        description : 'Days of the week'
-    })
-    @IsOptional()
-    @IsArray()
-    @IsString({ each: true })
-    days: string[] = [];
-
     @ApiPropertyOptional({ description: 'Space ID' })
     @IsOptional()
     @IsString()
     @Length( 0, 255 )
     spaceId?: string;
 
-    @ApiPropertyOptional({ 
-        enum        : Object.values( Level ),
-        default     : Level.PREGRADO,
-        description : 'Education level'
-    })
+    @ApiPropertyOptional({ description : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX' })
     @IsOptional()
     @IsString()
-    @IsEnum( Level )
-    level: Level = Level.PREGRADO;
+    @Length( 24, 26 )
+    gradeId?: string;
 
     @ApiPropertyOptional({ description: 'Professor ID' })
     @IsOptional()
     @IsString()
     @Length( 0, 30 )
     professorId?: string;
+
+    @ApiPropertyOptional({
+        description : 'Module days',
+        isArray     : true,
+        type        : CreateRequestDetailModuleDto
+    })
+    @IsArray()
+    @ValidateNested({ each: true })
+    @IsOptional()
+    moduleDays: CreateRequestDetailModuleDto[] = [];
 
 }
