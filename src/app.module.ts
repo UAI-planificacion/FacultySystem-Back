@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
 
-import { AppController }        from '@app/app.controller';
-import { FacultiesModule }      from '@faculties/faculties.module';
-import { StaffModule }          from '@staff/staff.module';
-import { SubjectsModule }       from '@subjects/subjects.module';
-import { ConfigModule }         from '@config/config.module';
-import { RequestsModule }       from '@requests/requests.module';
-import { RequestDetailsModule } from '@request-details/request-details.module';
-import { SseModule }            from '@sse/sse.module';
-import { CommentsModule }       from '@comments/comments.module';
+import { AppController }                from '@app/app.controller';
+import { FacultiesModule }              from '@faculties/faculties.module';
+import { StaffModule }                  from '@staff/staff.module';
+import { SubjectsModule }               from '@subjects/subjects.module';
+import { ConfigModule }                 from '@config/config.module';
+import { RequestsModule }               from '@requests/requests.module';
+import { RequestDetailsModule }         from '@request-details/request-details.module';
+import { GradesModule }                 from '@grades/grades.module';
+import { RequestDetailModulesModule }   from '@request-detail-modules/request-detail-modules.module';
+import { SseModule }                    from '@sse/sse.module';
+import { CommentsModule }               from '@comments/comments.module';
 
 
 @Module({
@@ -21,6 +23,8 @@ import { CommentsModule }       from '@comments/comments.module';
         RequestDetailsModule,
         SseModule,
         CommentsModule,
+        GradesModule,
+        RequestDetailModulesModule,
     ],
     controllers : [ AppController ],
     providers   : [],
