@@ -55,4 +55,13 @@ export class BasicRequestDto {
     @Length( 2, 50 )
     subjectId: string;
 
+
+    @ApiProperty({ 
+        description : 'ID of the period this request is for',
+        example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
+    })
+    @IsString()
+    @Length( 2, 50 )
+    periodId: string;
+
 }
