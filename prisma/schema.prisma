@@ -9,6 +9,20 @@ datasource db {
 }
 
 
+model Grade {
+    id              String @id @default(ulid())
+    name            String @unique
+    headquartersId  String
+
+    requestDetails RequestDetail[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name])
+}
+
+
 model Faculty {
     id          String @id @default(ulid())
     name        String @unique
@@ -92,6 +106,7 @@ model Request {
     status          Status @default(PENDING)
     isConsecutive   Boolean @default(false)
     description     String?
+    periodId        String?
 
     staffCreateId   String
     staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
@@ -103,7 +118,7 @@ model Request {
     subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
     details     RequestDetail[]
-    comments Comment[]
+    comments    Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -137,13 +152,6 @@ enum Size {
 }
 
 
-enum Level {
-    PREGRADO
-    FIRST_GRADE
-    SECOND_GRADE
-}
-
-
 enum Building {
     A
     B
@@ -151,6 +159,18 @@ enum Building {
     D
     E
     F
+}
+
+
+model RequestDetailModule {
+    id              String @id @default(ulid())
+    day             String
+    moduleId        String
+
+    requestDetailId String
+    requestDetail   RequestDetail @relation(fields: [requestDetailId], references: [id], onDelete: Cascade)
+
+    @@unique([requestDetailId, day, moduleId])
 }
 
 
@@ -164,11 +184,11 @@ model RequestDetail {
     inAfternoon     Boolean @default(false)
     building        Building?
     description     String?
-    moduleId        String?
-    days            String[] @default([])
+
     spaceId         String?
     isPriority      Boolean @default(false) // *profesor, dia y módulo no son null, se le da prioridad
-    level           Level @default(PREGRADO)
+    gradeId         String?
+    grade           Grade? @relation(fields: [gradeId], references: [id], onDelete: Cascade)
 
     professorId     String?
 
@@ -182,6 +202,7 @@ model RequestDetail {
     request         Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
     comments Comment[]
+    requestDetailModules RequestDetailModule[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
