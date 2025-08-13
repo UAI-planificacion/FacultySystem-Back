@@ -162,7 +162,7 @@ enum Building {
 }
 
 
-model RequestDetailModule {
+model ModuleDay {
     id              String @id @default(ulid())
     day             String
     moduleId        String
@@ -201,8 +201,8 @@ model RequestDetail {
     requestId       String
     request         Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
-    comments Comment[]
-    requestDetailModules RequestDetailModule[]
+    comments    Comment[]
+    moduleDays  ModuleDay[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
