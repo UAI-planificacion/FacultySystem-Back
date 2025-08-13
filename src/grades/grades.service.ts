@@ -1,26 +1,67 @@
-import { Injectable } from '@nestjs/common';
-import { CreateGradeDto } from './dto/create-grade.dto';
-import { UpdateGradeDto } from './dto/update-grade.dto';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+
+import { PrismaClient } from 'generated/prisma';
+
+import { PrismaException }  from '@config/prisma-catch';
+import { CreateGradeDto }   from '@grades/dto/create-grade.dto';
+import { UpdateGradeDto }   from '@grades/dto/update-grade.dto';
+
 
 @Injectable()
-export class GradesService {
-  create(createGradeDto: CreateGradeDto) {
-    return 'This action adds a new grade';
-  }
+export class GradesService extends PrismaClient implements OnModuleInit {
 
-  findAll() {
-    return `This action returns all grades`;
-  }
+    onModuleInit() {
+        this.$connect();
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} grade`;
-  }
 
-  update(id: number, updateGradeDto: UpdateGradeDto) {
-    return `This action updates a #${id} grade`;
-  }
+    async create( createGradeDto: CreateGradeDto ) {
+        try {
+            const grade = await this.grade.create({
+                data: createGradeDto
+            })
 
-  remove(id: number) {
-    return `This action removes a #${id} grade`;
-  }
+            return grade;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to create grade' );
+        }
+    }
+
+
+    async findAll() {
+        return await this.grade.findMany();
+    }
+
+
+    async findOne( id: string ) {
+        return await this.grade.findUnique({
+            where: { id }
+        });
+    }
+
+
+    async update( id: string, updateGradeDto: UpdateGradeDto ) {
+        try {
+            const grade = await this.grade.update({
+                where: { id },
+                data: updateGradeDto
+            });
+
+            return grade;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update grade' );
+        }
+    }
+
+
+    async remove( id: string ) {
+        try {
+            await this.grade.delete({
+                where: { id }
+            });
+        } catch (error) {
+            throw PrismaException.catch( error, 'Failed to delete grade' );
+        }
+    }
+
 }
