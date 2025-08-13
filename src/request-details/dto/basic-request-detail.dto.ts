@@ -19,7 +19,7 @@ import {
 }               from 'generated/prisma';
 import { Type } from 'class-transformer';
 
-import { CreateRequestDetailModuleDto } from '@request-detail-modules/dto/create-request-detail-module.dto';
+import { CreateModuleDayDto } from '@request-details/dto/create-module-day.dto';
 
 
 export class BasicRequestDetailDto {
@@ -114,11 +114,12 @@ export class BasicRequestDetailDto {
     @ApiPropertyOptional({
         description : 'Module days',
         isArray     : true,
-        type        : CreateRequestDetailModuleDto
+        type        : [CreateModuleDayDto]
     })
     @IsArray()
     @ValidateNested({ each: true })
     @IsOptional()
-    moduleDays: CreateRequestDetailModuleDto[] = [];
+    @Type(() => CreateModuleDayDto)
+    moduleDays: CreateModuleDayDto[] = [];
 
 }
