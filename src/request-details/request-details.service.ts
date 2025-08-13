@@ -2,9 +2,10 @@ import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
+import { PrismaException }          from '@config/prisma-catch';
 import { CreateRequestDetailDto }   from '@request-details/dto/create-request-detail.dto';
 import { UpdateRequestDetailDto }   from '@request-details/dto/update-request-detail.dto';
-import { PrismaException }          from '@config/prisma-catch';
+import { CreateModuleDayDto }       from '@request-details/dto/create-module-day.dto';
 import { SseService }               from '@sse/sse.service';
 import { EnumAction, Type }         from '@sse/sse.model';
 
@@ -24,10 +25,11 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    #getIsPriority( requestDetail: CreateRequestDetailDto | UpdateRequestDetailDto ) {
-        return !!requestDetail.professorId;
-        // &&
-            // requestDetail.moduleDays?.length > 0;
+    #getIsPriority(
+        requestDetail   : CreateRequestDetailDto | UpdateRequestDetailDto,
+        moduleDays      : CreateModuleDayDto[]
+    ) {
+        return !!requestDetail.professorId && moduleDays.length > 0;
     }
 
 
@@ -105,7 +107,7 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
                 email   : true,
             }
         },
-        requestDetailModules : {
+        moduleDays : {
             select : {
                 id          : true,
                 day         : true,
@@ -119,17 +121,18 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         createRequestDetailDto  : CreateRequestDetailDto,
         origin                  : string | undefined
     ) {
-        const isPriority = this.#getIsPriority( createRequestDetailDto );
+        const { moduleDays, ...data }   = createRequestDetailDto
+        const isPriority                = this.#getIsPriority( createRequestDetailDto, moduleDays );
 
         try {
             const requestDetail = await this.requestDetail.create({ data: {
-                ...createRequestDetailDto,
+                ...data,
                 isPriority
             }});
 
             if ( createRequestDetailDto.moduleDays.length > 0 ) {
-                await this.requestDetailModule.createMany({
-                    data: createRequestDetailDto.moduleDays.map( moduleDay => ({
+                await this.moduleDay.createMany({
+                    data: moduleDays.map( moduleDay => ({
                         ...moduleDay,
                         requestDetailId: requestDetail.id
                     }))
@@ -179,33 +182,31 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         updateRequestDetailDto  : UpdateRequestDetailDto,
         origin                  : string | undefined
     ) {
-        const isPriority = this.#getIsPriority( updateRequestDetailDto );
-
         try {
-            const currentRequestDetail  = await this.findOne( id );
-            const existingModules       = currentRequestDetail.requestDetailModules || [];
-            const newModules            = updateRequestDetailDto.moduleDays || [];
-
-            const requestDetail = await this.requestDetail.update({
+            const currentRequestDetail      = await this.findOne( id );
+            const existingModules           = currentRequestDetail.moduleDays || [];
+            const { moduleDays, ...data }   = updateRequestDetailDto;
+            const isPriority                = this.#getIsPriority( updateRequestDetailDto, moduleDays );
+            const requestDetail             = await this.requestDetail.update({
                 where: { id },
                 data: {
-                    ...updateRequestDetailDto,
+                    ...data,
                     isPriority
                 }
             });
 
-            const modulesChanged = this.#areModulesDifferent( existingModules, newModules );
+            const modulesChanged = this.#areModulesDifferent( existingModules, moduleDays );
 
             if ( modulesChanged ) {
-                await this.requestDetailModule.deleteMany({
+                await this.moduleDay.deleteMany({
                     where: {
                         requestDetailId: requestDetail.id
                     }
                 });
 
-                if ( newModules.length > 0 ) {
-                    await this.requestDetailModule.createMany({
-                        data: newModules.map( moduleDay => ({
+                if ( moduleDays.length > 0 ) {
+                    await this.moduleDay.createMany({
+                        data: moduleDays.map( moduleDay => ({
                             ...moduleDay,
                             requestDetailId: requestDetail.id
                         }))
