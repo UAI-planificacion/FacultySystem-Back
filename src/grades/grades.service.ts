@@ -56,7 +56,7 @@ export class GradesService extends PrismaClient implements OnModuleInit {
 
     async remove( id: string ) {
         try {
-            await this.grade.delete({
+            return await this.grade.delete({
                 where: { id }
             });
         } catch (error) {
