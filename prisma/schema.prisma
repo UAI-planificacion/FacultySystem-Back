@@ -9,10 +9,18 @@ datasource db {
 }
 
 
+enum Headquarters {
+    ERRAZURIZ
+    PENALOLEN
+    VINADELMAR
+    VITACURA   
+}
+
+
 model Grade {
     id              String @id @default(ulid())
     name            String @unique
-    headquartersId  String
+    headquartersId  Headquarters
 
     requestDetails RequestDetail[]
 
