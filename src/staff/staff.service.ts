@@ -9,9 +9,11 @@ import { UpdateStaffDto }   from '@staff/dto/update-staff.dto';
 
 @Injectable()
 export class StaffService extends PrismaClient implements OnModuleInit {
+
     onModuleInit() {
         this.$connect();
     }
+
 
     async create( createStaffDto: CreateStaffDto ) {
         try {
@@ -68,8 +70,8 @@ export class StaffService extends PrismaClient implements OnModuleInit {
             isActive    : staff.isActive,
             createdAt   : staff.createdAt,
             updatedAt   : staff.updatedAt,
-            facultyId   : staff.faculty.id,
-            facultyName : staff.faculty.name,
+            facultyId   : staff.faculty?.id,
+            facultyName : staff.faculty?.name,
         }
     }
 
