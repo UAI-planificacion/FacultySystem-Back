@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { IsString, Length } from 'class-validator';
+import { IsEnum, IsString, Length } from 'class-validator';
 
+
+import { headquarters } from 'generated/prisma';
 
 export class CreateGradeDto {
 
@@ -15,10 +17,10 @@ export class CreateGradeDto {
 
     @ApiProperty({ 
         description : 'Id of the headquarter',
-        example     : '1'
+        example     : 'ERRAZURIZ'
     })
-    @IsString()
-    @Length( 1, 50 )
-    headquartersId : string;
+    @Length( 5, 20 )
+    @IsEnum( headquarters )
+    headquartersId : headquarters;
 
 }
