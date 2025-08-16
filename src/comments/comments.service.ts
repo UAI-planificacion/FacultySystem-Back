@@ -9,6 +9,7 @@ import { PrismaException }  from '@config/prisma-catch';
 
 @Injectable()
 export class CommentsService extends PrismaClient implements OnModuleInit {
+
     onModuleInit() {
         this.$connect();
     }
@@ -28,14 +29,13 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
     #selectComment = {
         id          : true,
         content     : true,
-        adminEmail  : true,
-        adminName   : true,
         createdAt   : true,
         updatedAt   : true,
         staff       : {
             select: {
                 name    : true,
-                email   : true
+                email   : true,
+                role    : true,
             }
         }
     }
@@ -44,7 +44,7 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
         return await this.comment.findMany({
             select  : this.#selectComment,
             where   : {
-                requestId
+                requestId,
             },
             orderBy: {
                 createdAt: 'desc'
