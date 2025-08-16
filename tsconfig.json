@@ -21,7 +21,6 @@
             "@sse/*"                    : ["src/sse/*"],
             "@comments/*"               : ["src/comments/*"],
             "@grades/*"                 : ["src/grades/*"],
-            "@request-detail-modules/*" : ["src/request-detail-modules/*"]
         },
         "incremental": true,
         "skipLibCheck": true,
