@@ -62,6 +62,7 @@ model Subject {
 
 enum Role {
     ADMIN
+    ADMIN_FACULTY
     EDITOR
     VIEWER
 }
@@ -74,8 +75,8 @@ model Staff {
     role        Role @default(VIEWER)
     isActive    Boolean @default(true)
 
-    faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
-    facultyId   String
+    faculty     Faculty? @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+    facultyId   String?
 
     staffCreate Request[] @relation("staffCreate")
     staffUpdate Request[] @relation("staffUpdate")
@@ -192,8 +193,8 @@ model RequestDetail {
 
     professorId     String?
 
-    staffCreateId   String?
-    staffCreate     Staff? @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
+    staffCreateId   String
+    staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
 
     staffUpdateId   String?
     staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
@@ -215,17 +216,14 @@ model Comment {
 	id          	String @id @default(ulid())
 	content     	String
 
-	request         Request?        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+	request         Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
 	requestId     	String?
 
     requestDetail   RequestDetail? @relation(fields: [requestDetailId], references: [id], onDelete: Cascade)
     requestDetailId String?
 
-    staff           Staff?         @relation(fields: [staffId], references: [id], onDelete: Cascade)
-    staffId         String?
-
-    adminName       String?
-    adminEmail      String?
+    staff           Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+    staffId         String
 
 	createdAt   	DateTime @default(now())
 	updatedAt   	DateTime @updatedAt
