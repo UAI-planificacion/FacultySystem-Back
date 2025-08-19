@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsString, Length } from 'class-validator';
 
 
-import { headquarters } from 'generated/prisma';
+import { Headquarters } from 'generated/prisma';
 
 export class CreateGradeDto {
 
@@ -20,7 +20,7 @@ export class CreateGradeDto {
         example     : 'ERRAZURIZ'
     })
     @Length( 5, 20 )
-    @IsEnum( headquarters )
-    headquartersId : headquarters;
+    @IsEnum( Headquarters )
+    headquartersId : Headquarters;
 
 }
