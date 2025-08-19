@@ -20,7 +20,7 @@ enum Headquarters {
 model Grade {
     id              String @id @default(ulid())
     name            String @unique
-    headquartersId  Headquarters
+    headquartersId  Headquarters? @default(ERRAZURIZ)
 
     requestDetails RequestDetail[]
 
@@ -50,11 +50,12 @@ model Faculty {
 model Subject {
     id              String @id
     name            String @unique
-    startDate       DateTime?
-    endDate         DateTime?
+    startDate       DateTime[]
+    endDate         DateTime[]
     students        Int
     costCenterId    String
-    isActive        Boolean @default(true)
+    isActive        Boolean @default( true )
+    isEnglish       Boolean @default( false )
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String
