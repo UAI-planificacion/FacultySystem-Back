@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
-import { PrismaException }  from '@app/config/prisma-catch';
+import { PrismaException }  from '@config/prisma-catch';
 import { CreateSubjectDto } from '@subjects/dto/create-subject.dto';
 import { UpdateSubjectDto } from '@subjects/dto/update-subject.dto';
 
@@ -15,6 +15,10 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     async create( createSubjectDto: CreateSubjectDto ) {
+        if ( createSubjectDto.startDate.length !== createSubjectDto.endDate.length ) {
+            throw new BadRequestException( 'Start date and end date must have the same length' );
+        }
+
         try {
             return await this.subject.create({
                 data: createSubjectDto,
@@ -46,6 +50,10 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     async update( id: string, updateSubjectDto: UpdateSubjectDto ) {
+        if ( updateSubjectDto?.startDate?.length !== updateSubjectDto?.endDate?.length ) {
+            throw new BadRequestException( 'Start date and end date must have the same length' );
+        }
+
         try {
             return await this.subject.update({
                 where: { id },
