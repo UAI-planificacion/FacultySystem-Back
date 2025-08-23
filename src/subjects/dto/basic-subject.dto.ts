@@ -1,9 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
+    Size,
+    SpaceType,
+    Building
+} from 'generated/prisma';
+
+import {
     IsArray,
     IsBoolean,
     IsDate,
+    IsEnum,
     IsInt,
     IsNotEmpty,
     IsOptional,
@@ -73,5 +80,32 @@ export class BasicSubjectDto {
     @IsOptional()
     @IsBoolean()
     isEnglish?: boolean;
+
+    @ApiPropertyOptional({
+        enum        : Object.values( Building ),
+        description : 'Building name or identifier'
+    })
+    @IsOptional()
+    @IsString()
+    @IsEnum( Building )
+    building?: Building;
+
+    @ApiPropertyOptional({
+        enum        : Object.values( SpaceType ),
+        description : 'Type of space'
+    })
+    @IsOptional()
+    @IsString()
+    @IsEnum( SpaceType )
+    spaceType?: SpaceType;
+
+    @ApiPropertyOptional({
+        enum        : Object.values( Size ),
+        description : 'Size of the space'
+    })
+    @IsOptional()
+    @IsString()
+    @IsEnum( Size )
+    spaceSize?: Size;
 
 }
