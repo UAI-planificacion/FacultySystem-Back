@@ -56,6 +56,9 @@ model Subject {
     costCenterId    String
     isActive        Boolean @default( true )
     isEnglish       Boolean @default( false )
+    building        Building?
+    spaceType       SpaceType?
+    spaceSize       Size?
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String
