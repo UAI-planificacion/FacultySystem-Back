@@ -48,7 +48,7 @@ export class BasicRequestDetailDto {
 
     @ApiPropertyOptional({
         enum        : Object.values( SpaceType ),
-        description : 'Type of space required'
+        description : 'Type of space'
     })
     @IsOptional()
     @IsString()
