@@ -57,13 +57,17 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
         try {
             return await this.subject.update({
-                where: { id },
-                data: {
+                where   : { id },
+                data    : {
                     name            : updateSubjectDto.name,
                     startDate       : updateSubjectDto.startDate,
                     endDate         : updateSubjectDto.endDate,
                     students        : updateSubjectDto.students,
-                    costCenterId    : updateSubjectDto.costCenterId
+                    costCenterId    : updateSubjectDto.costCenterId,
+                    isEnglish       : updateSubjectDto.isEnglish,
+                    building        : updateSubjectDto.building,
+                    spaceType       : updateSubjectDto.spaceType,
+                    spaceSize       : updateSubjectDto.spaceSize,
                 }
             });
         } catch ( error ) {
@@ -74,7 +78,7 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
     async remove( id: string ) {
         try {
-            return await this.subject.delete({ where: { id } });
+            return await this.subject.delete({ where: { id }});
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete subject' );
         }
