@@ -78,7 +78,7 @@ export class SubjectsController {
      * @param file - Excel file containing subjects data
      * @returns Result of bulk creation with success/error details
      */
-    @Post( 'bulk-upload' )
+    @Post( 'bulk-upload/:facultyId' )
     @UseInterceptors( FileInterceptor( 'file' ) )
     @ApiConsumes( 'multipart/form-data' )
     @ApiBody({
@@ -94,6 +94,7 @@ export class SubjectsController {
         }
     })
     async uploadExcel(
+        @Param( 'facultyId' ) facultyId: string,
         @UploadedFile() file: Express.Multer.File
     ) {
         if ( !file ) {
@@ -106,7 +107,7 @@ export class SubjectsController {
 
         try {
             // Read Excel file
-            const workbook = XLSX.read( file.buffer, { type: 'buffer' } );
+            const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
 
@@ -118,9 +119,9 @@ export class SubjectsController {
             }
 
             // Validate required columns
-            const requiredColumns = ['id', 'name', 'students', 'costCenterId', 'facultyId'];
-            const firstRow = jsonData[0];
-            const missingColumns = requiredColumns.filter( col => !( col in firstRow ) );
+            const requiredColumns   = ['id', 'name', 'students', 'costCenterId'];
+            const firstRow          = jsonData[0];
+            const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
 
             if ( missingColumns.length > 0 ) {
                 throw new BadRequestException( 
@@ -132,14 +133,17 @@ export class SubjectsController {
             const processedData = jsonData.map( ( row, index ) => {
                 try {
                     return {
-                        id           : String( row.id || '' ).trim(),
-                        name         : String( row.name || '' ).trim(),
-                        startDate    : this.#parseArrayField( row.startDate ),
-                        endDate      : this.#parseArrayField( row.endDate ),
-                        students     : Number( row.students ) || 0,
-                        costCenterId : String( row.costCenterId || '' ).trim(),
-                        isEnglish    : Boolean( row.isEnglish ) || false,
-                        facultyId    : String( row.facultyId || '' ).trim()
+                        id              : String( row.id || '' ).trim(),
+                        name            : String( row.name || '' ).trim(),
+                        startDate       : this.#parseArrayField( row.startDate ),
+                        endDate         : this.#parseArrayField( row.endDate ),
+                        students        : Number( row.students ) || 0,
+                        costCenterId    : String( row.costCenterId || '' ).trim(),
+                        isEnglish       : Boolean( row.isEnglish ) || false,
+                        building        : row.building,
+                        spaceType       : row.spaceType,
+                        spaceSize       : row.spaceSize,
+                        facultyId       : String( row.facultyId || '' ).trim()
                     };
                 } catch ( error ) {
                     throw new BadRequestException( 
@@ -154,8 +158,7 @@ export class SubjectsController {
             };
 
             // Process bulk creation
-            return await this.subjectsService.createBulk( bulkCreateDto );
-
+            return await this.subjectsService.createBulk( bulkCreateDto, facultyId );
         } catch ( error ) {
             if ( error instanceof BadRequestException ) {
                 throw error;
@@ -168,22 +171,69 @@ export class SubjectsController {
 
 
     /**
-     * Parse array field from Excel (handles comma-separated values or arrays)
+     * Parse array field from Excel (handles comma-separated values, arrays, and Excel dates)
      * @param field - Field value from Excel
-     * @returns Array of strings
+     * @returns Array of Date objects
      */
-    #parseArrayField( field: any ): string[] {
+    #parseArrayField( field: any ): Date[] {
         if ( !field ) return [];
-        
+
+        // Handle arrays
         if ( Array.isArray( field ) ) {
-            return field.map( item => String( item ).trim() );
+            return field.map( item => this.#convertToDate( item ) ).filter( date => date !== null );
         }
-        
+
+        // Handle comma-separated strings
         if ( typeof field === 'string' ) {
-            return field.split( ',' ).map( item => item.trim() ).filter( item => item.length > 0 );
+            return field.split( ',' )
+                .map( item => item.trim() )
+                .filter( item => item.length > 0 )
+                .map( item => this.#convertToDate( item ) )
+                .filter( date => date !== null );
         }
-        
-        return [String( field ).trim()];
+
+        // Handle single values (including Excel dates)
+        const convertedDate = this.#convertToDate( field );
+        return convertedDate ? [convertedDate] : [];
+    }
+
+
+    /**
+     * Convert Excel date or string to Date object
+     * @param value - Value to convert (can be Excel date, string, or number)
+     * @returns Date object or null if conversion fails
+     */
+    #convertToDate( value: any ): Date | null {
+        if ( !value ) return null;
+
+        // Handle Date objects
+        if ( value instanceof Date ) {
+            return isNaN( value.getTime() ) ? null : value;
+        }
+
+        // Handle Excel date numbers (days since 1900-01-01)
+        if ( typeof value === 'number' ) {
+            // Excel date serial number conversion
+            const excelEpoch = new Date( 1900, 0, 1 );
+            const date = new Date( excelEpoch.getTime() + ( value - 1 ) * 24 * 60 * 60 * 1000 );
+            return isNaN( date.getTime() ) ? null : date;
+        }
+
+        // Handle strings
+        if ( typeof value === 'string' ) {
+            const trimmed = value.trim();
+
+            if ( trimmed === '' ) return null;
+
+            const date = new Date( trimmed );
+
+            return isNaN( date.getTime() ) ? null : date;
+        }
+
+        // Fallback: try to parse as string
+        const date = new Date( String( value ).trim() );
+
+        return isNaN( date.getTime() ) ? null : date;
     }
 
 }
