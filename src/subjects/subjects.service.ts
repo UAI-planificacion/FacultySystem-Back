@@ -86,72 +86,70 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     /**
-     * Create multiple subjects from Excel data
+     * Create multiple subjects from Excel data using bulk insert
      * @param bulkCreateSubjectDto - Bulk data containing array of subjects
-     * @returns Array of created subjects with success/error status
+     * @param facultyId - Faculty ID to assign to all subjects
+     * @returns Array of created subjects
      */
-    async createBulk( bulkCreateSubjectDto: BulkCreateSubjectDto ) {
-        const results: Array<{
-            success : boolean;
-            data    : any;
-            row     : string;
-        }> = [];
-        
-        const errors: Array<{
-            success : boolean;
-            error   : string;
-            row     : string;
-        }> = [];
-
-        for ( const subjectData of bulkCreateSubjectDto.subjects ) {
-            try {
-                // Validate date arrays length
-                if ( subjectData.startDate.length !== subjectData.endDate.length ) {
-                    throw new BadRequestException( 
-                        `Subject ${subjectData.name}: Start date and end date must have the same length` 
-                    );
+    async createBulk(
+        bulkCreateSubjectDto    : BulkCreateSubjectDto,
+        facultyId               : string
+    ) {
+        const inputIds          = bulkCreateSubjectDto.subjects.map( subject => subject.id );
+        const existingSubjects  = await this.subject.findMany({
+            where: {
+                id: {
+                    in: inputIds
                 }
+            },
+            select: { id: true }
+        });
 
-                // Convert string dates to Date objects
-                const startDate = subjectData.startDate.map( date => new Date( date ) );
-                const endDate   = subjectData.endDate.map( date => new Date( date ) );
+        const existingIds = new Set( existingSubjects.map( subject => subject.id ));
 
-                // Create subject with converted dates
-                const createdSubject = await this.subject.create({
-                    data: {
-                        id           : subjectData.id,
-                        name         : subjectData.name,
-                        startDate    : startDate,
-                        endDate      : endDate,
-                        students     : subjectData.students,
-                        costCenterId : subjectData.costCenterId,
-                        isEnglish    : subjectData.isEnglish || false,
-                        facultyId    : subjectData.facultyId
-                    }
-                });
+        const newSubjects = bulkCreateSubjectDto.subjects.filter( 
+            subject => !existingIds.has( subject.id )
+        );
 
-                results.push({
-                    success : true,
-                    data    : createdSubject,
-                    row     : subjectData.name
-                });
-
-            } catch ( error ) {
-                errors.push({
-                    success : false,
-                    error   : error.message || 'Unknown error',
-                    row     : subjectData.name || 'Unknown subject'
-                });
+        const subjectsToCreate = newSubjects.map( subjectData => {
+            if ( subjectData.startDate.length !== subjectData.endDate.length ) {
+                throw new BadRequestException( 
+                    `Subject ${subjectData.name}: Start date and end date must have the same length` 
+                );
             }
+
+            return {
+                id           : subjectData.id,
+                name         : subjectData.name,
+                startDate    : subjectData.startDate,
+                endDate      : subjectData.endDate,
+                students     : subjectData.students,
+                costCenterId : subjectData.costCenterId,
+                isEnglish    : subjectData.isEnglish || false,
+                building     : subjectData.building,
+                spaceType    : subjectData.spaceType,
+                spaceSize    : subjectData.spaceSize,
+                facultyId
+            };
+        });
+
+        if ( subjectsToCreate.length === 0 ) {
+            throw new BadRequestException( 'No new subjects to create' );
         }
 
-        return {
-            totalProcessed  : bulkCreateSubjectDto.subjects.length,
-            successful      : results.length,
-            failed          : errors.length,
-            results         : results,
-            errors          : errors
-        };
+        try {
+            await this.subject.createMany({ data: subjectsToCreate });
+
+            return await this.subject.findMany({
+                where: {
+                    id: {
+                        in: newSubjects.map( subject => subject.id )
+                    }
+                }
+            });
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to create subjects in bulk' );
+        }
     }
 
 }
