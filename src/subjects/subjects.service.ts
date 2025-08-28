@@ -30,6 +30,21 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    async findAllByIds( ids: string[] ) {
+        return await this.subject.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            },
+            select: {
+                id      : true,
+                name    : true,
+            }
+        });
+    }
+
+
     async findAll( facultyId: string ) {
         return await this.subject.findMany({
             where: { facultyId }
