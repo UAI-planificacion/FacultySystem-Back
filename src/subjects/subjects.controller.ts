@@ -39,6 +39,13 @@ export class SubjectsController {
         return this.subjectsService.create( createSubjectDto );
     }
 
+    @Get( '/ids/:ids' )
+    findAllByIds(
+        @Param( 'ids' ) ids: string
+    ) {
+        return this.subjectsService.findAllByIds( ids.split( ',' ));
+    }
+
 
     @Get( 'all/:facultyId' )
     findAll(
