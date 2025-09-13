@@ -39,6 +39,14 @@ export class SubjectsController {
         return this.subjectsService.create( createSubjectDto );
     }
 
+
+    @Get()
+    findAll(
+    ) {
+        return this.subjectsService.findAll();
+    }
+
+
     @Get( '/ids/:ids' )
     findAllByIds(
         @Param( 'ids' ) ids: string
@@ -48,10 +56,10 @@ export class SubjectsController {
 
 
     @Get( 'all/:facultyId' )
-    findAll(
+    findAllByFacultyId(
         @Param( 'facultyId' ) facultyId: string
     ) {
-        return this.subjectsService.findAll( facultyId );
+        return this.subjectsService.findAllByFacultyId( facultyId );
     }
 
 
