@@ -13,9 +13,9 @@ import {
     ValidateNested
 }               from 'class-validator';
 import {
-    Size,
     SpaceType,
-    Building
+    Building,
+    $Enums
 }               from 'generated/prisma';
 import { Type } from 'class-transformer';
 
@@ -56,13 +56,13 @@ export class BasicRequestDetailDto {
     spaceType?: SpaceType;
 
     @ApiPropertyOptional({
-        enum        : Object.values( Size ),
+        enum        : Object.values( $Enums.SizeValue ),
         description : 'Size of the space'
     })
     @IsOptional()
     @IsString()
-    @IsEnum( Size )
-    spaceSize?: Size;
+    @IsEnum( $Enums.SizeValue )
+    spaceSize?: $Enums.SizeValue;
 
     @ApiPropertyOptional({ description: 'Cost center ID' })
     @IsOptional()
