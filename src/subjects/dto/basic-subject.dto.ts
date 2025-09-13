@@ -3,7 +3,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     Size,
     SpaceType,
-    Building
+    Building,
+    SizeValue,
+    $Enums
 } from 'generated/prisma';
 
 import {
@@ -37,33 +39,33 @@ export class BasicSubjectDto {
     @IsNotEmpty()
     name: string;
 
-    @ApiPropertyOptional({
-        description : 'The start date of the subject',
-        example     : '2025-08-01T00:00:00.000Z',
-    })
-    @IsOptional()
-    @IsArray()
-    @IsDate({ each: true })
-    @Type( () => Date )
-    startDate: Date[] = [];
+    // @ApiPropertyOptional({
+    //     description : 'The start date of the subject',
+    //     example     : '2025-08-01T00:00:00.000Z',
+    // })
+    // @IsOptional()
+    // @IsArray()
+    // @IsDate({ each: true })
+    // @Type( () => Date )
+    // startDate: Date[] = [];
 
-    @ApiPropertyOptional({
-        description : 'The end date of the subject',
-        example     : '2025-12-15T00:00:00.000Z',
-    })
-    @IsOptional()
-    @IsArray()
-    @IsDate({ each: true })
-    @Type( () => Date )
-    endDate: Date[] = [];
+    // @ApiPropertyOptional({
+    //     description : 'The end date of the subject',
+    //     example     : '2025-12-15T00:00:00.000Z',
+    // })
+    // @IsOptional()
+    // @IsArray()
+    // @IsDate({ each: true })
+    // @Type( () => Date )
+    // endDate: Date[] = [];
 
-    @ApiProperty({
-        description : 'Number of students in the subject',
-        example     : 30,
-    })
-    @IsInt()
-    @IsNotEmpty()
-    students: number;
+    // @ApiProperty({
+    //     description : 'Number of students in the subject',
+    //     example     : 30,
+    // })
+    // @IsInt()
+    // @IsNotEmpty()
+    // students: number;
 
     @ApiProperty({
         description : 'The cost center ID for the subject',
@@ -73,39 +75,42 @@ export class BasicSubjectDto {
     @IsNotEmpty()
     costCenterId: string;
 
-    @ApiPropertyOptional({
-        description : 'Is English',
-        example     : true
-    })
-    @IsOptional()
-    @IsBoolean()
-    isEnglish?: boolean;
+    // @ApiPropertyOptional({
+    //     description : 'Is English',
+    //     example     : true
+    // })
+    // @IsOptional()
+    // @IsBoolean()
+    // isEnglish?: boolean;
 
-    @ApiPropertyOptional({
-        enum        : Object.values( Building ),
-        description : 'Building name or identifier'
-    })
-    @IsOptional()
-    @IsString()
-    @IsEnum( Building )
-    building?: Building;
+    // @ApiPropertyOptional({
+    //     enum        : Object.values( Building ),
+    //     description : 'Building name or identifier'
+    // })
+    // @IsOptional()
+    // @IsString()
+    // @IsEnum( Building )
+    // building?: Building;
 
     @ApiPropertyOptional({
         enum        : Object.values( SpaceType ),
-        description : 'Type of space'
+        description : $Enums.SpaceType.ROOM
     })
     @IsOptional()
     @IsString()
-    @IsEnum( SpaceType )
-    spaceType?: SpaceType;
+    @IsEnum( $Enums.SpaceType )
+    // spaceType?: SpaceType;
+    spaceType?: $Enums.SpaceType;
 
     @ApiPropertyOptional({
-        enum        : Object.values( Size ),
-        description : 'Size of the space'
+        description : 'Size of the space',
+        example     : $Enums.SizeValue.XL,
     })
     @IsOptional()
-    @IsString()
-    @IsEnum( Size )
-    spaceSize?: Size;
+    // @IsString()
+    // spaceSizeId?: SizeValue;
+    // spaceSizeId?: SizeValue;
+    @IsEnum( $Enums.SizeValue )
+    spaceSizeId?: $Enums.SizeValue;
 
 }
