@@ -125,30 +125,30 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
         const isPriority                = this.#getIsPriority( createRequestDetailDto, moduleDays );
 
         try {
-            const requestDetail = await this.requestDetail.create({ data: {
-                ...data,
-                isPriority
-            }});
+            // const requestDetail = await this.requestDetail.create({ data: {
+            //     ...data,
+            //     isPriority
+            // }});
 
-            if ( createRequestDetailDto.moduleDays.length > 0 ) {
-                await this.moduleDay.createMany({
-                    data: moduleDays.map( moduleDay => ({
-                        ...moduleDay,
-                        requestDetailId: requestDetail.id
-                    }))
-                });
-            }
+            // if ( createRequestDetailDto.moduleDays.length > 0 ) {
+            //     await this.moduleDay.createMany({
+            //         data: moduleDays.map( moduleDay => ({
+            //             ...moduleDay,
+            //             requestDetailId: requestDetail.id
+            //         }))
+            //     });
+            // }
 
-            const requestDetailData = await this.findOne( requestDetail.id );
+            // const requestDetailData = await this.findOne( requestDetail.id );
 
-            this.sseService.emitEvent({
-                message : requestDetailData,
-                action  : EnumAction.CREATE,
-                type    : Type.DETAIL,
-                origin
-            });
+            // this.sseService.emitEvent({
+            //     message : requestDetailData,
+            //     action  : EnumAction.CREATE,
+            //     type    : Type.DETAIL,
+            //     origin
+            // });
 
-            return requestDetailData;
+            // return requestDetailData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request detail' );
         }
@@ -187,43 +187,43 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
             const existingModules           = currentRequestDetail.moduleDays || [];
             const { moduleDays, ...data }   = updateRequestDetailDto;
             const isPriority                = this.#getIsPriority( updateRequestDetailDto, moduleDays );
-            const requestDetail             = await this.requestDetail.update({
-                where: { id },
-                data: {
-                    ...data,
-                    isPriority
-                }
-            });
+            // const requestDetail             = await this.requestDetail.update({
+            //     where: { id },
+            //     data: {
+            //         ...data,
+            //         isPriority
+            //     }
+            // });
 
-            const modulesChanged = this.#areModulesDifferent( existingModules, moduleDays );
+            // const modulesChanged = this.#areModulesDifferent( existingModules, moduleDays );
 
-            if ( modulesChanged ) {
-                await this.moduleDay.deleteMany({
-                    where: {
-                        requestDetailId: requestDetail.id
-                    }
-                });
+            // if ( modulesChanged ) {
+            //     await this.moduleDay.deleteMany({
+            //         where: {
+            //             requestDetailId: requestDetail.id
+            //         }
+            //     });
 
-                if ( moduleDays.length > 0 ) {
-                    await this.moduleDay.createMany({
-                        data: moduleDays.map( moduleDay => ({
-                            ...moduleDay,
-                            requestDetailId: requestDetail.id
-                        }))
-                    });
-                }
-            }
+            //     if ( moduleDays.length > 0 ) {
+            //         await this.moduleDay.createMany({
+            //             data: moduleDays.map( moduleDay => ({
+            //                 ...moduleDay,
+            //                 requestDetailId: requestDetail.id
+            //             }))
+            //         });
+            //     }
+            // }
 
-            const requestDetailData = await this.findOne( requestDetail.id );
+            // const requestDetailData = await this.findOne( requestDetail.id );
 
-            this.sseService.emitEvent({
-                message : requestDetailData,
-                action  : EnumAction.UPDATE,
-                type    : Type.DETAIL,
-                origin
-            });
+            // this.sseService.emitEvent({
+            //     message : requestDetailData,
+            //     action  : EnumAction.UPDATE,
+            //     type    : Type.DETAIL,
+            //     origin
+            // });
 
-            return requestDetailData;
+            // return requestDetailData;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update request detail' );
         }
