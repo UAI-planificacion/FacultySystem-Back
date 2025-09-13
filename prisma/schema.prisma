@@ -3,6 +3,7 @@ generator client {
     output   = "../generated/prisma"
 }
 
+
 datasource db {
     provider = "postgresql"
     url      = env("DATABASE_URL")
@@ -14,6 +15,256 @@ enum Headquarters {
     PENALOLEN
     VINADELMAR
     VITACURA   
+}
+
+
+model Professor {
+    id          String @id
+    name        String
+    email       String? @unique
+    isMock      Boolean @default(false)
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    sections        Section[]
+    requestDetails  RequestDetail[]
+
+    @@index([name])
+}
+
+
+enum SizeValue {
+    XS
+    XE
+    S
+    SE
+    MS
+    M
+    L
+    XL
+    XXL
+}
+
+
+model Size {
+    id          SizeValue @id
+    detail      String
+    min         Int?
+    max         Int?
+    lessThan    Int?
+    greaterThan Int?
+
+    // rooms Room[]
+    subjects        Subject[]
+    offers          Offer[]
+    requestDetails  RequestDetail[]
+}
+
+
+enum SpaceType {
+    ROOM
+    AUDITORIO
+    COMMUNIC
+    LAB
+    LABPC
+    DIS
+    GARAGE
+    CORE
+}
+
+
+// enum RoomType {
+//     ROOM
+//     AUDITORIO
+//     COMMUNIC
+//     LAB
+//     LABPC
+//     DIS
+//     GARAGE
+//     CORE
+// }
+
+
+enum Building {
+    A
+    B
+    C
+    D
+    E
+    F
+    Z
+}
+
+
+// model Room {
+//     id          String @id
+//     building    Building
+//     capacity    Int
+//     type        RoomType
+
+//     sizeId      SizeValue
+//     size        Size @relation(fields: [sizeId], references: [id])
+
+//     sections    Section[]
+
+//     createdAt   DateTime @default(now())
+//     updatedAt   DateTime @updatedAt
+// }
+
+
+enum Session {
+    C // Cátedra
+    A // Ayudantía
+    T // Talle
+    L // Laboratorio
+}
+
+
+model Section {
+    id                      String @id
+    code                    Int
+    session                 Session
+    size                    SizeValue?
+    correctedRegistrants    Int?
+    realRegistrants         Int?
+    plannedBuilding         String?
+    chairsAvailable         Int?
+    isClosed                Boolean @default(false)
+    groupId                 String
+
+    requestDetailId         String?
+
+    room                    String?
+    // roomId                  String?
+    // room                    Room? @relation(fields: [roomId], references: [id])
+
+    dayModuleId             Int?
+    dayModule               DayModule? @relation(fields: [dayModuleId], references: [id])
+
+    professorId             String?
+    professor               Professor? @relation(fields: [professorId], references: [id])
+
+    subjectSections         SubjectSection[]
+
+    createdAt               DateTime @default(now())
+    updatedAt               DateTime @updatedAt
+}
+
+
+enum DayName {
+    Lunes
+    Martes
+    Miercoles
+    Jueves
+    Viernes
+    Sabado
+    Domingo
+}
+
+
+model Day {
+    id          Int @id @default(autoincrement())
+    name        DayName @unique
+    shortName   String?
+    mediumName  String?
+
+    dayModules DayModule[]
+
+    @@index([name])
+}
+
+
+enum ModuleDifference {
+    A
+    B
+}
+
+
+model Module {
+    id          Int @id @default(autoincrement())
+    code        String
+    difference  ModuleDifference?
+    startHour   String
+    endHour     String
+    isActive    Boolean @default(true)
+
+    dayModules  DayModule[]
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([code])
+}
+
+
+model ModuleDay {
+    id              String @id @default(ulid())
+    // day             String
+    // moduleId        String
+    dayModuleId     Int
+    dayModule       DayModule @relation(fields: [dayModuleId], references: [id])
+
+    requestDetailId String
+    requestDetail   RequestDetail @relation(fields: [requestDetailId], references: [id], onDelete: Cascade)
+
+    // @@unique([requestDetailId, day, moduleId])
+    @@unique([requestDetailId, dayModuleId])
+}
+
+
+model DayModule {
+    id          Int @id @default(autoincrement())
+    dayId       Int
+    moduleId    Int
+    order       Int @default(0)
+
+    day       Day    @relation(fields: [dayId], references: [id])
+    module    Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+    sections    Section[]
+    moduleDays  ModuleDay[]
+
+    @@unique([dayId, moduleId])
+}
+
+
+model SubjectSection {
+    subjectId   String
+    sectionId   String
+    periodId    String
+
+    subject     Subject @relation(fields: [subjectId], references: [id])
+    section     Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+    period      Period @relation(fields: [periodId], references: [id])
+
+    @@id([subjectId, sectionId, periodId])
+}
+
+
+enum PeriodStatus {
+    InProgress
+    Closed
+}
+
+
+model Period {
+    id              String @id
+    name            String
+    startDate       DateTime?
+    endDate         DateTime?
+    openingDate     DateTime?
+    closingDate     DateTime?
+    status          PeriodStatus @default(InProgress)
+
+    subjectSections SubjectSection[]
+    requests        Request[]
+    offers          Offer[]
+
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    @@index([name])
 }
 
 
@@ -50,25 +301,55 @@ model Faculty {
 model Subject {
     id              String @id
     name            String @unique
-    startDate       DateTime[]
-    endDate         DateTime[]
-    students        Int
+    // startDate       DateTime[]
+    // endDate         DateTime[]
+    // students        Int
     costCenterId    String
     isActive        Boolean @default( true )
-    isEnglish       Boolean @default( false )
-    building        Building?
+    // isEnglish       Boolean @default( false )
+    // building        Building[]
     spaceType       SpaceType?
-    spaceSize       Size?
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String
 
-    requests    Request[]
+    spaceSizeId    SizeValue?
+    spaceSize      Size? @relation(fields: [spaceSizeId], references: [id])
+
+    subjectSections SubjectSection[]
+    requests        Request[]
+    offers          Offer[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
     @@index([name, facultyId])
+}
+
+
+model Offer {
+    id              String @id @default( ulid() )
+    startDate       DateTime[]
+    endDate         DateTime[]
+    building        Building?
+    spaceType       SpaceType?
+    costCenterId    String?
+    isEnglish       Boolean @default( false )
+    workshop        Int @default( 0 )   // Taller
+    lecture         Int @default( 0 )   // Cátedra
+    tutoringSession Int @default( 0 )   // Ayudantía
+    laboratory      Int @default( 0 )   // Laboratorio
+
+    subjectId       String
+    subject         Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+    spaceSizeId    SizeValue?
+    spaceSize      Size? @relation(fields: [spaceSizeId], references: [id])
+
+    periodId    String
+    period      Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+    @@index([subjectId])
 }
 
 
@@ -90,13 +371,11 @@ model Staff {
     faculty     Faculty? @relation(fields: [facultyId], references: [id], onDelete: Cascade)
     facultyId   String?
 
-    staffCreate Request[] @relation("staffCreate")
-    staffUpdate Request[] @relation("staffUpdate")
-
-    requestDetails    RequestDetail[] @relation("staffCreate")
-    requestDetailsUpdate RequestDetail[] @relation("staffUpdate")
-
-    comments Comment[]
+    staffCreate             Request[] @relation("staffCreate")
+    staffUpdate             Request[] @relation("staffUpdate")
+    requestDetails          RequestDetail[] @relation("staffCreate")
+    requestDetailsUpdate    RequestDetail[] @relation("staffUpdate")
+    comments                Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -119,7 +398,6 @@ model Request {
     status          Status @default(PENDING)
     isConsecutive   Boolean @default(false)
     description     String?
-    periodId        String?
 
     staffCreateId   String
     staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
@@ -127,11 +405,14 @@ model Request {
     staffUpdateId   String?
     staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
 
-    subjectId   String
-    subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+    subjectId       String
+    subject         Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-    details     RequestDetail[]
-    comments    Comment[]
+    periodId        String?
+    period          Period? @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+    details         RequestDetail[]
+    comments        Comment[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -140,51 +421,27 @@ model Request {
 }
 
 
-enum SpaceType {
-    ROOM
-    AUDITORIUM
-    COMMUNIC
-    LAB
-    LABPC
-    DIS
-    GARAGE
-    CORE
-}
+// enum Size {
+//     XS
+//     XE
+//     S
+//     SE
+//     MS
+//     M
+//     L
+//     XL
+//     XXL
+// }
 
 
-enum Size {
-    XS
-    XE
-    S
-    SE
-    MS
-    M
-    L
-    XL
-    XXL
-}
-
-
-enum Building {
-    A
-    B
-    C
-    D
-    E
-    F
-}
-
-
-model ModuleDay {
-    id              String @id @default(ulid())
-    day             String
-    moduleId        String
-
-    requestDetailId String
-    requestDetail   RequestDetail @relation(fields: [requestDetailId], references: [id], onDelete: Cascade)
-
-    @@unique([requestDetailId, day, moduleId])
-}
+// enum Building {
+//     A
+//     B
+//     C
+//     D
+//     E
+//     F
+// }
 
 
 model RequestDetail {
@@ -192,7 +449,7 @@ model RequestDetail {
     minimum         Int? 
     maximum         Int?
     spaceType       SpaceType?
-    spaceSize       Size?
+    // spaceSize       Size?
     costCenterId    String?
     inAfternoon     Boolean @default(false)
     building        Building?
@@ -204,6 +461,10 @@ model RequestDetail {
     grade           Grade? @relation(fields: [gradeId], references: [id], onDelete: Cascade)
 
     professorId     String?
+    professor       Professor? @relation(fields: [professorId], references: [id])
+
+    spaceSizeId    SizeValue?
+    spaceSize      Size? @relation(fields: [spaceSizeId], references: [id])
 
     staffCreateId   String
     staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
