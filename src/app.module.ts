@@ -7,6 +7,7 @@ import { SubjectsModule }       from '@subjects/subjects.module';
 import { ConfigModule }         from '@config/config.module';
 import { RequestsModule }       from '@requests/requests.module';
 import { RequestDetailsModule } from '@request-details/request-details.module';
+import { OffersModule }         from '@offers/offers.module';
 import { GradesModule }         from '@grades/grades.module';
 import { SseModule }            from '@sse/sse.module';
 import { CommentsModule }       from '@comments/comments.module';
@@ -23,6 +24,7 @@ import { CommentsModule }       from '@comments/comments.module';
         SseModule,
         CommentsModule,
         GradesModule,
+        OffersModule,
     ],
     controllers : [ AppController ],
     providers   : [],
