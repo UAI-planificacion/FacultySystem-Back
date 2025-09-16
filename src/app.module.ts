@@ -11,6 +11,12 @@ import { OffersModule }         from '@offers/offers.module';
 import { GradesModule }         from '@grades/grades.module';
 import { SseModule }            from '@sse/sse.module';
 import { CommentsModule }       from '@comments/comments.module';
+import { DaysModule }           from '@days/days.module';
+import { ModulesModule }        from '@modules/modules.module';
+import { PeriodsModule }        from '@periods/periods.module';
+import { ProfessorsModule }     from '@professors/professors.module';
+import { SectionsModule }       from '@sections/sections.module';
+import { SizesModule }          from '@sizes/sizes.module';
 
 
 @Module({
@@ -25,6 +31,12 @@ import { CommentsModule }       from '@comments/comments.module';
         CommentsModule,
         GradesModule,
         OffersModule,
+        DaysModule,
+        ModulesModule,
+        PeriodsModule,
+        ProfessorsModule,
+        SizesModule,
+        SectionsModule,
     ],
     controllers : [ AppController ],
     providers   : [],
