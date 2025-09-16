@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 
-import { OffersService }    from './offers.service';
-import { CreateOfferDto }   from './dto/create-offer.dto';
-import { UpdateOfferDto }   from './dto/update-offer.dto';
+import { OffersService }    from '@offers/offers.service';
+import { CreateOfferDto }   from '@offers/dto/create-offer.dto';
+import { UpdateOfferDto }   from '@offers/dto/update-offer.dto';
 
 
 @Controller( 'offers' )
