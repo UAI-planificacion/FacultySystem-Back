@@ -30,9 +30,9 @@ import { ENV }          from '@config/envs';
     });
 
     const config = new DocumentBuilder()
-        .setTitle('Faculty System API')
-        .setDescription('API for managing faculties, subjects, staff, and requests')
-        .setVersion('1.0')
+        .setTitle( 'Faculty System API' )
+        .setDescription( 'API for managing faculties, subjects, staff, and requests' )
+        .setVersion( '1.0' )
         .build();
 
     const document = SwaggerModule.createDocument(app, config);
