@@ -16,10 +16,6 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     async create( createSubjectDto: CreateSubjectDto ) {
-        // if ( createSubjectDto.startDate.length !== createSubjectDto.endDate.length ) {
-        //     throw new BadRequestException( 'Start date and end date must have the same length' );
-        // }
-
         try {
             return await this.subject.create({
                 data: createSubjectDto,
@@ -71,23 +67,14 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     async update( id: string, updateSubjectDto: UpdateSubjectDto ) {
-        // if ( updateSubjectDto?.startDate?.length !== updateSubjectDto?.endDate?.length ) {
-            // throw new BadRequestException( 'Start date and end date must have the same length' );
-        // }
-
         try {
             return await this.subject.update({
                 where   : { id },
                 data    : {
                     name            : updateSubjectDto.name,
-                    // startDate       : updateSubjectDto.startDate,
-                    // endDate         : updateSubjectDto.endDate,
-                    // students        : updateSubjectDto.students,
                     costCenterId    : updateSubjectDto.costCenterId,
-                    // isEnglish       : updateSubjectDto.isEnglish,
-                    // building        : updateSubjectDto.building,
                     spaceType       : updateSubjectDto.spaceType,
-                    spaceSizeId       : updateSubjectDto.spaceSizeId,
+                    spaceSizeId     : updateSubjectDto.spaceSizeId,
                 }
             });
         } catch ( error ) {
@@ -132,23 +119,12 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         );
 
         const subjectsToCreate = newSubjects.map( subjectData => {
-            // if ( subjectData.startDate.length !== subjectData.endDate.length ) {
-            //     throw new BadRequestException( 
-            //         `Subject ${subjectData.name}: Start date and end date must have the same length` 
-            //     );
-            // }
-
             return {
-                id           : subjectData.id,
-                name         : subjectData.name,
-                // startDate    : subjectData.startDate,
-                // endDate      : subjectData.endDate,
-                // students     : subjectData.students,
-                costCenterId : subjectData.costCenterId,
-                // isEnglish    : subjectData.isEnglish || false,
-                // building     : subjectData.building,
-                spaceType    : subjectData.spaceType,
-                spaceSizeId    : subjectData.spaceSizeId,
+                id              : subjectData.id,
+                name            : subjectData.name,
+                costCenterId    : subjectData.costCenterId,
+                spaceType       : subjectData.spaceType,
+                spaceSizeId     : subjectData.spaceSizeId,
                 facultyId
             };
         });
