@@ -1,0 +1,17 @@
+export enum SizeEnum {
+    CORE        = 'CORE',
+    GARAGE      = 'GARAGE',
+    DIS         = 'DIS',
+    AUDITORIO   = 'AUDITORIO',
+    LABPAC      = 'LAB.PAC',
+    LABPCB      = 'LAB.PCB',
+    LABPCC      = 'LAB.PCC',
+    LABPCE      = 'LAB.PCE',
+    LABRED      = 'LAB.RED',
+    M           = 'M',
+    MS          = 'MS',
+    L           = 'L',
+    SE          = 'SE',
+    S           = 'S',
+    XS          = 'XS',
+}
