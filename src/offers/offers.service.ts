@@ -3,8 +3,8 @@ import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from 'generated/prisma';
 
 import { PrismaException }  from '@app/config/prisma-catch';
-import { CreateOfferDto }   from './dto/create-offer.dto';
-import { UpdateOfferDto }   from './dto/update-offer.dto';
+import { CreateOfferDto }   from '@offers/dto/create-offer.dto';
+import { UpdateOfferDto }   from '@offers/dto/update-offer.dto';
 
 
 @Injectable()
