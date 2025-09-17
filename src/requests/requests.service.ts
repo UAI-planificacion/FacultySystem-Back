@@ -35,6 +35,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         updatedAt       : request.updatedAt,
         staffCreate     : request.staffCreate,
         staffUpdate     : request.staffUpdate,
+        offer           : request.offer,
         subject         : request.subject,
         totalDetails    : request._count.details,
         facultyId       : request.staffCreate.facultyId
@@ -67,10 +68,9 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 role    : true
             }
         },
-        subject         : {
-            select: {
-                id      : true,
-                name    : true,
+        offer : {
+            select : {
+                id : true,
             }
         },
         _count: {
@@ -107,8 +107,10 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         const requests = await this.request.findMany({
             select  : this.#selectRequest,
             where   : {
-                subject: {
-                    facultyId
+                offer : {
+                    subject : {
+                        facultyId
+                    }
                 }
             }
         });
@@ -138,11 +140,11 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     ) {
         const data: Prisma.RequestUpdateInput = { ...updateRequestDto };
 
-        if ( updateRequestDto.subjectId !== undefined ) {
-            delete ( data as any ).subjectId; 
+        if ( updateRequestDto.offerId !== undefined ) {
+            delete ( data as any ).offerId; 
 
-            data.subject = {
-                connect: { id: updateRequestDto.subjectId }
+            data.offer = {
+                connect: { id: updateRequestDto.offerId }
             };
         }
 
