@@ -26,6 +26,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
         const totalSubjects     = await this.subject.count();
         const totalPersonnel    = await this.staff.count();
         const totalRequests     = await this.request.count();
+        const totalOffers       = await this.offer.count();
         const facultiesCounts   = await this.faculty.findMany({
             select: {
                 id          : true,
@@ -42,11 +43,8 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
                 },
                 subjects: {
                     select: {
-                        _count: {
-                            select: {
-                                requests: true,
-                            },
-                        },
+                        _count: 
+                            true
                     },
                 },
             },
@@ -54,7 +52,8 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
 
         const faculties: Faculty[] = facultiesCounts.map( faculty => {
             const totalRequests = faculty.subjects.reduce(( sum, subject ) => {
-                return sum + subject._count.requests;
+                // return sum + subject._count.requests;
+                return sum + subject._count.offers;
             }, 0);
 
             return {
@@ -64,6 +63,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
                 totalSubjects   : faculty._count.subjects,
                 totalPersonnel  : faculty._count.staff,
                 totalRequests,
+                totalOffers,
                 isActive        : faculty.isActive,
                 createdAt       : faculty.createdAt,
                 updatedAt       : faculty.updatedAt,
@@ -74,6 +74,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             totalSubjects,
             totalPersonnel,
             totalRequests,
+            totalOffers,
             faculties,
         };
     }
