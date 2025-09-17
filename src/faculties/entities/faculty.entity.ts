@@ -2,6 +2,7 @@ export class FacultyResponse {
     totalSubjects   : number;
     totalPersonnel  : number;
     totalRequests   : number;
+    totalOffers     : number;
     faculties       : Faculty[];
 }
 
@@ -14,6 +15,7 @@ export class Faculty {
     totalSubjects   : number;
     totalPersonnel  : number;
     totalRequests   : number;
+    totalOffers     : number;
     createdAt       : Date;
     updatedAt       : Date;
 }
