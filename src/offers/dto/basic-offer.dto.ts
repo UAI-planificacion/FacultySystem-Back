@@ -42,14 +42,13 @@ export class BasicOfferDto {
     @Type( () => Date )
     endDate: Date[] = [];
 
-    @ApiPropertyOptional({
+    @ApiProperty({
         description : 'The cost center ID for the subject',
         example     : 'CC-2025-MATH-101',
     })
     @IsString()
-    @IsOptional()
-    @Length(0, 50)
-    costCenterId?: string;
+    @Length(2, 50)
+    costCenterId: string;
 
     @ApiPropertyOptional({
         description : 'Is English',
