@@ -48,12 +48,12 @@ export class BasicRequestDto {
     description?: string;
 
     @ApiProperty({ 
-        description : 'ID of the subject this request is for',
+        description : 'ID of the offer this request is for',
         example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
     })
     @IsString()
     @Length( 2, 50 )
-    subjectId: string;
+    offerId: string;
 
 
     @ApiProperty({ 
