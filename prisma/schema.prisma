@@ -301,13 +301,8 @@ model Faculty {
 model Subject {
     id              String @id
     name            String @unique
-    // startDate       DateTime[]
-    // endDate         DateTime[]
-    // students        Int
     costCenterId    String
     isActive        Boolean @default( true )
-    // isEnglish       Boolean @default( false )
-    // building        Building[]
     spaceType       SpaceType?
 
     faculty     Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
@@ -317,7 +312,6 @@ model Subject {
     spaceSize      Size? @relation(fields: [spaceSizeId], references: [id])
 
     subjectSections SubjectSection[]
-    requests        Request[]
     offers          Offer[]
 
     createdAt DateTime @default(now())
@@ -333,7 +327,7 @@ model Offer {
     endDate         DateTime[]
     building        Building?
     spaceType       SpaceType?
-    costCenterId    String?
+    costCenterId    String
     isEnglish       Boolean @default( false )
     workshop        Int @default( 0 )   // Taller
     lecture         Int @default( 0 )   // Cátedra
@@ -348,6 +342,8 @@ model Offer {
 
     periodId    String
     period      Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+
+    requests Request[]
 
     @@index([subjectId])
 }
@@ -405,8 +401,10 @@ model Request {
     staffUpdateId   String?
     staffUpdate     Staff? @relation("staffUpdate", fields: [staffUpdateId], references: [id], onDelete: Cascade)
 
-    subjectId       String
-    subject         Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+    // subjectId       String
+    // subject         Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+    offerId String
+    offer Offer @relation( fields : [ offerId ], references: [id] )
 
     periodId        String?
     period          Period? @relation(fields: [periodId], references: [id], onDelete: Cascade)
