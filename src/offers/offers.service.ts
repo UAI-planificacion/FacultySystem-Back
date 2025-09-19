@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
@@ -25,6 +25,39 @@ export class OffersService extends PrismaClient implements OnModuleInit {
     }
 
 
+    #selectOffer = {
+        id              : true,
+        startDate       : true,
+        endDate         : true,
+        workshop        : true,
+        laboratory      : true,
+        tutoringSession : true,
+        lecture         : true,
+        building        : true,
+        costCenterId    : true,
+        isEnglish       : true,
+        spaceType       : true,
+        period          : {
+            select : {
+                id      : true,
+                name    : true,
+            }
+        },
+        spaceSize       : {
+            select : {
+                id      : true,
+                detail  : true,
+            }
+        },
+        subject         : {
+            select : {
+                id      : true,
+                name    : true,
+            }
+        },
+    }
+
+
     async create( createOfferDto: CreateOfferDto ) {
         if ( !createOfferDto.workshop
             && !createOfferDto.laboratory
@@ -43,6 +76,7 @@ export class OffersService extends PrismaClient implements OnModuleInit {
         try {
             return await this.offer.create({
                 data: createOfferDto,
+                select: this.#selectOffer,
             });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create subject' );
@@ -50,15 +84,39 @@ export class OffersService extends PrismaClient implements OnModuleInit {
     }
 
 
-    findAll() {
-        return this.offer.findMany();
+    async findAll() {
+        return await this.offer.findMany({
+            select: this.#selectOffer,
+        });
+    }
+
+
+    async findAllByFacultyId( facultyId: string ) {
+        return await this.offer.findMany({
+            where: {
+                subject: {
+                    facultyId
+                }
+            },
+            select: this.#selectOffer,
+        });
     }
 
 
     findOne( id: string ) {
-        return this.offer.findUnique({
-            where: { id }
+        const offer = this.offer.findUnique({
+            where: { id },
+            select: this.#selectOffer,
         });
+
+        if ( !offer ) {
+            throw new NotFoundException({
+                code    : 'OFFER-003',
+                message : 'Offer not found',
+            });
+        }
+
+        return offer;
     }
 
 
@@ -69,6 +127,7 @@ export class OffersService extends PrismaClient implements OnModuleInit {
             return this.offer.update({
                 where   : { id },
                 data    : updateOfferDto,
+                select  : this.#selectOffer,
             });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update offer' );
@@ -79,7 +138,8 @@ export class OffersService extends PrismaClient implements OnModuleInit {
     async remove( id: string ) {
         try {
             return await this.offer.delete({
-                where: { id }
+                where: { id },
+                select: this.#selectOffer,
             });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete offer' );
