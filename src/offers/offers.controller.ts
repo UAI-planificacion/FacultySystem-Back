@@ -27,6 +27,14 @@ export class OffersController {
     }
 
 
+    @Get( '/facultyId/:id' )
+    findAllByFacultyId(
+        @Param( 'id' ) facultyId: string
+    ) {
+        return this.offersService.findAllByFacultyId( facultyId );
+    }
+
+
     @Get( ':id' )
     findOne(
         @Param( 'id' ) id: string
