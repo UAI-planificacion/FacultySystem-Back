@@ -1,21 +1,21 @@
-export class FacultyResponse {
+class BaseFaculty {
     totalSubjects   : number;
-    totalPersonnel  : number;
+    totalStaff      : number;
     totalRequests   : number;
     totalOffers     : number;
+}
+
+
+export class FacultyResponse extends BaseFaculty {
     faculties       : Faculty[];
 }
 
 
-export class Faculty {
+export class Faculty extends BaseFaculty {
     id              : string;
     name            : string;
     description?    : string | null;
     isActive        : boolean;
-    totalSubjects   : number;
-    totalPersonnel  : number;
-    totalRequests   : number;
-    totalOffers     : number;
     createdAt       : Date;
     updatedAt       : Date;
 }
