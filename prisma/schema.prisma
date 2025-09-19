@@ -340,8 +340,8 @@ model Offer {
     spaceSizeId    SizeValue?
     spaceSize      Size? @relation(fields: [spaceSizeId], references: [id])
 
-    periodId    String
-    period      Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
+    periodId        String
+    period          Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
 
     requests Request[]
 
