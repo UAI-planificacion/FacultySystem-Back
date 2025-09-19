@@ -15,11 +15,44 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    #selectSubject = {
+        id              : true,
+        name            : true,
+        costCenterId    : true,
+        spaceType       : true,
+        spaceSizeId     : true,
+        createdAt       : true,
+        updatedAt       : true,
+        isActive        : true,
+        _count          : {
+            select: {
+                offers: true
+            }
+        }
+    }
+
+
+    #subjectWithCounter = ( subject: any ) => ({
+        id              : subject.id,
+        name            : subject.name,
+        costCenterId    : subject.costCenterId,
+        spaceType       : subject.spaceType,
+        spaceSizeId     : subject.spaceSizeId,
+        createdAt       : subject.createdAt,
+        updatedAt       : subject.updatedAt,
+        isActive        : subject.isActive,
+        offersCount     : subject._count.offers
+    });
+
+
     async create( createSubjectDto: CreateSubjectDto ) {
         try {
-            return await this.subject.create({
-                data: createSubjectDto,
+            const subject = await this.subject.create({
+                data    : createSubjectDto,
+                select  : this.#selectSubject
             });
+
+            return this.#subjectWithCounter( subject );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create subject' );
         }
@@ -42,14 +75,21 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
 
     async findAll() {
-        return await this.subject.findMany( {} );
+        const subjects = await this.subject.findMany({
+            select: this.#selectSubject
+        });
+
+        return subjects.map( subject => this.#subjectWithCounter( subject ));
     }
 
 
     async findAllByFacultyId( facultyId: string ) {
-        return await this.subject.findMany({
-            where: { facultyId }
+        const subjects = await this.subject.findMany({
+            where   : { facultyId },
+            select  : this.#selectSubject
         });
+
+        return subjects.map( subject => this.#subjectWithCounter( subject ));
     }
 
 
@@ -68,15 +108,18 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
     async update( id: string, updateSubjectDto: UpdateSubjectDto ) {
         try {
-            return await this.subject.update({
+            const subject = await this.subject.update({
                 where   : { id },
                 data    : {
                     name            : updateSubjectDto.name,
                     costCenterId    : updateSubjectDto.costCenterId,
                     spaceType       : updateSubjectDto.spaceType,
                     spaceSizeId     : updateSubjectDto.spaceSizeId,
-                }
+                },
+                select  : this.#selectSubject
             });
+
+            return this.#subjectWithCounter( subject );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update subject' );
         }
@@ -136,13 +179,16 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         try {
             await this.subject.createMany({ data: subjectsToCreate });
 
-            return await this.subject.findMany({
+            const subjects = await this.subject.findMany({
                 where: {
                     id: {
                         in: newSubjects.map( subject => subject.id )
                     }
-                }
+                },
+                select: this.#selectSubject
             });
+
+            return subjects.map( subject => this.#subjectWithCounter( subject ));
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create subjects in bulk' );
         }
