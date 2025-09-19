@@ -22,57 +22,71 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
         }
     }
 
+
+    #selectFactulty = {
+        id          : true,
+        name        : true,
+        description : true,
+        isActive    : true,
+        createdAt   : true,
+        updatedAt   : true,
+        _count      : {
+            select: {
+                staff       : true,
+                subjects    : true,
+            },
+        },
+        subjects: {
+            select: {
+                _count: {
+                    select: {
+                        offers: true
+                    }
+                }
+            },
+        },
+    }
+
+
+    #getSubTotals = ( faculty: any, totalSubjects: number, totalRequests: number ) => {
+        const facultyTotalOffers = faculty.subjects.reduce(( sum, subject ) => {
+            return sum + subject._count.offers;
+        }, 0);
+
+        const facultyTotalRequests = Math.floor(
+            ( faculty._count.subjects / totalSubjects ) * totalRequests
+        );
+
+        return {
+            id              : faculty.id,
+            name            : faculty.name,
+            description     : faculty.description || undefined,
+            totalSubjects   : faculty._count.subjects,
+            totalStaff      : faculty._count.staff,
+            totalRequests   : facultyTotalRequests,
+            totalOffers     : facultyTotalOffers,
+            isActive        : faculty.isActive,
+            createdAt       : faculty.createdAt,
+            updatedAt       : faculty.updatedAt,
+        };
+    }
+
+
     async findAll() : Promise<FacultyResponse> {
         const totalSubjects     = await this.subject.count();
-        const totalPersonnel    = await this.staff.count();
+        const totalStaff        = await this.staff.count();
         const totalRequests     = await this.request.count();
         const totalOffers       = await this.offer.count();
         const facultiesCounts   = await this.faculty.findMany({
-            select: {
-                id          : true,
-                name        : true,
-                description : true,
-                isActive    : true,
-                createdAt   : true,
-                updatedAt   : true,
-                _count      : {
-                    select: {
-                        staff       : true,
-                        subjects    : true,
-                    },
-                },
-                subjects: {
-                    select: {
-                        _count: 
-                            true
-                    },
-                },
-            },
+            select : this.#selectFactulty,
         });
 
-        const faculties: Faculty[] = facultiesCounts.map( faculty => {
-            const totalRequests = faculty.subjects.reduce(( sum, subject ) => {
-                // return sum + subject._count.requests;
-                return sum + subject._count.offers;
-            }, 0);
-
-            return {
-                id              : faculty.id,
-                name            : faculty.name,
-                description     : faculty.description || undefined,
-                totalSubjects   : faculty._count.subjects,
-                totalPersonnel  : faculty._count.staff,
-                totalRequests,
-                totalOffers,
-                isActive        : faculty.isActive,
-                createdAt       : faculty.createdAt,
-                updatedAt       : faculty.updatedAt,
-            };
-        });
+        const faculties: Faculty[] = facultiesCounts
+        .map( faculty => this.#getSubTotals( faculty, totalSubjects, totalRequests ));
 
         return {
             totalSubjects,
-            totalPersonnel,
+            totalStaff,
             totalRequests,
             totalOffers,
             faculties,
@@ -81,13 +95,19 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
 
 
     async findOne( id: string ) {
-        const faculty = await this.faculty.findUnique({ where: { id } });
+        const faculty = await this.faculty.findUnique({
+            where: { id },
+            select: this.#selectFactulty
+        });
 
         if ( !faculty ) {
             throw new NotFoundException( 'Faculty not found' );
         }
 
-        return faculty;
+        const totalSubjects = await this.subject.count();
+        const totalRequests = await this.request.count();
+
+        return this.#getSubTotals( faculty, totalSubjects, totalRequests );
     }
 
 
