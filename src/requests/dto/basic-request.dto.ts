@@ -56,12 +56,12 @@ export class BasicRequestDto {
     offerId: string;
 
 
-    @ApiProperty({ 
-        description : 'ID of the period this request is for',
-        example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
-    })
-    @IsString()
-    @Length( 2, 50 )
-    periodId: string;
+    // @ApiProperty({ 
+    //     description : 'ID of the period this request is for',
+    //     example     : '01H9XKJ8WXKJ8WXKJ8WXKJ8WX'
+    // })
+    // @IsString()
+    // @Length( 2, 50 )
+    // periodId: string;
 
 }
