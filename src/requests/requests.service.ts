@@ -30,16 +30,14 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         status          : request.status,
         isConsecutive   : request.isConsecutive,
         description     : request.description,
-        periodId        : request.periodId,
         createdAt       : request.createdAt,
         updatedAt       : request.updatedAt,
         staffCreate     : request.staffCreate,
         staffUpdate     : request.staffUpdate,
         offer           : request.offer,
-        subject         : request.subject,
         totalDetails    : request._count.details,
         facultyId       : request.staffCreate.facultyId
-    })
+    });
 
 
     #selectRequest = {
@@ -48,7 +46,6 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         status          : true,
         isConsecutive   : true,
         description     : true,
-        periodId        : true,
         createdAt       : true,
         updatedAt       : true,
         staffCreate     : {
@@ -70,7 +67,35 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         },
         offer : {
             select : {
-                id : true,
+                id              : true,
+                workshop        : true,
+                lecture         : true,
+                tutoringSession : true,
+                laboratory      : true,
+                spaceType       : true,
+                costCenterId    : true,
+                isEnglish       : true,
+                building        : true,
+                startDate       : true,
+                endDate         : true,
+                spaceSize : {
+                    select : {
+                        id      : true,
+                        detail  : true
+                    }
+                },
+                subject         : {
+                    select : {
+                        id      : true,
+                        name    : true,
+                    }
+                },
+                period : {
+                    select : {
+                        id      : true,
+                        name    : true
+                    }
+                }
             }
         },
         _count: {
@@ -115,7 +140,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             }
         });
 
-        return requests.map(( request ) =>  this.#requestMap( request ));
+        return requests.map(( request ) => this.#requestMap( request ));
     }
 
 
