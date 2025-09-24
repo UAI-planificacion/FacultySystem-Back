@@ -48,14 +48,24 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
     }
 
 
-    #getSubTotals = ( faculty: any, totalSubjects: number, totalRequests: number ) => {
-        const facultyTotalOffers = faculty.subjects.reduce(( sum, subject ) => {
-            return sum + subject._count.offers;
-        }, 0);
+    #getSubTotals = async ( faculty: any ) => {
+        const facultyTotalOffers = await this.offer.count({
+            where: {
+                subject: {
+                    facultyId: faculty.id
+                }
+            }
+        });
 
-        const facultyTotalRequests = Math.floor(
-            ( faculty._count.subjects / totalSubjects ) * totalRequests
-        );
+        const facultyTotalRequests = await this.request.count({
+            where: {
+                offer: {
+                    subject: {
+                        facultyId: faculty.id
+                    }
+                }
+            }
+        });
 
         return {
             id              : faculty.id,
@@ -81,8 +91,9 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             select : this.#selectFactulty,
         });
 
-        const faculties: Faculty[] = facultiesCounts
-        .map( faculty => this.#getSubTotals( faculty, totalSubjects, totalRequests ));
+        const faculties: Faculty[] = await Promise.all(
+            facultiesCounts.map( faculty => this.#getSubTotals( faculty ))
+        );
 
         return {
             totalSubjects,
@@ -104,10 +115,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             throw new NotFoundException( 'Faculty not found' );
         }
 
-        const totalSubjects = await this.subject.count();
-        const totalRequests = await this.request.count();
-
-        return this.#getSubTotals( faculty, totalSubjects, totalRequests );
+        return this.#getSubTotals( faculty );
     }
 
 
