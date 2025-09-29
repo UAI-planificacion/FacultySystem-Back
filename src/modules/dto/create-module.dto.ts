@@ -92,9 +92,8 @@ export class CreateModuleDto {
     @IsArray()
     @ArrayNotEmpty()
     @ArrayMinSize(1)
-    @IsString({ each: true })
     @IsNotEmpty({ each: true })
     @ArrayUnique()
-    dayIds: number[];
+    days: number[];
 
 }
