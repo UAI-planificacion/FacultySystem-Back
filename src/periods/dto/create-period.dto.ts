@@ -36,7 +36,7 @@ export class CreatePeriodDto {
         type: Date,
     })
     @IsOptional()
-    @Transform(({ value }) => new Date(value))
+    @Transform(({ value }) => value ? new Date(value) : undefined)
     @IsDate()
     startDate?: Date;
 
@@ -46,7 +46,7 @@ export class CreatePeriodDto {
         type: Date,
     })
     @IsOptional()
-    @Transform(({ value }) => new Date(value))
+    @Transform(({ value }) => value ? new Date(value) : undefined)
     @IsDate()
     endDate?: Date;
 
@@ -56,7 +56,7 @@ export class CreatePeriodDto {
         type: Date,
     })
     @IsOptional()
-    @Transform(({ value }) => new Date(value))
+    @Transform(({ value }) => value ? new Date(value) : undefined)
     @IsDate()
     openingDate?: Date;
 
@@ -66,7 +66,7 @@ export class CreatePeriodDto {
         type: Date,
     })
     @IsOptional()
-	@Transform(({ value }) => new Date(value))
+    @Transform(({ value }) => value ? new Date(value) : undefined)
     @IsDate()
     closingDate?: Date;
 
