@@ -112,7 +112,7 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
             await this.$transaction( async ( prisma ) => {
                 for ( const createModuleDto of createModuleDtos ) {
-                    const { dayIds, ...data }   = createModuleDto;
+                    const { days: dayIds, ...data }   = createModuleDto;
                     const module                = await prisma.module.create({ data: { ...data, difference: null } });
 
                     await prisma.dayModule.createMany({
@@ -259,24 +259,25 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
     async update( id: number, updateModuleDto: UpdateModuleDto ) {
         try {
-            const { dayIds, ...data } = updateModuleDto;
+            const { days: dayIds, ...data } = updateModuleDto;
 
             const existingModule = await this.module.findUnique({
-                where: { id },
-                include: { dayModules: true }
+                where   : { id },
+                include : { dayModules: true }
             });
 
-            if (!existingModule) {
-                throw new Error(`Module with ID ${id} not found.`);
+            if ( !existingModule ) {
+                throw new Error( `Module with ID ${id} not found.` );
             }
 
             const affectedDayIds: Set<number> = new Set();
+
             existingModule.dayModules.map( dm => dm.dayId ).forEach( dayId => affectedDayIds.add( dayId ));
 
-            // const module = await this.module.update({
-            //     where: { id },
-            //     data,
-            // });
+            await this.module.update({
+                where: { id },
+                data,
+            });
 
             if ( dayIds ) {
                 await this.dayModule.deleteMany({
