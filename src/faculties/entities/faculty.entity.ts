@@ -2,7 +2,7 @@ class BaseFaculty {
     totalSubjects   : number;
     totalStaff      : number;
     totalRequests   : number;
-    totalOffers     : number;
+    // totalOffers     : number;
 }
 
 
