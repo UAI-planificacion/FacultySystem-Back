@@ -30,6 +30,18 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 		this.$connect();
 	}
 
+    //TODO: Crear servicio para obtener secciones por su offerId
+    // async findAllByOfferId( offerId: string ) {
+    //     const sections = await this.section.findMany({
+    //         select  : this.#selectSection,
+    //         where   : {
+    //             offerId
+    //         }
+    //     });
+
+    //     return sections.map(( section ) => this.#convertToSectionDto( section ));
+    // }
+
 
     #selectSection = {
         id                      : true,
@@ -75,8 +87,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 name    : true,
             }
         },
-        subjectSections: {
-            select: {
+        // subjectSections: {
+            // select: {
                 subject: {
                     select: {
                         id      : true,
@@ -89,8 +101,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                         name    : true,
                     }
                 }
-            }
-        }
+            // }
+        // }
     }
 
 
@@ -98,7 +110,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         return {
             id                      : section.id,
             code                    : section.code,
-            session                 : section.session,
+            // session                 : section.session,
             size                    : section.size,
             correctedRegistrants    : section.correctedRegistrants,
             realRegistrants         : section.realRegistrants,
@@ -131,218 +143,226 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 name    : section.professor?.name,
             } : null,
 
-            subject: section.subjectSections[0]?.subject.id ? {
-                id      : section.subjectSections[0]?.subject.id,
-                name    : section.subjectSections[0]?.subject.name,
+            subject: section.subject.id ? {
+                id      : section.subject.id,
+                name    : section.subject.name,
             } : null,
-            period: section.subjectSections[0]?.period.id ? {
-                id      : section.subjectSections[0].period.id,
-                name    : section.subjectSections[0].period.name,
+            period: section.period.id ? {
+                id      : section.period.id,
+                name    : section.period.name,
             } : null,
+            // subject: section.subjectSections[0]?.subject.id ? {
+            //     id      : section.subjectSections[0]?.subject.id,
+            //     name    : section.subjectSections[0]?.subject.name,
+            // } : null,
+            // period: section.subjectSections[0]?.period.id ? {
+            //     id      : section.subjectSections[0].period.id,
+            //     name    : section.subjectSections[0].period.name,
+            // } : null,
         };
     }
 
 
-    async createBasic(
-        subjectId                   : string,
-        createInitialSectionDtos    : CreateInitialSectionDto[]
-    ): Promise<SectionDto[]> {
-        try {
-            if ( !createInitialSectionDtos || createInitialSectionDtos.length === 0 ) {
-                throw new BadRequestException( 'At least one section must be provided' );
-            }
+    // async createBasic(
+    //     subjectId                   : string,
+    //     createInitialSectionDtos    : CreateInitialSectionDto[]
+    // ): Promise<SectionDto[]> {
+    //     try {
+    //         if ( !createInitialSectionDtos || createInitialSectionDtos.length === 0 ) {
+    //             throw new BadRequestException( 'At least one section must be provided' );
+    //         }
 
-            const sectionsData = createInitialSectionDtos.map( dto => ({
-                id          : ulid(),
-                code        : dto.code,
-                session     : dto.session,
-                periodId    : dto.periodId,
-                groupId     : dto.groupId,
-            }));
+    //         const sectionsData = createInitialSectionDtos.map( dto => ({
+    //             id          : ulid(),
+    //             code        : dto.code,
+    //             session     : dto.session,
+    //             periodId    : dto.periodId,
+    //             groupId     : dto.groupId,
+    //         }));
 
-            const toInserted = sectionsData.map(data => ({
-                id      : data.id,
-                code    : data.code,
-                session : data.session,
-                groupId : data.groupId,
-            }))
+    //         const toInserted = sectionsData.map(data => ({
+    //             id      : data.id,
+    //             code    : data.code,
+    //             session : data.session,
+    //             groupId : data.groupId,
+    //         }))
 
-            await this.section.createMany({ data: toInserted });
+    //         await this.section.createMany({ data: toInserted });
 
-            const subjectSectionsData = sectionsData.map(( section, index ) => ({
-                sectionId   : section.id,
-                subjectId   : subjectId,
-                periodId    : section.periodId,
-            }));
+    //         const subjectSectionsData = sectionsData.map(( section, index ) => ({
+    //             sectionId   : section.id,
+    //             subjectId   : subjectId,
+    //             periodId    : section.periodId,
+    //         }));
 
-            await this.subjectSection.createMany({
-                data: subjectSectionsData
-            });
+    //         await this.subjectSection.createMany({
+    //             data: subjectSectionsData
+    //         });
 
-            return this.findAllBySubjectId( subjectId );
-        } catch ( error ) {
-            console.error( 'Error creating sections:', error );
-            throw PrismaException.catch( error, 'Failed to create sections' );
-        }
-    }
-
-
-    async create( createSectionDto: CreateSectionDto ) {
-        try {
-            const {
-                periodId,
-                subjectId,
-                ...rest
-            }                   = createSectionDto;
-            const data          = { id: ulid(), ...rest };
-            const newSection    = await this.section.create({ data });
-
-            if ( !newSection ) throw new BadRequestException( 'Error creating section' );
-
-            await this.subjectSection.create({
-                data: {
-                    sectionId: newSection.id,
-                    subjectId,
-                    periodId,
-                }
-            });
-
-            const section = await this.section.findUnique({
-                where   : { id: newSection.id },
-                select  : this.#selectSection
-            });
-
-            if ( !section ) throw new BadRequestException( 'Error creating section' );
-
-            return this.#convertToSectionDto( section );
-        } catch ( error ) {
-            console.error( 'Error creating section:', error );
-            throw PrismaException.catch( error, 'Failed to create section' );
-        }
-    }
+    //         return this.findAllBySubjectId( subjectId );
+    //     } catch ( error ) {
+    //         console.error( 'Error creating sections:', error );
+    //         throw PrismaException.catch( error, 'Failed to create sections' );
+    //     }
+    // }
 
 
-    async #getSectionData(): Promise<SectionDto[]> {
-        const sections = await this.section.findMany({
-            select: this.#selectSection
-        });
+    // async create( createSectionDto: CreateSectionDto ) {
+    //     try {
+    //         const {
+    //             periodId,
+    //             subjectId,
+    //             ...rest
+    //         }                   = createSectionDto;
+    //         const data          = { id: ulid(), ...rest };
+    //         const newSection    = await this.section.create({ data });
 
-        if ( sections.length === 0 ) return [];
+    //         if ( !newSection ) throw new BadRequestException( 'Error creating section' );
 
-        return sections.map( section => this.#convertToSectionDto( section ));
-    }
+    //         await this.subjectSection.create({
+    //             data: {
+    //                 sectionId: newSection.id,
+    //                 subjectId,
+    //                 periodId,
+    //             }
+    //         });
 
+    //         const section = await this.section.findUnique({
+    //             where   : { id: newSection.id },
+    //             select  : this.#selectSection
+    //         });
 
-    async findAll() {
-        return await this.#getSectionData();
-    }
+    //         if ( !section ) throw new BadRequestException( 'Error creating section' );
 
-
-    async findAllBySubjectId( subjectId: string ) {
-        const sections = await this.section.findMany({
-            where: {
-                subjectSections: {
-                    every: {
-                        subjectId
-                    }
-                }
-            },
-            select: this.#selectSection
-        });
-
-        return sections.map( section => this.#convertToSectionDto( section ));
-    }
-
-
-    async findOne( id: string ) {
-        const section = await this.section.findUnique({
-            where: { id },
-        });
-
-        if ( !section ) {
-            throw new NotFoundException( 'Section not found.' );
-        }
-
-        return section;
-    }
+    //         return this.#convertToSectionDto( section );
+    //     } catch ( error ) {
+    //         console.error( 'Error creating section:', error );
+    //         throw PrismaException.catch( error, 'Failed to create section' );
+    //     }
+    // }
 
 
-    async changeStatusSectionByGroupId( groupId: string ) {
-        try {
-            let sectiondata = await this.section.findMany({
-                where: {
-                    groupId: {
-                        in: [groupId]
-                    }
-                },
-                select: this.#selectSection
-            });
+    // async #getSectionData(): Promise<SectionDto[]> {
+    //     const sections = await this.section.findMany({
+    //         select: this.#selectSection
+    //     });
 
-            if ( sectiondata.length === 0 ) {
-                throw new NotFoundException( 'Section Group not found.' );
-            }
+    //     if ( sections.length === 0 ) return [];
 
-            const isClosed = !sectiondata[0].isClosed;
-
-            await this.section.updateMany({
-                where   : { groupId },
-                data    : {
-                    isClosed,
-                },
-            });
-
-            sectiondata = sectiondata.map( section => ({
-                ...section,
-                isClosed
-            }));
-
-            return sectiondata.map( section => this.#convertToSectionDto( section ));
-        } catch ( error ) {
-            console.error( 'Error updating section:', error );
-            throw PrismaException.catch( error, 'Failed to update section' );
-        }
-    }
+    //     return sections.map( section => this.#convertToSectionDto( section ));
+    // }
 
 
-    async updateByGroup( groupId: string, updateSectionDto: UpdateGroupDto ) {
-        try {
-            const sectionUpdated = await this.section.updateManyAndReturn({
-                select : {
-                    id: true,
-                },
-                where   : { groupId },
-                data    : {
-                    code : updateSectionDto.code,
-                    size : updateSectionDto.size,
-                },
-            });
+    // async findAll() {
+    //     return await this.#getSectionData();
+    // }
 
-            if ( !sectionUpdated.length ) throw new BadRequestException( 'Error updating section' );
 
-            await this.subjectSection.updateMany({
-                where   : { sectionId: { in: sectionUpdated.map( section => section.id )}},
-                data    : {
-                    periodId: updateSectionDto.periodId,
-                },
-            });
+    // async findAllBySubjectId( subjectId: string ) {
+    //     const sections = await this.section.findMany({
+    //         where: {
+    //             subjectSections: {
+    //                 every: {
+    //                     subjectId
+    //                 }
+    //             }
+    //         },
+    //         select: this.#selectSection
+    //     });
 
-            const sectiondata = await this.section.findMany({
-                where: {
-                    id: {
-                        in: sectionUpdated.map( section => section.id )
-                    }
-                },
-                select: this.#selectSection
-            })
+    //     return sections.map( section => this.#convertToSectionDto( section ));
+    // }
 
-            const sections = sectiondata.map( section => this.#convertToSectionDto( section ));
 
-            return sections;
-        } catch ( error ) {
-            console.error( 'Error updating section:', error );
-            throw PrismaException.catch( error, 'Failed to update section' );
-        }
-    }
+    // async findOne( id: string ) {
+    //     const section = await this.section.findUnique({
+    //         where: { id },
+    //     });
+
+    //     if ( !section ) {
+    //         throw new NotFoundException( 'Section not found.' );
+    //     }
+
+    //     return section;
+    // }
+
+
+    // async changeStatusSectionByGroupId( groupId: string ) {
+    //     try {
+    //         let sectiondata = await this.section.findMany({
+    //             where: {
+    //                 groupId: {
+    //                     in: [groupId]
+    //                 }
+    //             },
+    //             select: this.#selectSection
+    //         });
+
+    //         if ( sectiondata.length === 0 ) {
+    //             throw new NotFoundException( 'Section Group not found.' );
+    //         }
+
+    //         const isClosed = !sectiondata[0].isClosed;
+
+    //         await this.section.updateMany({
+    //             where   : { groupId },
+    //             data    : {
+    //                 isClosed,
+    //             },
+    //         });
+
+    //         sectiondata = sectiondata.map( section => ({
+    //             ...section,
+    //             isClosed
+    //         }));
+
+    //         return sectiondata.map( section => this.#convertToSectionDto( section ));
+    //     } catch ( error ) {
+    //         console.error( 'Error updating section:', error );
+    //         throw PrismaException.catch( error, 'Failed to update section' );
+    //     }
+    // }
+
+
+    // async updateByGroup( groupId: string, updateSectionDto: UpdateGroupDto ) {
+    //     try {
+    //         const sectionUpdated = await this.section.updateManyAndReturn({
+    //             select : {
+    //                 id: true,
+    //             },
+    //             where   : { groupId },
+    //             data    : {
+    //                 code : updateSectionDto.code,
+    //                 size : updateSectionDto.size,
+    //             },
+    //         });
+
+    //         if ( !sectionUpdated.length ) throw new BadRequestException( 'Error updating section' );
+
+    //         await this.subjectSection.updateMany({
+    //             where   : { sectionId: { in: sectionUpdated.map( section => section.id )}},
+    //             data    : {
+    //                 periodId: updateSectionDto.periodId,
+    //             },
+    //         });
+
+    //         const sectiondata = await this.section.findMany({
+    //             where: {
+    //                 id: {
+    //                     in: sectionUpdated.map( section => section.id )
+    //                 }
+    //             },
+    //             select: this.#selectSection
+    //         })
+
+    //         const sections = sectiondata.map( section => this.#convertToSectionDto( section ));
+
+    //         return sections;
+    //     } catch ( error ) {
+    //         console.error( 'Error updating section:', error );
+    //         throw PrismaException.catch( error, 'Failed to update section' );
+    //     }
+    // }
 
 
     async massiveUpdate( ids: string[], updateSectionDto: UpdateSectionDto ) {
@@ -424,45 +444,45 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
      * @param file The uploaded Excel file
      * @returns Array of processed section data
      */
-    async processExcelFile( file: Express.Multer.File ) {
-        if ( !file ) {
-            throw new BadRequestException( 'No file uploaded' );
-        }
+    // async processExcelFile( file: Express.Multer.File ) {
+    //     if ( !file ) {
+    //         throw new BadRequestException( 'No file uploaded' );
+    //     }
 
-        const fileExtension = file.originalname.split('.').pop()?.toLowerCase() || '';
+    //     const fileExtension = file.originalname.split('.').pop()?.toLowerCase() || '';
 
-        if ( !['xlsx', 'xls'].includes( fileExtension )) {
-            throw new BadRequestException( 'Invalid file format. Only Excel files (.xlsx, .xls) are allowed.' );
-        }
+    //     if ( !['xlsx', 'xls'].includes( fileExtension )) {
+    //         throw new BadRequestException( 'Invalid file format. Only Excel files (.xlsx, .xls) are allowed.' );
+    //     }
 
-        try {
-            const workbook = xlsx.read( file.buffer, {
-                type        : 'buffer',
-                cellDates   : false,
-                cellNF      : false,
-                cellStyles  : false
-            });
+    //     try {
+    //         const workbook = xlsx.read( file.buffer, {
+    //             type        : 'buffer',
+    //             cellDates   : false,
+    //             cellNF      : false,
+    //             cellStyles  : false
+    //         });
 
-            if ( !workbook.SheetNames || workbook.SheetNames.length === 0 ) {
-                throw new BadRequestException( 'Excel file has no sheets' );
-            }
+    //         if ( !workbook.SheetNames || workbook.SheetNames.length === 0 ) {
+    //             throw new BadRequestException( 'Excel file has no sheets' );
+    //         }
 
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
+    //         const sheetName = workbook.SheetNames[0];
+    //         const worksheet = workbook.Sheets[sheetName];
 
-            if ( !worksheet ) {
-                throw new BadRequestException( 'Could not read worksheet' );
-            }
+    //         if ( !worksheet ) {
+    //             throw new BadRequestException( 'Could not read worksheet' );
+    //         }
 
-            const rawData       = xlsx.utils.sheet_to_json<ExcelSectionRow>( worksheet );
-            const processedData = await this.#processRawData( rawData );
+    //         const rawData       = xlsx.utils.sheet_to_json<ExcelSectionRow>( worksheet );
+    //         const processedData = await this.#processRawData( rawData );
 
-            return processedData;
-        } catch ( error ) {
-            console.error( 'Error processing Excel file:', error );
-            throw new BadRequestException( `Error processing Excel file: ${error.message}` );
-        }
-    }
+    //         return processedData;
+    //     } catch ( error ) {
+    //         console.error( 'Error processing Excel file:', error );
+    //         throw new BadRequestException( `Error processing Excel file: ${error.message}` );
+    //     }
+    // }
 
 
     #getCapacity( capacity: number, sizes: {
@@ -607,178 +627,178 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
      * @param rawData Raw data from Excel file
      * @returns Processed section data
      */
-    async #processRawData( rawData: ExcelSectionRow[] ) {
-        if ( !rawData || rawData.length === 0 ) {
-            throw new BadRequestException( 'Excel file is empty or has no valid data' );
-        }
+    // async #processRawData( rawData: ExcelSectionRow[] ) {
+    //     if ( !rawData || rawData.length === 0 ) {
+    //         throw new BadRequestException( 'Excel file is empty or has no valid data' );
+    //     }
 
-        const dayModules = await this.dayModule.findMany({});
+    //     const dayModules = await this.dayModule.findMany({});
 
-        if ( !dayModules || dayModules.length === 0 ) {
-            throw new BadRequestException( 'No day modules found' );
-        }
+    //     if ( !dayModules || dayModules.length === 0 ) {
+    //         throw new BadRequestException( 'No day modules found' );
+    //     }
 
-        // const uniqueRoomsMap       = new Map<string, RoomData>();
-        const uniqueProfessorsMap  = new Map<string, ProfessorData>();
-        const uniqueSubjectsMap    = new Map<string, SubjectData>();
-        const uniquePeriodsMap     = new Map<string, PeriodData>();
+    //     // const uniqueRoomsMap       = new Map<string, RoomData>();
+    //     const uniqueProfessorsMap  = new Map<string, ProfessorData>();
+    //     const uniqueSubjectsMap    = new Map<string, SubjectData>();
+    //     const uniquePeriodsMap     = new Map<string, PeriodData>();
 
-        const sectionList   : Section[] = [];
-        const ssecList      : SubjectSection[] = [];
+    //     const sectionList   : Section[] = [];
+    //     const ssecList      : SubjectSection[] = [];
 
-        const sizes = await this.size.findMany({
-            select: {
-                id          : true,
-                min         : true,
-                max         : true,
-                lessThan    : true,
-                greaterThan : true,
-            }
-        });
+    //     const sizes = await this.size.findMany({
+    //         select: {
+    //             id          : true,
+    //             min         : true,
+    //             max         : true,
+    //             lessThan    : true,
+    //             greaterThan : true,
+    //         }
+    //     });
 
-        for ( const row of rawData ) {
-            // Rooms
-            // const roomName = row.Sala?.trim();
-            // if ( roomName && !uniqueRoomsMap.has( roomName )) {
-            //     uniqueRoomsMap.set( roomName, {
-            //         id        : roomName,
-            //         building    : this.#getBuilding( roomName ),
-            //         capacity    : row.Capacidad,
-            //         sizeValue   : this.#getCapacity( row.Capacidad, sizes ),
-            //         spaceType   : this.#getSpaceType( roomName, row.Talla ),
-            //     });
-            // }
+    //     for ( const row of rawData ) {
+    //         // Rooms
+    //         // const roomName = row.Sala?.trim();
+    //         // if ( roomName && !uniqueRoomsMap.has( roomName )) {
+    //         //     uniqueRoomsMap.set( roomName, {
+    //         //         id        : roomName,
+    //         //         building    : this.#getBuilding( roomName ),
+    //         //         capacity    : row.Capacidad,
+    //         //         sizeValue   : this.#getCapacity( row.Capacidad, sizes ),
+    //         //         spaceType   : this.#getSpaceType( roomName, row.Talla ),
+    //         //     });
+    //         // }
 
-            // Professors
-            const professorId = row.ProfesorId;
-            if ( professorId && !uniqueProfessorsMap.has( professorId )) {
-                uniqueProfessorsMap.set( professorId, {
-                    id      : professorId.toString(),
-                    name    : row.PROF.trim(),
-                });
-            }
+    //         // Professors
+    //         const professorId = row.ProfesorId;
+    //         if ( professorId && !uniqueProfessorsMap.has( professorId )) {
+    //             uniqueProfessorsMap.set( professorId, {
+    //                 id      : professorId.toString(),
+    //                 name    : row.PROF.trim(),
+    //             });
+    //         }
 
-            // Subjects
-            const subjectCode = row.Sigla?.trim();
-            if ( subjectCode && !uniqueSubjectsMap.has( subjectCode )) {
-                uniqueSubjectsMap.set( subjectCode, {
-                    id          : subjectCode,
-                    name        : row.NombreAsignatura?.trim(),
-                    startDate   : new Date( row.FechaInicio ),
-                });
-            }
+    //         // Subjects
+    //         const subjectCode = row.Sigla?.trim();
+    //         if ( subjectCode && !uniqueSubjectsMap.has( subjectCode )) {
+    //             uniqueSubjectsMap.set( subjectCode, {
+    //                 id          : subjectCode,
+    //                 name        : row.NombreAsignatura?.trim(),
+    //                 startDate   : new Date( row.FechaInicio ),
+    //             });
+    //         }
 
-            // Periods
-            const periodName = `${row.PeriodoAcademicoId}-${row.TipoPeriodo?.trim()}`;
-            if ( periodName && !uniquePeriodsMap.has( periodName )) {
-                uniquePeriodsMap.set( periodName, {
-                    id : row.PeriodoAcademicoId.toString(),
-                    name: row.TipoPeriodo?.trim()
-                });
-            }
+    //         // Periods
+    //         const periodName = `${row.PeriodoAcademicoId}-${row.TipoPeriodo?.trim()}`;
+    //         if ( periodName && !uniquePeriodsMap.has( periodName )) {
+    //             uniquePeriodsMap.set( periodName, {
+    //                 id : row.PeriodoAcademicoId.toString(),
+    //                 name: row.TipoPeriodo?.trim()
+    //             });
+    //         }
 
-            // Sections
-            const sectionId = ulid();
+    //         // Sections
+    //         const sectionId = ulid();
 
-            sectionList.push({
-                id                      : sectionId,
-                code                    : row['Sec.'],
-                session                 : row.Tipo as $Enums.Session,
-                size                    : this.#getSize( row.Size, row.Capacidad ),
-                correctedRegistrants    : row.Inscritos,
-                realRegistrants         : row.InscritosOriginal,
-                plannedBuilding         : row.Edificio,
-                chairsAvailable         : row.SillasDisp,
-                roomId                  : row.Sala,
-                dayModuleId             : dayModules.find( dm => dm.dayId === row.Dia && dm.moduleId === row.Modulo )?.id || 1,
-                professorId             : row.ProfesorId?.toString() || null,
-                groupId                 : ulid()
-            });
+    //         sectionList.push({
+    //             id                      : sectionId,
+    //             code                    : row['Sec.'],
+    //             session                 : row.Tipo as $Enums.Session,
+    //             size                    : this.#getSize( row.Size, row.Capacidad ),
+    //             correctedRegistrants    : row.Inscritos,
+    //             realRegistrants         : row.InscritosOriginal,
+    //             plannedBuilding         : row.Edificio,
+    //             chairsAvailable         : row.SillasDisp,
+    //             roomId                  : row.Sala,
+    //             dayModuleId             : dayModules.find( dm => dm.dayId === row.Dia && dm.moduleId === row.Modulo )?.id || 1,
+    //             professorId             : row.ProfesorId?.toString() || null,
+    //             groupId                 : ulid()
+    //         });
 
-            // SSEC
-            ssecList.push({
-                sectionId,
-                subjectId   : row.Sigla?.trim(),
-                periodId    : row.PeriodoAcademicoId.toString(),
-            });
-        }
+    //         // SSEC
+    //         ssecList.push({
+    //             sectionId,
+    //             subjectId   : row.Sigla?.trim(),
+    //             periodId    : row.PeriodoAcademicoId.toString(),
+    //         });
+    //     }
 
-        // const newRoomsToCreate = await this.#getNewEntitiesToCreate(
-        //     Array.from( uniqueRoomsMap.values() ),
-        //     'id',
-        //     this.room,
-        //     'id',
-        //     ( rData: RoomData ) => ({
-        //         id          : rData.id,
-        //         building    : rData.building,
-        //         capacity    : rData.capacity,
-        //         sizeId      : rData.sizeValue,
-        //         type        : rData.spaceType,
-        //     })
-        // );
+    //     // const newRoomsToCreate = await this.#getNewEntitiesToCreate(
+    //     //     Array.from( uniqueRoomsMap.values() ),
+    //     //     'id',
+    //     //     this.room,
+    //     //     'id',
+    //     //     ( rData: RoomData ) => ({
+    //     //         id          : rData.id,
+    //     //         building    : rData.building,
+    //     //         capacity    : rData.capacity,
+    //     //         sizeId      : rData.sizeValue,
+    //     //         type        : rData.spaceType,
+    //     //     })
+    //     // );
 
-        // if ( newRoomsToCreate.length > 0 ) {
-        //     await this.room.createMany({ data: newRoomsToCreate, skipDuplicates: true });
-        // }
+    //     // if ( newRoomsToCreate.length > 0 ) {
+    //     //     await this.room.createMany({ data: newRoomsToCreate, skipDuplicates: true });
+    //     // }
 
-        const newProfessorsToCreate = await this.#getNewEntitiesToCreate(
-            Array.from( uniqueProfessorsMap.values() ),
-            'id',
-            this.professor,
-            'id',
-            ( pData: ProfessorData ) => ({
-                id      : pData.id,
-                name    : pData.name,
-            })
-        );
+    //     const newProfessorsToCreate = await this.#getNewEntitiesToCreate(
+    //         Array.from( uniqueProfessorsMap.values() ),
+    //         'id',
+    //         this.professor,
+    //         'id',
+    //         ( pData: ProfessorData ) => ({
+    //             id      : pData.id,
+    //             name    : pData.name,
+    //         })
+    //     );
 
-        if ( newProfessorsToCreate.length > 0 ) {
-            await this.professor.createMany({ data: newProfessorsToCreate, skipDuplicates: true });
-        }
+    //     if ( newProfessorsToCreate.length > 0 ) {
+    //         await this.professor.createMany({ data: newProfessorsToCreate, skipDuplicates: true });
+    //     }
 
-        const newPeriodsToCreate = await this.#getNewEntitiesToCreate(
-            Array.from( uniquePeriodsMap.values() ),
-            'id',
-            this.period,
-            'id',
-            ( pData: PeriodData ) => ({
-                id      : pData.id,
-                name    : pData.name,
-            })
-        );
+    //     const newPeriodsToCreate = await this.#getNewEntitiesToCreate(
+    //         Array.from( uniquePeriodsMap.values() ),
+    //         'id',
+    //         this.period,
+    //         'id',
+    //         ( pData: PeriodData ) => ({
+    //             id      : pData.id,
+    //             name    : pData.name,
+    //         })
+    //     );
 
-        if ( newPeriodsToCreate.length > 0 ) {
-            await this.period.createMany({ data: newPeriodsToCreate, skipDuplicates: true });
-        }
+    //     if ( newPeriodsToCreate.length > 0 ) {
+    //         await this.period.createMany({ data: newPeriodsToCreate, skipDuplicates: true });
+    //     }
 
-        const newSubjectsToCreate = await this.#getNewEntitiesToCreate(
-            Array.from( uniqueSubjectsMap.values() ),
-            'id',
-            this.subject,
-            'id',
-            (sData: SubjectData) => ({
-                id          : sData.id,
-                name        : sData.name,
-                startDate   : sData.startDate,
-            })
-        );
+    //     const newSubjectsToCreate = await this.#getNewEntitiesToCreate(
+    //         Array.from( uniqueSubjectsMap.values() ),
+    //         'id',
+    //         this.subject,
+    //         'id',
+    //         (sData: SubjectData) => ({
+    //             id          : sData.id,
+    //             name        : sData.name,
+    //             startDate   : sData.startDate,
+    //         })
+    //     );
 
-        if ( newSubjectsToCreate.length > 0 ) {
-            await this.subject.createMany({ data: newSubjectsToCreate, skipDuplicates: true });
-        }
+    //     if ( newSubjectsToCreate.length > 0 ) {
+    //         await this.subject.createMany({ data: newSubjectsToCreate, skipDuplicates: true });
+    //     }
 
-        if ( sectionList.length > 0 ) {
-            const inserted = await this.section.createMany({ data: sectionList, skipDuplicates: true });
+    //     if ( sectionList.length > 0 ) {
+    //         const inserted = await this.section.createMany({ data: sectionList, skipDuplicates: true });
 
-            if ( inserted.count === 0 ) {
-                throw new BadRequestException( 'No sections were inserted' );
-            }
+    //         if ( inserted.count === 0 ) {
+    //             throw new BadRequestException( 'No sections were inserted' );
+    //         }
 
-            if ( ssecList.length > 0 ) {
-                await this.subjectSection.createMany({ data: ssecList });
-            }
-        }
+    //         if ( ssecList.length > 0 ) {
+    //             await this.subjectSection.createMany({ data: ssecList });
+    //         }
+    //     }
 
-        return this.#getSectionData();
-    }
+    //     return this.#getSectionData();
+    // }
 }
