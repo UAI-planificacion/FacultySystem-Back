@@ -31,7 +31,7 @@ export interface PeriodData {
 export interface Section {
     id                      : string;
     code                    : number;
-    session                 : $Enums.Session;
+    // session                 : $Enums.Session;
     size                    : $Enums.SizeValue;
     correctedRegistrants    : number;
     realRegistrants         : number;
