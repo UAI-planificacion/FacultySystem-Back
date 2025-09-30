@@ -150,15 +150,13 @@ export class SubjectsController {
                     return {
                         id              : String( row.id || '' ).trim(),
                         name            : String( row.name || '' ).trim(),
-                        startDate       : this.#parseArrayField( row.startDate ),
-                        endDate         : this.#parseArrayField( row.endDate ),
-                        students        : Number( row.students ) || 0,
-                        costCenterId    : String( row.costCenterId || '' ).trim(),
-                        isEnglish       : Boolean( row.isEnglish ) || false,
-                        building        : row.building,
                         spaceType       : row.spaceType,
-                        spaceSize       : row.spaceSize,
-                        facultyId       : String( row.facultyId || '' ).trim()
+                        spaceSizeId     : row.spaceSizeId,
+                        facultyId       : String( row.facultyId || '' ).trim(),
+                        workshop        : Number( row.workshop ) || 0,
+                        lecture         : Number( row.lecture ) || 0,
+                        tutoringSession : Number( row.tutoringSession ) || 0,
+                        laboratory      : Number( row.laboratory ) || 0,
                     };
                 } catch ( error ) {
                     throw new BadRequestException( 
@@ -190,27 +188,27 @@ export class SubjectsController {
      * @param field - Field value from Excel
      * @returns Array of Date objects
      */
-    #parseArrayField( field: any ): Date[] {
-        if ( !field ) return [];
+    // #parseArrayField( field: any ): Date[] {
+    //     if ( !field ) return [];
 
-        // Handle arrays
-        if ( Array.isArray( field ) ) {
-            return field.map( item => this.#convertToDate( item ) ).filter( date => date !== null );
-        }
+    //     // Handle arrays
+    //     if ( Array.isArray( field ) ) {
+    //         return field.map( item => this.#convertToDate( item )).filter( date => date !== null );
+    //     }
 
-        // Handle comma-separated strings
-        if ( typeof field === 'string' ) {
-            return field.split( ',' )
-                .map( item => item.trim() )
-                .filter( item => item.length > 0 )
-                .map( item => this.#convertToDate( item ) )
-                .filter( date => date !== null );
-        }
+    //     // Handle comma-separated strings
+    //     if ( typeof field === 'string' ) {
+    //         return field.split( ',' )
+    //             .map( item => item.trim() )
+    //             .filter( item => item.length > 0 )
+    //             .map( item => this.#convertToDate( item ) )
+    //             .filter( date => date !== null );
+    //     }
 
-        // Handle single values (including Excel dates)
-        const convertedDate = this.#convertToDate( field );
-        return convertedDate ? [convertedDate] : [];
-    }
+    //     // Handle single values (including Excel dates)
+    //     const convertedDate = this.#convertToDate( field );
+    //     return convertedDate ? [convertedDate] : [];
+    // }
 
 
     /**
@@ -218,37 +216,37 @@ export class SubjectsController {
      * @param value - Value to convert (can be Excel date, string, or number)
      * @returns Date object or null if conversion fails
      */
-    #convertToDate( value: any ): Date | null {
-        if ( !value ) return null;
+    // #convertToDate( value: any ): Date | null {
+    //     if ( !value ) return null;
 
-        // Handle Date objects
-        if ( value instanceof Date ) {
-            return isNaN( value.getTime() ) ? null : value;
-        }
+    //     // Handle Date objects
+    //     if ( value instanceof Date ) {
+    //         return isNaN( value.getTime() ) ? null : value;
+    //     }
 
-        // Handle Excel date numbers (days since 1900-01-01)
-        if ( typeof value === 'number' ) {
-            // Excel date serial number conversion
-            const excelEpoch = new Date( 1900, 0, 1 );
-            const date = new Date( excelEpoch.getTime() + ( value - 1 ) * 24 * 60 * 60 * 1000 );
-            return isNaN( date.getTime() ) ? null : date;
-        }
+    //     // Handle Excel date numbers (days since 1900-01-01)
+    //     if ( typeof value === 'number' ) {
+    //         // Excel date serial number conversion
+    //         const excelEpoch = new Date( 1900, 0, 1 );
+    //         const date = new Date( excelEpoch.getTime() + ( value - 1 ) * 24 * 60 * 60 * 1000 );
+    //         return isNaN( date.getTime() ) ? null : date;
+    //     }
 
-        // Handle strings
-        if ( typeof value === 'string' ) {
-            const trimmed = value.trim();
+    //     // Handle strings
+    //     if ( typeof value === 'string' ) {
+    //         const trimmed = value.trim();
 
-            if ( trimmed === '' ) return null;
+    //         if ( trimmed === '' ) return null;
 
-            const date = new Date( trimmed );
+    //         const date = new Date( trimmed );
 
-            return isNaN( date.getTime() ) ? null : date;
-        }
+    //         return isNaN( date.getTime() ) ? null : date;
+    //     }
 
-        // Fallback: try to parse as string
-        const date = new Date( String( value ).trim() );
+    //     // Fallback: try to parse as string
+    //     const date = new Date( String( value ).trim() );
 
-        return isNaN( date.getTime() ) ? null : date;
-    }
+    //     return isNaN( date.getTime() ) ? null : date;
+    // }
 
 }
