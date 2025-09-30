@@ -7,6 +7,7 @@ import {
 import {
     IsEnum,
     IsNotEmpty,
+    IsNumber,
     IsOptional,
     IsString
 } from 'class-validator';
@@ -30,14 +31,6 @@ export class BasicSubjectDto {
     @IsNotEmpty()
     name: string;
 
-    @ApiProperty({
-        description : 'The cost center ID for the subject',
-        example     : 'CC-2025-MATH-101',
-    })
-    @IsString()
-    @IsNotEmpty()
-    costCenterId: string;
-
     @ApiPropertyOptional({
         enum        : Object.values( SpaceType ),
         description : $Enums.SpaceType.ROOM
@@ -54,5 +47,38 @@ export class BasicSubjectDto {
     @IsOptional()
     @IsEnum( $Enums.SizeValue )
     spaceSizeId?: $Enums.SizeValue;
+
+
+    @ApiProperty({
+        description : 'Count of workshops',
+        example     : 0,
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    workshop: number;
+
+    @ApiProperty({
+        description : 'Count of lectures',
+        example     : 0,
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    lecture: number;
+
+    @ApiProperty({
+        description : 'Count of tutoring sessions',
+        example     : 0,
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    tutoringSession: number;
+
+    @ApiProperty({
+        description : 'Count of laboratories',
+        example     : 0,
+    })
+    @IsNumber()
+    @IsNotEmpty()
+    laboratory: number;
 
 }
