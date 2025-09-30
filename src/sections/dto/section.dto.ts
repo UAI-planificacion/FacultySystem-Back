@@ -123,12 +123,12 @@ export class SectionDto {
     code: number;
 
 
-    @ApiProperty({
-        description : 'The session of the section.',
-        example     : 'A1',
-        nullable    : true,
-    })
-    session: $Enums.Session | null;
+    // @ApiProperty({
+    //     description : 'The session of the section.',
+    //     example     : 'A1',
+    //     nullable    : true,
+    // })
+    // session: $Enums.Session | null;
 
 
     @ApiProperty({
