@@ -18,30 +18,36 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
     #selectSubject = {
         id              : true,
         name            : true,
-        costCenterId    : true,
         spaceType       : true,
         spaceSizeId     : true,
+        workshop        : true,
+        lecture         : true,
+        tutoringSession : true,
+        laboratory      : true,
         createdAt       : true,
         updatedAt       : true,
         isActive        : true,
-        _count          : {
-            select: {
-                offers: true
-            }
-        }
+        // _count          : {
+        //     select: {
+        //         offers: true
+        //     }
+        // }
     }
 
 
     #subjectWithCounter = ( subject: any ) => ({
         id              : subject.id,
         name            : subject.name,
-        costCenterId    : subject.costCenterId,
         spaceType       : subject.spaceType,
         spaceSizeId     : subject.spaceSizeId,
+        workshop        : subject.workshop,
+        lecture         : subject.lecture,
+        tutoringSession : subject.tutoringSession,
+        laboratory      : subject.laboratory,
         createdAt       : subject.createdAt,
         updatedAt       : subject.updatedAt,
         isActive        : subject.isActive,
-        offersCount     : subject._count.offers
+        // offersCount     : subject._count.offers
     });
 
 
@@ -112,7 +118,6 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
                 where   : { id },
                 data    : {
                     name            : updateSubjectDto.name,
-                    costCenterId    : updateSubjectDto.costCenterId,
                     spaceType       : updateSubjectDto.spaceType,
                     spaceSizeId     : updateSubjectDto.spaceSizeId,
                 },
@@ -165,7 +170,6 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
             return {
                 id              : subjectData.id,
                 name            : subjectData.name,
-                costCenterId    : subjectData.costCenterId,
                 spaceType       : subjectData.spaceType,
                 spaceSizeId     : subjectData.spaceSizeId,
                 facultyId
