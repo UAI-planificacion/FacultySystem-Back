@@ -5,7 +5,7 @@ import {
 	ValidateNested
 }                                       from 'class-validator';
 import { Type }                         from 'class-transformer';
-import { Building, Size, SpaceType }    from 'generated/prisma';
+import { Building, Size, SizeValue, SpaceType }    from 'generated/prisma';
 
 import { BasicSubjectDto } from '@subjects/dto/basic-subject.dto';
 
@@ -16,15 +16,13 @@ import { BasicSubjectDto } from '@subjects/dto/basic-subject.dto';
 export interface IExcelSubject {
 	id				: string;
 	name			: string;
-	startDate		: string[] | Date[];
-	endDate			: string[] | Date[];
-	students		: number;
-	costCenterId	: string;
-	isEnglish		: boolean;
 	facultyId		: string;
-    building?       : Building | undefined;
-    spaceType?      : SpaceType | undefined;
-    spaceSize?      : Size |undefined;
+    spaceType       : SpaceType | undefined;
+    spaceSizeId     : SizeValue | undefined;
+    workshop        : number;
+    lecture         : number;
+    tutoringSession : number;
+    laboratory      : number;
 }
 
 
