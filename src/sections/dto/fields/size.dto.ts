@@ -4,7 +4,7 @@ import { $Enums }               from "generated/prisma";
 import { IsEnum, IsOptional }   from "class-validator";
 
 
-export class SizeDto {
+export class SpaceSizeIdDto {
 
     @ApiPropertyOptional({
         description: 'Size category of the section.',
@@ -17,6 +17,6 @@ export class SizeDto {
             $Enums.SizeValue,
         ).join(', ')}`,
     })
-    size?: $Enums.SizeValue;
+    spaceSizeId?: $Enums.SizeValue;
 
 }
