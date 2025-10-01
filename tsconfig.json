@@ -28,6 +28,7 @@
             "@professors/*"         : ["src/professors/*"],
             "@sections/*"           : ["src/sections/*"],
             "@sizes/*"              : ["src/sizes/*"],
+            "@sessions/*"             : ["src/sessions/*"],
         },
         "incremental": true,
         "skipLibCheck": true,
