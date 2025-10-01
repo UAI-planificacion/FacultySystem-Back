@@ -7,6 +7,7 @@ import { SubjectsModule }       from '@subjects/subjects.module';
 import { ConfigModule }         from '@config/config.module';
 import { RequestsModule }       from '@requests/requests.module';
 import { RequestDetailsModule } from '@request-details/request-details.module';
+import { SessionsModule }       from '@sessions/sessions.module';
 import { OffersModule }         from '@offers/offers.module';
 import { GradesModule }         from '@grades/grades.module';
 import { SseModule }            from '@sse/sse.module';
@@ -37,6 +38,7 @@ import { SizesModule }          from '@sizes/sizes.module';
         ProfessorsModule,
         SizesModule,
         SectionsModule,
+        SessionsModule,
     ],
     controllers : [ AppController ],
     providers   : [],
