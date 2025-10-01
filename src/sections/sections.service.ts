@@ -207,39 +207,76 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     // }
 
 
-    // async create( createSectionDto: CreateSectionDto ) {
-    //     try {
-    //         const {
-    //             periodId,
-    //             subjectId,
-    //             ...rest
-    //         }                   = createSectionDto;
-    //         const data          = { id: ulid(), ...rest };
-    //         const newSection    = await this.section.create({ data });
+    async create( createSectionDto: CreateSectionDto ) {
+        try {
+            const {
+                sessions,
+                numberOfSections,
+                professorId,
+                ...sectionBaseData
+            } = createSectionDto;
 
-    //         if ( !newSection ) throw new BadRequestException( 'Error creating section' );
+            // Generate a single groupId for all sections
+            const groupId = ulid();
 
-    //         await this.subjectSection.create({
-    //             data: {
-    //                 sectionId: newSection.id,
-    //                 subjectId,
-    //                 periodId,
-    //             }
-    //         });
+            // Create multiple sections with sequential codes
+            const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
+                code: index + 1,
+                groupId,
+                professorId,
+                ...sectionBaseData
+            }));
 
-    //         const section = await this.section.findUnique({
-    //             where   : { id: newSection.id },
-    //             select  : this.#selectSection
-    //         });
+            // Create all sections
+            const createdSections = await this.section.createManyAndReturn({
+                data: sectionsToCreate
+            });
 
-    //         if ( !section ) throw new BadRequestException( 'Error creating section' );
+            // Prepare sessions data for all sections
+            // let allSessionsData: any[] = [];
 
-    //         return this.#convertToSectionDto( section );
-    //     } catch ( error ) {
-    //         console.error( 'Error creating section:', error );
-    //         throw PrismaException.catch( error, 'Failed to create section' );
-    //     }
-    // }
+            // // //TODO: Corregir el map dentro del for esto es Big O(n^2) ineficiente
+            // for ( const section of createdSections ) {
+            //     const sectionSessions = sessions.map( session => ({
+            //         ...session,
+            //         sectionId   : section.id,
+            //         professorId : professorId || session.professorId
+            //     }));
+
+            //     allSessionsData.push( ...sectionSessions );
+            // }
+
+            const allSessionsData = createdSections.flatMap(section =>
+                sessions.map( session => ({
+                    ...session,
+                    sectionId: section.id,
+                    professorId: professorId || session.professorId,
+                }))
+            );
+
+            // Create all sessions for all sections
+            await this.session.createMany({ data: allSessionsData });
+
+            // Return the created sections with their sessions
+            const sectionsWithSessions = await this.section.findMany({
+                where: {
+                    id: {
+                        in: createdSections.map( s => s.id )
+                    }
+                },
+                select: this.#selectSection
+            });
+
+            if ( sectionsWithSessions.length === 0 ) {
+                throw new BadRequestException( 'Error retrieving created sections' );
+            }
+
+            return sectionsWithSessions.map( section => this.#convertToSectionDto( section ));
+        } catch ( error ) {
+            console.error( 'Error creating sections:', error );
+            throw PrismaException.catch( error, 'Failed to create sections' );
+        }
+    }
 
 
     // async #getSectionData(): Promise<SectionDto[]> {
