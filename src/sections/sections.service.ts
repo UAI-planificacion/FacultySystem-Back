@@ -44,121 +44,125 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     #selectSection = {
-        id                      : true,
-        code                    : true,
-        session                 : true,
-        size                    : true,
-        correctedRegistrants    : true,
-        realRegistrants         : true,
-        plannedBuilding         : true,
-        chairsAvailable         : true,
-        isClosed                : true,
-        groupId                 : true,
-        room                    : true,
-        // room                    : {
-        //     select : {
-        //         id: true
-        //     }
-        // },
-        dayModule: {
-            select : {
-                // dayId       : true,
-                // moduleId    : true,
-                module      : {
-                    select: {
-                        id : true,
-                        difference  : true,
-                        code        : true,
-                        startHour    : true,
-                        endHour     : true
-                    }
-                },
-                day : {
-                    select : {
-                        id: true,
-                        name: true,
-                    }
-                }
-            }
-        },
+        id              : true,
+        code            : true,
+        isClosed        : true,
+        groupId         : true,
+        startDate       : true,
+        endDate         : true,
+        spaceSizeId     : true,
+        spaceType       : true,
+        workshop        : true,
+        lecture         : true,
+        tutoringSession : true,
+        laboratory      : true,
         professor: {
             select : {
                 id      : true,
                 name    : true,
             }
         },
-        // subjectSections: {
-            // select: {
-                subject: {
+        subject: {
+            select: {
+                id      : true,
+                name    : true,
+            }
+        },
+        period      : {
+            select: {
+                id      : true,
+                name    : true,
+            }
+        },
+        sessions: {
+            select: {
+                id                      : true,
+                name                    : true,
+                spaceId                 : true,
+                isEnglish               : true,
+                chairsAvailable         : true,
+                correctedRegistrants    : true,
+                realRegistrants         : true,
+                plannedBuilding         : true,
+                dayModule               : {
+                    select: {
+                        id      : true,
+                        module  : {
+                            select: {
+                                id          : true,
+                                code        : true,
+                                startHour   : true,
+                                endHour     : true,
+                                difference  : true,
+                            }
+                        },
+                        day: {
+                            select: {
+                                id      : true,
+                                name    : true,
+                            }
+                        }
+                    }
+                },
+                professor: {
                     select: {
                         id      : true,
                         name    : true,
                     }
                 },
-                period      : {
-                    select: {
-                        id      : true,
-                        name    : true,
-                    }
-                }
-            // }
-        // }
+            }
+        }
     }
 
 
     #convertToSectionDto( section: any ): SectionDto {
         return {
-            id                      : section.id,
-            code                    : section.code,
-            // session                 : section.session,
-            size                    : section.size,
-            correctedRegistrants    : section.correctedRegistrants,
-            realRegistrants         : section.realRegistrants,
-            plannedBuilding         : section.plannedBuilding,
-            chairsAvailable         : section.chairsAvailable,
-            room                    : section.room?.id ?? null,
-            // professorName           : section.professor?.name   ?? 'Sin profesor',
-            // professorId             : section.professor?.id     ?? 'Sin profesor',
-            // day                     : Number( section.dayModule?.day.id ) ?? null,
-            // moduleId                : section.dayModule?.module.id ? `${section.dayModule?.module.id}${section.dayModule?.module.difference ? `-${section.dayModule.module.difference}`: ''}` : null,
-            // subjectId               : section.subjectSections[0]?.subject.id ?? null,
-            // subjectName             : section.subjectSections[0]?.subject.name ?? null,
-            // period                  : `${section.subjectSections[0].period.id}-${section.subjectSections[0].period.name}`,
-            isClosed                : section.isClosed,
-            groupId                 : section.groupId,
-
-            day: section.dayModule?.day.id ? {
-                name    : section.dayModule?.day.name,
-                id      : section.dayModule?.day.id,
-            } : null,
-            module: section.dayModule?.module.id ? {
-                id          : section.dayModule?.module.id,
-                code        : section.dayModule?.module.code,
-                startHour   : section.dayModule?.module.startHour,
-                endHour     : section.dayModule?.module.endHour,
-                difference  : section.dayModule?.module.difference,
-            } : null,
-            professor: section.professor?.id ? {
+            id              : section.id,
+            code            : section.code,
+            isClosed        : section.isClosed,
+            groupId         : section.groupId,
+            startDate       : section.startDate,
+            endDate         : section.endDate,
+            spaceSizeId     : section.spaceSizeId,
+            spaceType       : section.spaceType,
+            workshop        : section.workshop,
+            lecture         : section.lecture,
+            tutoringSession : section.tutoringSession,
+            laboratory      : section.laboratory,
+            professor       : section.professor?.id ? {
                 id      : section.professor?.id,
                 name    : section.professor?.name,
             } : null,
-
-            subject: section.subject.id ? {
+            subject: {
                 id      : section.subject.id,
                 name    : section.subject.name,
-            } : null,
-            period: section.period.id ? {
+            },
+            period: {
                 id      : section.period.id,
                 name    : section.period.name,
-            } : null,
-            // subject: section.subjectSections[0]?.subject.id ? {
-            //     id      : section.subjectSections[0]?.subject.id,
-            //     name    : section.subjectSections[0]?.subject.name,
-            // } : null,
-            // period: section.subjectSections[0]?.period.id ? {
-            //     id      : section.subjectSections[0].period.id,
-            //     name    : section.subjectSections[0].period.name,
-            // } : null,
+            },
+            sessions : section.sessions.map(session => ({
+                id                      : session.id,
+                name                    : session.name,
+                spaceId                 : session.spaceId,
+                isEnglish               : session.isEnglish,
+                chairsAvailable         : session.chairsAvailable,
+                correctedRegistrants    : session.correctedRegistrants,
+                realRegistrants         : session.realRegistrants,
+                plannedBuilding         : session.plannedBuilding,
+                professor               : session.professor,
+                module                  : {
+                    id          : session.dayModule.module.id,
+                    name        : session.dayModule.module.name,
+                    startHour   : session.dayModule.module.startHour,
+                    endHour     : session.dayModule.module.endHour,
+                    difference  : session.dayModule.module.difference,
+                },
+                day : {
+                    id      : session.dayModule.day.id,
+                    name    : session.dayModule.day.name,
+                },
+            }))
         };
     }
 
@@ -207,12 +211,10 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     // }
 
 
-    async create( createSectionDto: CreateSectionDto ) {
+    async createOfferSections( createSectionDto: CreateSectionDto ) {
         try {
             const {
-                sessions,
                 numberOfSections,
-                professorId,
                 ...sectionBaseData
             } = createSectionDto;
 
@@ -223,14 +225,23 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
                 code: index + 1,
                 groupId,
-                professorId,
                 ...sectionBaseData
             }));
 
             // Create all sections
-            const createdSections = await this.section.createManyAndReturn({
+            // const createdSections = await this.section.createManyAndReturn({
+            await this.section.createMany({
                 data: sectionsToCreate
             });
+
+            const sections = await this.section.findMany({
+                select  : this.#selectSection,
+                where   : {
+                    groupId
+                }
+            });
+
+            return sections.map( section => this.#convertToSectionDto( section ));
 
             // Prepare sessions data for all sections
             // let allSessionsData: any[] = [];
@@ -246,32 +257,32 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             //     allSessionsData.push( ...sectionSessions );
             // }
 
-            const allSessionsData = createdSections.flatMap(section =>
-                sessions.map( session => ({
-                    ...session,
-                    sectionId: section.id,
-                    professorId: professorId || session.professorId,
-                }))
-            );
+            // const allSessionsData = createdSections.flatMap(section =>
+            //     sessions.map( session => ({
+            //         ...session,
+            //         sectionId: section.id,
+            //         professorId: professorId || session.professorId,
+            //     }))
+            // );
 
             // Create all sessions for all sections
-            await this.session.createMany({ data: allSessionsData });
+            // await this.session.createMany({ data: allSessionsData });
 
             // Return the created sections with their sessions
-            const sectionsWithSessions = await this.section.findMany({
-                where: {
-                    id: {
-                        in: createdSections.map( s => s.id )
-                    }
-                },
-                select: this.#selectSection
-            });
+            // const sectionsWithSessions = await this.section.findMany({
+            //     where: {
+            //         id: {
+            //             in: createdSections.map( s => s.id )
+            //         }
+            //     },
+            //     select: this.#selectSection
+            // });
 
-            if ( sectionsWithSessions.length === 0 ) {
-                throw new BadRequestException( 'Error retrieving created sections' );
-            }
+            // if ( sectionsWithSessions.length === 0 ) {
+            //     throw new BadRequestException( 'Error retrieving created sections' );
+            // }
 
-            return sectionsWithSessions.map( section => this.#convertToSectionDto( section ));
+            // return sectionsWithSessions.map( section => this.#convertToSectionDto( section ));
         } catch ( error ) {
             console.error( 'Error creating sections:', error );
             throw PrismaException.catch( error, 'Failed to create sections' );
@@ -290,9 +301,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     // }
 
 
-    // async findAll() {
-    //     return await this.#getSectionData();
-    // }
+    async findAll() {
+        return await this.section.findMany({
+            select: this.#selectSection
+        });
+    }
 
 
     // async findAllBySubjectId( subjectId: string ) {
