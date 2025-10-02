@@ -11,9 +11,10 @@ import {
     IsOptional,
     IsString
 } from 'class-validator';
+import { SessionDto } from '@app/sessions/dto/session.dto';
 
 
-export class BasicSubjectDto {
+export class BasicSubjectDto extends SessionDto {
 
     @ApiProperty({
         description : 'The id of the subject',
@@ -49,36 +50,36 @@ export class BasicSubjectDto {
     spaceSizeId?: $Enums.SizeValue;
 
 
-    @ApiProperty({
-        description : 'Count of workshops',
-        example     : 0,
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    workshop: number;
+    // @ApiProperty({
+    //     description : 'Count of workshops',
+    //     example     : 0,
+    // })
+    // @IsNumber()
+    // @IsNotEmpty()
+    // workshop: number;
 
-    @ApiProperty({
-        description : 'Count of lectures',
-        example     : 0,
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    lecture: number;
+    // @ApiProperty({
+    //     description : 'Count of lectures',
+    //     example     : 0,
+    // })
+    // @IsNumber()
+    // @IsNotEmpty()
+    // lecture: number;
 
-    @ApiProperty({
-        description : 'Count of tutoring sessions',
-        example     : 0,
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    tutoringSession: number;
+    // @ApiProperty({
+    //     description : 'Count of tutoring sessions',
+    //     example     : 0,
+    // })
+    // @IsNumber()
+    // @IsNotEmpty()
+    // tutoringSession: number;
 
-    @ApiProperty({
-        description : 'Count of laboratories',
-        example     : 0,
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    laboratory: number;
+    // @ApiProperty({
+    //     description : 'Count of laboratories',
+    //     example     : 0,
+    // })
+    // @IsNumber()
+    // @IsNotEmpty()
+    // laboratory: number;
 
 }
