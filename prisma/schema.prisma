@@ -100,8 +100,8 @@ model Section {
     code            Int
     isClosed        Boolean @default(false)
     groupId         String
-    startDate       DateTime?
-    endDate         DateTime?
+    startDate       DateTime
+    endDate         DateTime
     spaceType       SpaceType?
 
     periodId        String
@@ -115,6 +115,11 @@ model Section {
 
     spaceSizeId     SizeValue?
     spaceSize       Size? @relation(fields: [spaceSizeId], references: [id])
+
+    workshop        Int @default( 0 )   // Taller
+    lecture         Int @default( 0 )   // Cátedra
+    tutoringSession Int @default( 0 )   // Ayudantía
+    laboratory      Int @default( 0 )   // Laboratorio
 
     sessions        Session[]
     request         Request?
