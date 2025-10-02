@@ -29,7 +29,7 @@ import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
 import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 
 @ApiTags( 'Sections' )
-@Controller( 'Sections' )
+@Controller( 'sections' )
 export class SectionsController {
 
     constructor(
@@ -37,15 +37,15 @@ export class SectionsController {
     ) {}
 
 
-    // @Post()
-    // @ApiOperation({ summary: 'Create a new section' })
-    // @ApiResponse({ status: 201, description: 'The section has been successfully created.' })
-    // @ApiResponse({ status: 400, description: 'Bad Request.' })
-    // create(
-    //     @Body() createSectionDto: CreateSectionDto
-    // ) {
-    //     return this.sectionsService.create( createSectionDto );
-    // }
+    @Post( 'offer' )
+    @ApiOperation({ summary: 'Create a new section' })
+    @ApiResponse({ status: 201, description: 'The section has been successfully created.' })
+    @ApiResponse({ status: 400, description: 'Bad Request.' })
+    create(
+        @Body() createSectionDto: CreateSectionDto
+    ) {
+        return this.sectionsService.createOfferSections( createSectionDto );
+    }
 
 
     // @Post( 'upload-excel' )
@@ -77,12 +77,12 @@ export class SectionsController {
     // }
 
 
-    // @Get()
-    // @ApiOperation({ summary: 'Get all sections' })
-    // @ApiResponse({ status: 200, description: 'Return all sections' })
-    // findAll() {
-    //     return this.sectionsService.findAll();
-    // }
+    @Get()
+    @ApiOperation({ summary: 'Get all sections' })
+    @ApiResponse({ status: 200, description: 'Return all sections' })
+    findAll() {
+        return this.sectionsService.findAll();
+    }
 
 
     // @Get( '/subjectId/:id' )
