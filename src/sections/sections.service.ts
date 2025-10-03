@@ -84,6 +84,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 correctedRegistrants    : true,
                 realRegistrants         : true,
                 plannedBuilding         : true,
+                date                    : true,
                 dayModule               : {
                     select: {
                         id      : true,
@@ -99,7 +100,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                         day: {
                             select: {
                                 id      : true,
-                                name    : true,
+                                // name    : true,
                             }
                         }
                     }
@@ -115,8 +116,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    #convertToSectionDto( section: any ): SectionDto {
-        return {
+    #convertToSectionDto = ( section: any ): SectionDto => ({
             id              : section.id,
             code            : section.code,
             isClosed        : section.isClosed,
@@ -141,7 +141,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 id      : section.period.id,
                 name    : section.period.name,
             },
-            sessions : section.sessions.map(session => ({
+            sessions : section.sessions.map(( session : any ) => ({
                 id                      : session.id,
                 name                    : session.name,
                 spaceId                 : session.spaceId,
@@ -151,21 +151,19 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 realRegistrants         : session.realRegistrants,
                 plannedBuilding         : session.plannedBuilding,
                 professor               : session.professor,
+                dayId                   : session.dayModule.day.id,
+                date                    : session.date,
                 module                  : {
                     id          : session.dayModule.module.id,
-                    name        : session.dayModule.module.name,
+                    code        : session.dayModule.module.code,
+                    name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
                     startHour   : session.dayModule.module.startHour,
                     endHour     : session.dayModule.module.endHour,
                     difference  : session.dayModule.module.difference,
-                },
-                day : {
-                    id      : session.dayModule.day.id,
-                    name    : session.dayModule.day.name,
-                },
+                }
             }))
-        };
-    }
-
+        })
+    
 
     // async createBasic(
     //     subjectId                   : string,
@@ -302,9 +300,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAll() {
-        return await this.section.findMany({
+        const sections = await this.section.findMany({
             select: this.#selectSection
         });
+
+        return sections.map( section => this.#convertToSectionDto( section ));
     }
 
 
@@ -324,17 +324,18 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     // }
 
 
-    // async findOne( id: string ) {
-    //     const section = await this.section.findUnique({
-    //         where: { id },
-    //     });
+    async findOne( id: string ) {
+        const section = await this.section.findUnique({
+            where: { id },
+            select: this.#selectSection
+        });
 
-    //     if ( !section ) {
-    //         throw new NotFoundException( 'Section not found.' );
-    //     }
+        if ( !section ) {
+            throw new NotFoundException( 'Section not found.' );
+        }
 
-    //     return section;
-    // }
+        return section;
+    }
 
 
     // async changeStatusSectionByGroupId( groupId: string ) {
