@@ -24,6 +24,64 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    #selectSession = {
+        id                      : true,
+        name                    : true,
+        spaceId                 : true,
+        isEnglish               : true,
+        chairsAvailable         : true,
+        correctedRegistrants    : true,
+        realRegistrants         : true,
+        plannedBuilding         : true,
+        date                    : true,
+        dayModule               : {
+            select: {
+                id      : true,
+                dayId   : true,
+                module  : {
+                    select: {
+                        id          : true,
+                        code        : true,
+                        startHour   : true,
+                        endHour     : true,
+                        difference  : true,
+                    }
+                }
+            }
+        },
+        professor: {
+            select: {
+                id      : true,
+                name    : true,
+            }
+        },
+    }
+
+
+    #convertToSectionDto = ( session: any ) => ({
+        id                      : session.id,
+        name                    : session.name,
+        spaceId                 : session.spaceId,
+        isEnglish               : session.isEnglish,
+        chairsAvailable         : session.chairsAvailable,
+        correctedRegistrants    : session.correctedRegistrants,
+        realRegistrants         : session.realRegistrants,
+        plannedBuilding         : session.plannedBuilding,
+        professor               : session.professor,
+        dayId                   : session.dayModule.dayId,
+        dayModuleId             : session.dayModule.id,
+        date                    : session.date,
+        module                  : {
+            id          : session.dayModule.module.id,
+            code        : session.dayModule.module.code,
+            name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
+            startHour   : session.dayModule.module.startHour,
+            endHour     : session.dayModule.module.endHour,
+            difference  : session.dayModule.module.difference,
+        }
+    });
+
+
     async create( createSessionDto: CreateSessionDto ) {
         try {
             return this.session.create({
@@ -109,7 +167,6 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
             // 6. Validar que no haya conflictos de fecha y espacio
             await this.validateSessionConflicts( sessionsToCreate );
-
             // 7. Crear todas las sesiones en una transacción
             await this.session.createMany({
                 data: sessionsToCreate,
@@ -122,14 +179,91 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         }
     }
 
+	/**
+	 * Find all available dates for a session based on dayModuleId and spaceId
+	 * @param sessionId - ID of the session to get the section date range
+	 * @param dayModuleId - ID of the day module (day + time range)
+	 * @param spaceId - ID of the space to check availability
+	 * @returns Array of available dates or empty array if none available
+	 */
+	async findAvailableSessions( sessionId: string, dayModuleId: string, spaceId: string ): Promise<Date[]> {
+		try {
+			// 1. Obtener la sesión con su sección relacionada
+			const session = await this.session.findUnique({
+				where   : { id: sessionId },
+				select  : {
+					id      : true,
+					section : {
+						select: {
+							id          : true,
+							startDate   : true,
+							endDate     : true,
+						}
+					}
+				}
+			});
 
-    /**
-     * Calculate all dates within a range that match a specific day of the week
-     * @param startDate - Start date of the range
-     * @param endDate - End date of the range
-     * @param dayOfWeek - Day of the week (1 = Monday, 7 = Sunday)
-     * @returns Array of dates
-     */
+			if ( !session || !session.section ) {
+				return [];
+			}
+
+			const { startDate, endDate } = session.section;
+
+			// 2. Obtener información del dayModule
+			const dayModule = await this.dayModule.findUnique({
+				where   : { id: Number( dayModuleId ) },
+				include : {
+					day     : true,
+					module  : true,
+				}
+			});
+
+			if ( !dayModule ) {
+				return [];
+			}
+
+			const dayOfWeek = dayModule.day.id;
+			const startHour = dayModule.module.startHour;
+
+			// 3. Calcular todas las fechas posibles para este día de la semana
+			const possibleDates = this.calculateDatesForDayOfWeek( startDate, endDate, dayOfWeek );
+
+			// 4. Filtrar las fechas que están disponibles (sin conflictos)
+			const availableDates: Date[] = [];
+
+			for ( const date of possibleDates ) {
+				// Combinar fecha con hora de inicio del módulo
+				const sessionDate = this.combineDateAndTime( date, startHour );
+
+				// Verificar si existe una sesión en esta fecha y espacio
+				const existingSession = await this.session.findFirst({
+					where: {
+						date    : sessionDate,
+						spaceId : spaceId,
+					}
+				});
+
+				// Si no existe sesión, la fecha está disponible
+				if ( !existingSession ) {
+					availableDates.push( sessionDate );
+				}
+			}
+
+			// 5. Retornar las fechas disponibles
+			return availableDates;
+		} catch ( error ) {
+			throw PrismaException.catch( error, 'Failed to find available sessions' );
+		}
+	}
+
+
+	/**
+	 * Calculate all dates within a range that match a specific day of the week
+	 * @param startDate - Start date of the range
+	 * @param endDate - End date of the range
+	 * @param dayOfWeek - Day of the week (1 = Monday, 7 = Sunday)
+	 * @returns Array of dates
+	 */
     private calculateDatesForDayOfWeek( startDate: Date, endDate: Date, dayOfWeek: number ): Date[] {
         const dates: Date[] = [];
         const currentDate   = new Date( startDate );
@@ -300,23 +434,29 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    findOne( id: string ) {
+    async findOne( id: string ) {
         try {
-            return this.session.findUnique({
-                where: { id }
+            const session = await this.session.findUnique({
+                where: { id },
+                select: this.#selectSession,
             });
+
+            return this.#convertToSectionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to find session' );
         }
     }
 
 
-    update( id: string, updateSessionDto: UpdateSessionDto ) {
+    async update( id: string, updateSessionDto: UpdateSessionDto ) {
         try {
-            return this.session.update({
+            const session = await this.session.update({
                 where: { id },
                 data: updateSessionDto,
+                select: this.#selectSession,
             });
+
+            return this.#convertToSectionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update session' );
         }
