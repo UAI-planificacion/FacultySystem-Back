@@ -12,7 +12,7 @@ export class ProfessorIdDto {
     })
     @IsOptional()
     @IsString({ message: 'Professor ID must be a string.' })
-    @Length( 1, 10 )
+    @Length( 0, 15 )
     professorId?: string;
 
 }
