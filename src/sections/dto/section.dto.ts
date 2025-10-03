@@ -66,6 +66,12 @@ export class Session {
 
     @ApiProperty({
         description : 'The day of the week for the section.',
+        example     : 1,
+    })
+    dayModuleId : number;
+
+    @ApiProperty({
+        description : 'The day of the week for the section.',
         example     : 'Monday',
     })
     professor: Professor;
