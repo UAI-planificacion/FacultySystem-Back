@@ -37,6 +37,16 @@ export class SessionsController {
     }
 
 
+    @Get( 'availables/:sessionId/:dayModuleId/:spaceId' )
+    findAvailableSessions(
+        @Param( 'sessionId' ) sessionId: string,
+        @Param( 'dayModuleId' ) dayModuleId: string,
+        @Param( 'spaceId' ) spaceId: string
+    ) {
+        return this.sessionsService.findAvailableSessions( sessionId, dayModuleId, spaceId );
+    }
+
+
     @Get( ':id' )
     findOne(
         @Param( 'id' ) id: string
