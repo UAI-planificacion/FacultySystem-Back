@@ -9,11 +9,12 @@ import {
     Min,
     Max,
     MaxLength,
-    Length
+    Length,
+    IsDate,
+    IsNotEmpty
 }                           from 'class-validator';
 import { Transform, Type }  from 'class-transformer';
 import { $Enums }           from 'generated/prisma';
-import { PeriodIdDto } from '@app/sections/dto/fields/periodId.dto';
 
 
 export class CreateSessionDto {
@@ -37,13 +38,13 @@ export class CreateSessionDto {
 	spaceId?: string;
 
 
-	// @ApiProperty({
-	// 	type        : String,
-	// 	description : 'ID de la sección a la que pertenece la sesión',
-	// 	example     : '01HKXYZ123ABC456DEF789'
-	// })
-	// @IsString()
-	// sectionId: string;
+	@ApiProperty({
+		type        : String,
+		description : 'ID de la sección a la que pertenece la sesión',
+		example     : '01HKXYZ123ABC456DEF789'
+	})
+	@IsString()
+	sectionId: string;
 
 
 	@ApiPropertyOptional({
@@ -149,5 +150,16 @@ export class CreateSessionDto {
 	// 	return Boolean( value );
 	// })
 	isEnglish: boolean = false;
+
+
+    @ApiProperty({
+        type        : String,
+        description : 'Fecha de la sesión',
+        example     : '2025-10-02'
+    })
+    @Type(() => Date)
+    @IsDate({ message: 'Section end date must be a valid date.' })
+    @IsNotEmpty({ message: 'Section end date is required.' })
+    date: Date;
 
 }
