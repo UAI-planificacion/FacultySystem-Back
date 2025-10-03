@@ -62,25 +62,22 @@ export class Session {
         description : 'The day of the week for the section.',
         example     : 'Monday',
     })
-    day: Day;
-
-    professor: Professor;
-}
-
-export class Day {
-    @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
-    })
-    id: number;
+    dayId: number;
 
     @ApiProperty({
         description : 'The day of the week for the section.',
         example     : 'Monday',
     })
-    name: string;
+    professor: Professor;
 
+
+    @ApiProperty({
+        description : 'The day of the week for the section.',
+        example     : 'Monday',
+    })
+    date: Date;
 }
+
 
 export class Module {
 
