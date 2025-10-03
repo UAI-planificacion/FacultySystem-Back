@@ -138,6 +138,7 @@ model Session {
     plannedBuilding         String?
     chairsAvailable         Int?
     isEnglish               Boolean @default( false )
+    date                    DateTime
 
     sectionId               String
     section                 Section @relation(fields: [sectionId], references: [id])
