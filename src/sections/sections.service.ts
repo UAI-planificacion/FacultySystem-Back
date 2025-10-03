@@ -88,6 +88,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 dayModule               : {
                     select: {
                         id      : true,
+                        dayId   : true,
                         module  : {
                             select: {
                                 id          : true,
@@ -97,12 +98,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                                 difference  : true,
                             }
                         },
-                        day: {
-                            select: {
-                                id      : true,
-                                // name    : true,
-                            }
-                        }
                     }
                 },
                 professor: {
@@ -151,7 +146,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 realRegistrants         : session.realRegistrants,
                 plannedBuilding         : session.plannedBuilding,
                 professor               : session.professor,
-                dayId                   : session.dayModule.day.id,
+                dayId                   : session.dayModule.dayId,
+                dayModuleId             : session.dayModule.id,
                 date                    : session.date,
                 module                  : {
                     id          : session.dayModule.module.id,
@@ -160,7 +156,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     startHour   : session.dayModule.module.startHour,
                     endHour     : session.dayModule.module.endHour,
                     difference  : session.dayModule.module.difference,
-                }
+                },
             }))
         })
     
