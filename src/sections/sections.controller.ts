@@ -142,26 +142,26 @@ export class SectionsController {
     // }
 
 
-    // @Patch( 'changeStatus/:id' )
-    // @ApiOperation({ summary: 'Update a section' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // changeStatusGroup(
-    //     @Param( 'id', ParseUUIDPipe ) id: string,
-    // ) {
-    //     return this.sectionsService.changeStatusSectionByGroupId( id );
-    // }
+    @Patch( 'changeStatus/:id' )
+    @ApiOperation({ summary: 'Update a section' })
+    @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
+    @ApiResponse({ status: 404, description: 'Section not found' })
+    changeStatusGroup(
+        @Param( 'id' ) id: string,
+    ) {
+        return this.sectionsService.changeStatusSection( id );
+    }
 
 
-    // @Delete( ':id' )
-    // @ApiOperation({ summary: 'Delete a section' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully deleted.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // remove(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.sectionsService.remove( id );
-    // }
+    @Delete( ':id' )
+    @ApiOperation({ summary: 'Delete a section' })
+    @ApiResponse({ status: 200, description: 'The section has been successfully deleted.' })
+    @ApiResponse({ status: 404, description: 'Section not found' })
+    remove(
+        @Param( 'id' ) id: string
+    ) {
+        return this.sectionsService.remove( id );
+    }
 
 
     // @Delete( 'groupId/:id' )
