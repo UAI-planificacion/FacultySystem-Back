@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 
 import { $Enums, PrismaClient } from 'generated/prisma';
 
@@ -7,6 +7,7 @@ import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
 import { SectionsService }          from '@sections/sections.service';
+import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
 
 
 @Injectable()
@@ -58,7 +59,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    #convertToSectionDto = ( session: any ) => ({
+    #convertToSessionDto = ( session: any ) => ({
         id                      : session.id,
         name                    : session.name,
         spaceId                 : session.spaceId,
@@ -84,9 +85,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
     async create( createSessionDto: CreateSessionDto ) {
         try {
-            return this.session.create({
+            const session = await this.session.create({
                 data: createSessionDto,
+                select: this.#selectSession,
             });
+
+            return this.#convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create session' );
         }
@@ -117,12 +121,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 dayModuleId : number;
                 spaceId     : string | null;
                 professorId : string | null;
+                isEnglish   : boolean;
                 date        : Date;
             }> = [];
 
             // 2. Procesar cada sesión del DTO
             for ( const sessionDto of createMassiveSessionsDto ) {
-                const { session, dayModuleIds, spaceId, professorId } = sessionDto;
+                const { session, dayModuleIds, spaceId, professorId, isEnglish } = sessionDto;
 
                 // 3. Obtener información de los dayModules
                 const dayModules = await this.dayModule.findMany({
@@ -159,6 +164,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             dayModuleId : dayModule.id,
                             spaceId     : spaceId       || null,
                             professorId : professorId   || section.professorId,
+                            isEnglish   : isEnglish     || false,
                             date        : sessionDate,
                         });
                     }
@@ -181,33 +187,44 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 	/**
 	 * Find all available dates for a session based on dayModuleId and spaceId
-	 * @param sessionId - ID of the session to get the section date range
+	 * @param sectionId - ID of the session to get the section date range
 	 * @param dayModuleId - ID of the day module (day + time range)
 	 * @param spaceId - ID of the space to check availability
 	 * @returns Array of available dates or empty array if none available
 	 */
-	async findAvailableSessions( sessionId: string, dayModuleId: string, spaceId: string ): Promise<Date[]> {
+	async findAvailableSessions( sectionId: string, dayModuleId: string, spaceId: string ): Promise<Date[]> {
 		try {
 			// 1. Obtener la sesión con su sección relacionada
-			const session = await this.session.findUnique({
-				where   : { id: sessionId },
+			const section = await this.section.findUnique({
+				where   : { id: sectionId },
 				select  : {
-					id      : true,
-					section : {
-						select: {
-							id          : true,
-							startDate   : true,
-							endDate     : true,
-						}
-					}
+					startDate   : true,
+					endDate     : true,
 				}
 			});
+			// const session = await this.session.findUnique({
+			// 	where   : { id: sessionId },
+			// 	select  : {
+			// 		// id      : true,
+			// 		section : {
+			// 			select: {
+			// 				id          : true,
+			// 				startDate   : true,
+			// 				endDate     : true,
+			// 			}
+			// 		}
+			// 	}
+			// });
 
-			if ( !session || !session.section ) {
-				return [];
+			if ( !section ) {
+                throw new NotFoundException( `Section with id ${sectionId} not found` );
 			}
+			// if ( !session || !session.section ) {
+			// 	return [];
+			// }
 
-			const { startDate, endDate } = session.section;
+			const { startDate, endDate } = section;
+			// const { startDate, endDate } = session.section;
 
 			// 2. Obtener información del dayModule
 			const dayModule = await this.dayModule.findUnique({
@@ -219,7 +236,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 			});
 
 			if ( !dayModule ) {
-				return [];
+                throw new NotFoundException( `DayModule with id ${dayModuleId} not found` );
 			}
 
 			const dayOfWeek = dayModule.day.id;
@@ -441,7 +458,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 select: this.#selectSession,
             });
 
-            return this.#convertToSectionDto( session );
+            return this.#convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to find session' );
         }
@@ -456,9 +473,44 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 select: this.#selectSession,
             });
 
-            return this.#convertToSectionDto( session );
+            return this.#convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update session' );
+        }
+    }
+
+
+    async massiveUpdate( updateSectionDto: MassiveUpdateSessionDto ) {
+        try {
+            const { ids, ...data }  = updateSectionDto;
+
+            if ( Object.keys( data ).length === 0 ) {
+                throw new BadRequestException( 'No data to update' );
+            }
+
+            const sessionsUpdated   = await this.session.updateManyAndReturn({
+                select  : { id: true },
+                where   : { id: { in: ids }},
+                data
+            });
+
+            if ( !sessionsUpdated ) {
+                throw new BadRequestException( 'Error updating sessions' );
+            }
+
+            const sessionsData = await this.session.findMany({
+                select  : this.#selectSession,
+                where   : {
+                    id: {
+                        in: sessionsUpdated.map( session => session.id )
+                    }
+                }
+            })
+
+            return sessionsData.map( session => this.#convertToSessionDto( session ));
+        } catch ( error ) {
+            console.error( 'Error updating section:', error );
+            throw PrismaException.catch( error, 'Failed to update section' );
         }
     }
 
@@ -470,6 +522,17 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to delete session' );
+        }
+    }
+
+
+    massiveRemove( ids: string[] ) {
+        try {
+            return this.session.deleteMany({
+                where: { id: { in: ids } }
+            });
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to delete sessions' );
         }
     }
 
