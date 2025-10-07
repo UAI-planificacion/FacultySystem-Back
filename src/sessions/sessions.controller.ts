@@ -4,6 +4,7 @@ import { SessionsService }          from '@sessions/sessions.service';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
+import { MassiveUpdateSessionDto } from './dto/massive-update-session.dto';
 
 
 @Controller( 'sessions' )
@@ -37,13 +38,13 @@ export class SessionsController {
     }
 
 
-    @Get( 'availables/:sessionId/:dayModuleId/:spaceId' )
+    @Get( 'availables/:sectionId/:dayModuleId/:spaceId' )
     findAvailableSessions(
-        @Param( 'sessionId' ) sessionId: string,
+        @Param( 'sectionId' ) sectionId: string,
         @Param( 'dayModuleId' ) dayModuleId: string,
         @Param( 'spaceId' ) spaceId: string
     ) {
-        return this.sessionsService.findAvailableSessions( sessionId, dayModuleId, spaceId );
+        return this.sessionsService.findAvailableSessions( sectionId, dayModuleId, spaceId );
     }
 
 
@@ -64,11 +65,26 @@ export class SessionsController {
     }
 
 
+    @Patch( 'update/massive' )
+    massiveUpdate(
+        @Body() updateSessionDto: MassiveUpdateSessionDto
+    ) {
+        return this.sessionsService.massiveUpdate( updateSessionDto );
+    }
+
+
     @Delete( ':id' )
     remove(
         @Param( 'id' ) id: string
     ) {
         return this.sessionsService.remove( id );
+    }
+
+    @Delete( 'massive/:ids' )
+    massiveRemove(
+        @Param( 'ids' ) ids: string
+    ) {
+        return this.sessionsService.massiveRemove( ids.split( ',' ) );
     }
 
 }
