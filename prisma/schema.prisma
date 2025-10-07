@@ -141,7 +141,7 @@ model Session {
     date                    DateTime
 
     sectionId               String
-    section                 Section @relation(fields: [sectionId], references: [id])
+    section                 Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
     professorId             String?
     professor               Professor? @relation(fields: [professorId], references: [id])
