@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
     IsArray,
+    IsBoolean,
     IsEnum,
     IsInt,
     IsOptional,
@@ -56,5 +57,15 @@ export class CreateMassiveSessionDto {
     @IsString()
     @Length( 1, 10 )
     professorId?: string;
+
+
+    @ApiPropertyOptional({
+        type        : Boolean,
+        description : 'Indica si la sesión es en inglés',
+        example     : false
+    })
+    @IsOptional()
+    @IsBoolean()
+    isEnglish?: boolean;
 
 }
