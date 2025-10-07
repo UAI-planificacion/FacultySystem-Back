@@ -334,41 +334,30 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    // async changeStatusSectionByGroupId( groupId: string ) {
-    //     try {
-    //         let sectiondata = await this.section.findMany({
-    //             where: {
-    //                 groupId: {
-    //                     in: [groupId]
-    //                 }
-    //             },
-    //             select: this.#selectSection
-    //         });
+    async changeStatusSection( sectionId: string ) {
+        try {
+            let sectiondata = await this.findOne( sectionId );
 
-    //         if ( sectiondata.length === 0 ) {
-    //             throw new NotFoundException( 'Section Group not found.' );
-    //         }
+            const isClosed = !sectiondata.isClosed;
 
-    //         const isClosed = !sectiondata[0].isClosed;
+            await this.section.update({
+                where   : { id: sectionId },
+                data    : {
+                    isClosed,
+                },
+            });
 
-    //         await this.section.updateMany({
-    //             where   : { groupId },
-    //             data    : {
-    //                 isClosed,
-    //             },
-    //         });
+            sectiondata = {
+                ...sectiondata,
+                isClosed
+            }
 
-    //         sectiondata = sectiondata.map( section => ({
-    //             ...section,
-    //             isClosed
-    //         }));
-
-    //         return sectiondata.map( section => this.#convertToSectionDto( section ));
-    //     } catch ( error ) {
-    //         console.error( 'Error updating section:', error );
-    //         throw PrismaException.catch( error, 'Failed to update section' );
-    //     }
-    // }
+            return sectiondata;
+        } catch ( error ) {
+            console.error( 'Error updating section:', error );
+            throw PrismaException.catch( error, 'Failed to update section' );
+        }
+    }
 
 
     // async updateByGroup( groupId: string, updateSectionDto: UpdateGroupDto ) {
@@ -467,7 +456,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             return section;
         } catch ( error ) {
-            console.error( 'Error deleting section:', error );
             throw PrismaException.catch( error, 'Failed to delete section' );
         }
     }
