@@ -37,15 +37,14 @@ export class CreateMassiveSessionDto {
     dayModuleIds: number[];
 
 
-    @ApiPropertyOptional({
+    @ApiProperty({
         type        : String,
         description : 'ID de la sala asignada para la sesión',
         example     : 'A101'
     })
-    @IsOptional()
     @IsString()
-    @Length( 1, 10 )
-    spaceId?: string;
+    @Length( 1, 50 )
+    spaceId: string;
 
 
     @ApiPropertyOptional({
