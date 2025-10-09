@@ -119,7 +119,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 name        : $Enums.SessionName;
                 sectionId   : string;
                 dayModuleId : number;
-                spaceId     : string | null;
+                spaceId     : string;
                 professorId : string | null;
                 isEnglish   : boolean;
                 date        : Date;
@@ -162,7 +162,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             name        : session,
                             sectionId   : sectionId,
                             dayModuleId : dayModule.id,
-                            spaceId     : spaceId       || null,
+                            spaceId     : spaceId,
                             professorId : professorId   || section.professorId,
                             isEnglish   : isEnglish     || false,
                             date        : sessionDate,
@@ -391,53 +391,6 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             }
 
             sessionMap.set( key, session );
-        }
-    }
-
-
-    async findOneWithRequest( id: string ) {
-        try {
-            return this.session.findUnique({
-                select: {
-                    requestDetail: {
-                        select: {
-                            id              : true,
-                            minimum         : true,
-                            maximum         : true,
-                            spaceId         : true,
-                            spaceSizeId     : true,
-                            spaceType       : true,
-                            inAfternoon     : true,
-                            building        : true,
-                            description     : true,
-                            professor       : {
-                                select: {
-                                    id      : true,
-                                    name    : true,
-                                }
-                            },
-                            grade: {
-                                select: {
-                                    id      : true,
-                                    name    : true,
-                                }
-                            },
-                            request: {
-                                select: {
-                                    id              : true,
-                                    status          : true,
-                                    description     : true,
-                                    title           : true,
-                                    isConsecutive   : true
-                                }
-                            }
-                        }
-                    }
-                },
-                where: { id }
-            });
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to find session' );
         }
     }
 
