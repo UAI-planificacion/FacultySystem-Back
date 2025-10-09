@@ -24,40 +24,40 @@ export class RequestDetailsController {
     }
 
 
-    @Get( '/request/:requestId' )
-    findAll(
-        @Param( 'requestId' ) requestId: string
-    ) {
-        return this.requestDetailsService.findAll( requestId );
-    }
+    // @Get( '/request/:requestId' )
+    // findAll(
+    //     @Param( 'requestId' ) requestId: string
+    // ) {
+    //     return this.requestDetailsService.findAll( requestId );
+    // }
 
 
-    @Get( ':id' )
-    findOne(
-        @Param( 'id' ) id: string
-    ) {
-        return this.requestDetailsService.findOne( id );
-    }
+    // @Get( ':id' )
+    // findOne(
+    //     @Param( 'id' ) id: string
+    // ) {
+    //     return this.requestDetailsService.findOne( id );
+    // }
 
 
-    @Patch( ':id' )
-    update(
-        @Param( 'id' ) id: string,
-        @Body() updateRequestDetailDto: UpdateRequestDetailDto,
-        @Req() request: Request,
-    ) {
-        const origin = request.headers['origin'];
-        return this.requestDetailsService.update( id, updateRequestDetailDto, origin );
-    }
+    // @Patch( ':id' )
+    // update(
+    //     @Param( 'id' ) id: string,
+    //     @Body() updateRequestDetailDto: UpdateRequestDetailDto,
+    //     @Req() request: Request,
+    // ) {
+    //     const origin = request.headers['origin'];
+    //     return this.requestDetailsService.update( id, updateRequestDetailDto, origin );
+    // }
 
 
-    @Delete( ':id' )
-    remove(
-        @Param( 'id' ) id: string,
-        @Req() request: Request,
-    ) {
-        const origin = request.headers['origin'];
-        return this.requestDetailsService.remove( id, origin );
-    }
+    // @Delete( ':id' )
+    // remove(
+    //     @Param( 'id' ) id: string,
+    //     @Req() request: Request,
+    // ) {
+    //     const origin = request.headers['origin'];
+    //     return this.requestDetailsService.remove( id, origin );
+    // }
 
 }

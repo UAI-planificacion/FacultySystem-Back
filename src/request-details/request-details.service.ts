@@ -155,97 +155,97 @@ export class RequestDetailsService extends PrismaClient implements OnModuleInit 
     }
 
 
-    async findAll( requestId: string ) {
-        return await this.requestDetail.findMany({
-            select  : this.#selectRequesDetail,
-            where   : { requestId }
-        });
-    }
+    // async findAll( requestId: string ) {
+    //     return await this.requestDetail.findMany({
+    //         select  : this.#selectRequesDetail,
+    //         where   : { requestId }
+    //     });
+    // }
 
 
-    async findOne( id: string ) {
-        const requestDetail = await this.requestDetail.findUnique({
-            select  : this.#selectRequesDetail,
-            where   : { id }
-        });
+    // async findOne( id: string ) {
+    //     const requestDetail = await this.requestDetail.findUnique({
+    //         select  : this.#selectRequesDetail,
+    //         where   : { id }
+    //     });
 
-        if ( !requestDetail ) {
-            throw new NotFoundException( 'Request detail not found' );
-        }
+    //     if ( !requestDetail ) {
+    //         throw new NotFoundException( 'Request detail not found' );
+    //     }
 
-        return requestDetail;
-    }
-
-
-    async update(
-        id                      : string,
-        updateRequestDetailDto  : UpdateRequestDetailDto,
-        origin                  : string | undefined
-    ) {
-        try {
-            const currentRequestDetail      = await this.findOne( id );
-            const existingModules           = currentRequestDetail.moduleDays || [];
-            const { moduleDays, ...data }   = updateRequestDetailDto;
-            const isPriority                = this.#getIsPriority( updateRequestDetailDto, moduleDays );
-            // const requestDetail             = await this.requestDetail.update({
-            //     where: { id },
-            //     data: {
-            //         ...data,
-            //         isPriority
-            //     }
-            // });
-
-            // const modulesChanged = this.#areModulesDifferent( existingModules, moduleDays );
-
-            // if ( modulesChanged ) {
-            //     await this.moduleDay.deleteMany({
-            //         where: {
-            //             requestDetailId: requestDetail.id
-            //         }
-            //     });
-
-            //     if ( moduleDays.length > 0 ) {
-            //         await this.moduleDay.createMany({
-            //             data: moduleDays.map( moduleDay => ({
-            //                 ...moduleDay,
-            //                 requestDetailId: requestDetail.id
-            //             }))
-            //         });
-            //     }
-            // }
-
-            // const requestDetailData = await this.findOne( requestDetail.id );
-
-            // this.sseService.emitEvent({
-            //     message : requestDetailData,
-            //     action  : EnumAction.UPDATE,
-            //     type    : Type.DETAIL,
-            //     origin
-            // });
-
-            // return requestDetailData;
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to update request detail' );
-        }
-    }
+    //     return requestDetail;
+    // }
 
 
-    async remove( id: string, origin: string | undefined ) {
-        try {
-            const requestData = await this.findOne( id );
-            await this.requestDetail.delete({ where: { id }});
+    // async update(
+    //     id                      : string,
+    //     updateRequestDetailDto  : UpdateRequestDetailDto,
+    //     origin                  : string | undefined
+    // ) {
+    //     try {
+    //         const currentRequestDetail      = await this.findOne( id );
+    //         const existingModules           = currentRequestDetail.moduleDays || [];
+    //         const { moduleDays, ...data }   = updateRequestDetailDto;
+    //         const isPriority                = this.#getIsPriority( updateRequestDetailDto, moduleDays );
+    //         // const requestDetail             = await this.requestDetail.update({
+    //         //     where: { id },
+    //         //     data: {
+    //         //         ...data,
+    //         //         isPriority
+    //         //     }
+    //         // });
 
-            this.sseService.emitEvent({
-                message : requestData,
-                action  : EnumAction.DELETE,
-                type    : Type.DETAIL,
-                origin
-            });
+    //         // const modulesChanged = this.#areModulesDifferent( existingModules, moduleDays );
 
-            return requestData;
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to delete request detail' );
-        }
-    }
+    //         // if ( modulesChanged ) {
+    //         //     await this.moduleDay.deleteMany({
+    //         //         where: {
+    //         //             requestDetailId: requestDetail.id
+    //         //         }
+    //         //     });
+
+    //         //     if ( moduleDays.length > 0 ) {
+    //         //         await this.moduleDay.createMany({
+    //         //             data: moduleDays.map( moduleDay => ({
+    //         //                 ...moduleDay,
+    //         //                 requestDetailId: requestDetail.id
+    //         //             }))
+    //         //         });
+    //         //     }
+    //         // }
+
+    //         // const requestDetailData = await this.findOne( requestDetail.id );
+
+    //         // this.sseService.emitEvent({
+    //         //     message : requestDetailData,
+    //         //     action  : EnumAction.UPDATE,
+    //         //     type    : Type.DETAIL,
+    //         //     origin
+    //         // });
+
+    //         // return requestDetailData;
+    //     } catch ( error ) {
+    //         throw PrismaException.catch( error, 'Failed to update request detail' );
+    //     }
+    // }
+
+
+    // async remove( id: string, origin: string | undefined ) {
+    //     try {
+    //         const requestData = await this.findOne( id );
+    //         await this.requestDetail.delete({ where: { id }});
+
+    //         this.sseService.emitEvent({
+    //             message : requestData,
+    //             action  : EnumAction.DELETE,
+    //             type    : Type.DETAIL,
+    //             origin
+    //         });
+
+    //         return requestData;
+    //     } catch ( error ) {
+    //         throw PrismaException.catch( error, 'Failed to delete request detail' );
+    //     }
+    // }
 
 }
