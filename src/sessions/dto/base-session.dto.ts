@@ -28,14 +28,14 @@ export class BaseSessionDto {
 	name: $Enums.SessionName;
 
 
-	@ApiPropertyOptional({
+	@ApiProperty({
 		type        : String,
 		description : 'Sala asignada para la sesión',
 		example     : 'A101'
 	})
-	@IsOptional()
 	@IsString()
-	spaceId?: string;
+    @Length( 1, 50 )
+	spaceId: string;
 
 
     @ApiPropertyOptional({
