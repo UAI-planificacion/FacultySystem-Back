@@ -1,6 +1,7 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 import { IsString } from 'class-validator';
+
 import { BaseSessionDto } from '@sessions/dto/base-session.dto';
 
 
