@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, Length } from 'class-validator';
 
 
 export class ContentCommentDTO {
@@ -11,6 +11,7 @@ export class ContentCommentDTO {
 	})
 	@IsString()
 	@IsNotEmpty()
+    @Length( 1, 500 )
 	content: string;
 
 }
