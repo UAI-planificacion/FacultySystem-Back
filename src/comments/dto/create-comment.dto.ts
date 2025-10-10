@@ -18,7 +18,7 @@ export class CreateCommentDto  extends ContentCommentDTO {
 	@IsOptional()
 	@IsString()
 	@Length( 24, 26 )
-	requestId?: string;
+	requestSessionId?: string;
 
 
 	@ApiPropertyOptional({
@@ -28,7 +28,7 @@ export class CreateCommentDto  extends ContentCommentDTO {
 	@IsOptional()
 	@IsString()
 	@Length( 24, 26 )
-	requestDetailId?: string;
+	planningChangeId?: string;
 
 
 	@ApiPropertyOptional({
