@@ -5,9 +5,9 @@ import {
 }               from 'class-validator';
 import { Type } from 'class-transformer';
 
-import { SpaceSizeIdDto }   from '@sections/dto/fields/size.dto';
-import { ProfessorIdDto }   from '@sections/dto/fields/profesorId.dto';
-import { SpaceTypeDto }     from '@sections/dto/fields/space-type.dto';
+import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
+import { ProfessorIdDto }   from '@commons/dtos/profesorId.dto';
+import { SpaceTypeDto }     from '@commons/dtos/space-type.dto';
 
 
 export class BasicSectionDto extends IntersectionType(
