@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, UnprocessableEntityException } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
@@ -14,102 +14,87 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
         this.$connect();
     }
 
-    // async create( createCommentDto: CreateCommentDto ) {
-    //     try {
-    //         const comment = await this.comment.create({
-    //             data: createCommentDto
-    //         });
 
-    //         return this.findOne( comment.id );
-    //     } catch ( error ) {
-    //         throw PrismaException.catch( error, 'Failed to create comment' );
-    //     }
-    // }
+    async create( createCommentDto: CreateCommentDto ) {
+        try {
+            const comment = await this.comment.create({
+                data: createCommentDto,
+                select: this.#selectComment
+            });
 
-    // #selectComment = {
-    //     id          : true,
-    //     content     : true,
-    //     createdAt   : true,
-    //     updatedAt   : true,
-    //     staff       : {
-    //         select: {
-    //             name    : true,
-    //             email   : true,
-    //             role    : true,
-    //         }
-    //     }
-    // }
+            return comment;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to create comment' );
+        }
+    }
 
-    // async findAllByRequestId( requestId: string ) {
-    //     return await this.comment.findMany({
-    //         select  : this.#selectComment,
-    //         where   : {
-    //             requestId,
-    //         },
-    //         orderBy: {
-    //             createdAt: 'desc'
-    //         }
-    //     });
-    // }
 
-    // async findAllByRequestDetailId( requestDetailId: string ) {
-    //     return await this.comment.findMany({
-    //         select  : this.#selectComment,
-    //         where   : {
-    //             requestDetailId,
-    //         },
-    //         orderBy: {
-    //             createdAt: 'desc'
-    //         }
-    //     });
-    // }
+    #selectComment = {
+        id          : true,
+        content     : true,
+        createdAt   : true,
+        updatedAt   : true,
+        staff       : {
+            select: {
+                name    : true,
+                email   : true,
+                role    : true,
+            }
+        }
+    }
 
-    // async findOne( id: string ) {
-    //     const comment = await this.comment.findUnique({
-    //         select : {
-    //             ...this.#selectComment,
-    //             requestId       : true,
-    //             requestDetailId : true
-    //         },
-    //         where: {
-    //             id
-    //         }
-    //     });
 
-    //     if ( !comment ) {
-    //         throw new NotFoundException( 'Comment not found' );
-    //     }
+    async findAllByRequestSessionId( requestSessionId: string ) {
+        return await this.comment.findMany({
+            select  : this.#selectComment,
+            where   : {
+                requestSessionId,
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+    }
 
-    //     return comment;
-    // }
 
-    // async update( id: string, updateCommentDto: UpdateCommentDto ) {
-    //     try {
-    //         const comment = await this.comment.update({
-    //             where: {
-    //                 id
-    //             },
-    //             data: updateCommentDto
-    //         });
+    async findAllByPlanningChangeId( planningChangeId: string ) {
+        return await this.comment.findMany({
+            select  : this.#selectComment,
+            where   : {
+                planningChangeId,
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+    }
 
-    //         return this.findOne( comment.id );
-    //     } catch ( error ) {
-    //         throw PrismaException.catch( error, 'Failed to update comment' );
-    //     }
-    // }
 
-    // async remove( id: string ) {
-    //     try {
-    //         const comment = await this.comment.delete({
-    //             where: {
-    //                 id
-    //             }
-    //         });
+    async update( id: string, updateCommentDto: UpdateCommentDto ) {
+        try {
+            const comment = await this.comment.update({
+                where   : { id },
+                data    : updateCommentDto,
+                select  : this.#selectComment
+            });
 
-    //         return comment;
-    //     } catch ( error ) {
-    //         throw PrismaException.catch( error, 'Failed to remove comment' );
-    //     }
-    // }
+            return comment;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update comment' );
+        }
+    }
+
+
+    async remove( id: string ) {
+        try {
+            const comment = await this.comment.delete({
+                where: { id }
+            });
+
+            return comment;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to remove comment' );
+        }
+    }
 
 }
