@@ -1,20 +1,17 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
-import {
-    SpaceType,
-    $Enums
-} from 'generated/prisma';
-import {
-    IsEnum,
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString
-} from 'class-validator';
-import { SessionDto } from '@app/sessions/dto/session.dto';
+import { IsNotEmpty, IsOptional, IsString, Length, Max } from 'class-validator';
+
+import { SessionDto }       from '@sessions/dto/session.dto';
+import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
+import { SpaceTypeDto }     from '@commons/dtos/space-type.dto';
 
 
-export class BasicSubjectDto extends SessionDto {
+export class BasicSubjectDto extends IntersectionType(
+    SessionDto,
+    SpaceSizeIdDto,
+    SpaceTypeDto
+) {
 
     @ApiProperty({
         description : 'The id of the subject',
@@ -22,7 +19,9 @@ export class BasicSubjectDto extends SessionDto {
     })
     @IsString()
     @IsNotEmpty()
+    @Length( 3, 15 )
     id: string;
+
 
     @ApiProperty({
         description : 'The name of the subject',
@@ -30,56 +29,17 @@ export class BasicSubjectDto extends SessionDto {
     })
     @IsString()
     @IsNotEmpty()
+    @Length( 3, 200 )
     name: string;
 
+
     @ApiPropertyOptional({
-        enum        : Object.values( SpaceType ),
-        description : $Enums.SpaceType.ROOM
+        description : 'The id of the grade',
+        example     : '1234567890',
     })
-    @IsOptional()
     @IsString()
-    @IsEnum( $Enums.SpaceType )
-    spaceType?: $Enums.SpaceType;
-
-    @ApiPropertyOptional({
-        description : 'Size of the space',
-        example     : $Enums.SizeValue.XL,
-    })
     @IsOptional()
-    @IsEnum( $Enums.SizeValue )
-    spaceSizeId?: $Enums.SizeValue;
-
-
-    // @ApiProperty({
-    //     description : 'Count of workshops',
-    //     example     : 0,
-    // })
-    // @IsNumber()
-    // @IsNotEmpty()
-    // workshop: number;
-
-    // @ApiProperty({
-    //     description : 'Count of lectures',
-    //     example     : 0,
-    // })
-    // @IsNumber()
-    // @IsNotEmpty()
-    // lecture: number;
-
-    // @ApiProperty({
-    //     description : 'Count of tutoring sessions',
-    //     example     : 0,
-    // })
-    // @IsNumber()
-    // @IsNotEmpty()
-    // tutoringSession: number;
-
-    // @ApiProperty({
-    //     description : 'Count of laboratories',
-    //     example     : 0,
-    // })
-    // @IsNumber()
-    // @IsNotEmpty()
-    // laboratory: number;
+    @Max( 28 )
+    gradeId?: string;
 
 }
