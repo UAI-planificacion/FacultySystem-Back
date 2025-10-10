@@ -13,12 +13,12 @@ export class CommentValidationPipe implements PipeTransform {
             return value;
         }
 
-        const object                = plainToInstance( metatype, value );
-        const hasRequestId          = typeof object.requestId === 'string' && object.requestId.trim() !== '';
-        const hasRequestDetailId    = typeof object.requestDetailId === 'string' && object.requestDetailId.trim() !== '';
+        const object                  = plainToInstance( metatype, value );
+        const hasRequestSessionId     = typeof object.requestSessionId === 'string' && object.requestSessionId.trim() !== '';
+        const hasPlanningChangeId     = typeof object.planningChangeId === 'string' && object.planningChangeId.trim() !== '';
 
-        if (( hasRequestId && hasRequestDetailId ) || ( !hasRequestId && !hasRequestDetailId )) {
-            throw new BadRequestException('Either requestId or requestDetailId must be provided, but not both or neither.');
+        if (( hasRequestSessionId && hasPlanningChangeId ) || ( !hasRequestSessionId && !hasPlanningChangeId )) {
+            throw new BadRequestException( 'Either requestSessionId or planningChangeId must be provided, but not both or neither.' );
         }
 
         const hasStaffId = typeof object.staffId === 'string' && object.staffId.trim() !== '';
