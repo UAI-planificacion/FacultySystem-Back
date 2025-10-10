@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, NotFoundException } from '@nestjs/common';
+import { Injectable, OnModuleInit, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
@@ -62,14 +62,14 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     });
 
 
-    #requestSectionMap = ( request  ) => ({
+    #requestSectionMap = ( request ) => ({
         ...request,
         requestSessions : request.requestSessions.map(( requestSession ) => ({
             ...requestSession,
             sessionDayModules   : requestSession.sessionDayModules.map(( sessionDayModule ) => ({
-                id          : sessionDayModule.id,
-                dayId       : sessionDayModule.dayModule.dayId,
-                module    : sessionDayModule.dayModule.module,
+                id      : sessionDayModule.id,
+                dayId   : sessionDayModule.dayModule.dayId,
+                module  : sessionDayModule.dayModule.module,
             }))
         }))
     });
@@ -146,21 +146,62 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         origin              : string | undefined
     ) {
         try {
+            const { requestSessions, ...requestData } = createRequestDto;
+
+            if ( requestSessions.length > 4 ) {
+                throw new UnprocessableEntityException( 'Solo se permiten 4 sesiones (Cátedra, Ayudantía, Taller y Laboratorio)' );
+            }
+
+            if ( requestSessions.length === 0 ) {
+                throw new UnprocessableEntityException( 'No se proporcionaron sesiones' );
+            }
+
             const request = await this.request.create({
-                data    : createRequestDto,
-                select  : this.#selectRequest
+                data    : requestData,
+                select  : { id : true }
+                // select  : this.#selectRequest
             });
 
-            const requestData = this.#requestMap( request );
+            await this.requestSession.createMany({
+                data : requestSessions.map(( sessionDto ) => ({
+                    ...sessionDto,
+                    requestId: request.id
+                }))
+            });
+
+            // const requestMapped = await this.findOne( request.id );
+            const requestMapped = await this.request.findUnique({
+                where : { id : request.id },
+                select: {
+                    ...this.#selectRequest,
+                    // requestSessions: {
+                    //     select: {
+                    //         id: true,
+                    //         sessionDayModules: {
+                    //             select: {
+                    //                 id: true,
+                    //                 dayModule: {
+                    //                     select: {
+                    //                         id : true,
+                    //                         dayId: true,
+                    //                         module: true
+                    //                     }
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // }
+                }
+            });
 
             this.sseService.emitEvent({
-                message : requestData,
+                message : requestMapped,
                 action  : EnumAction.CREATE,
                 type    : Type.REQUEST,
                 origin
             });
 
-            return requestData;
+            return requestMapped;
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create request' );
         }
