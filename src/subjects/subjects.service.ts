@@ -10,6 +10,7 @@ import { BulkCreateSubjectDto } from '@subjects/dto/excel-subject.dto';
 
 @Injectable()
 export class SubjectsService extends PrismaClient implements OnModuleInit {
+
     onModuleInit() {
         this.$connect();
     }
@@ -27,11 +28,13 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         createdAt       : true,
         updatedAt       : true,
         isActive        : true,
-        // _count          : {
-        //     select: {
-        //         offers: true
-        //     }
-        // }
+        grade           :  {
+            select : {
+                id              : true,
+                name            : true,
+                headquartersId  : true,
+            }
+        }
     }
 
 
@@ -47,7 +50,7 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         createdAt       : subject.createdAt,
         updatedAt       : subject.updatedAt,
         isActive        : subject.isActive,
-        // offersCount     : subject._count.offers
+        grade           : subject.grade,
     });
 
 
