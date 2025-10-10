@@ -400,9 +400,9 @@ model RequestSession {
     spaceId         String?
     isEnglish       Boolean @default(false)
     isConsecutive   Boolean @default(false)
+    inAfternoon     Boolean @default(false)
     description     String?
     spaceType       SpaceType?
-    inAfternoon     Boolean @default(false)
     // buildings       Building[]
 
     professorId     String?
@@ -457,6 +457,7 @@ model PlanningChange {
     id              String @id @default(ulid())
     title           String
     status          Status @default(PENDING)
+    sessionName     SessionName
     // buildings       Building[]
 
     spaceId         String?
@@ -496,14 +497,14 @@ model Comment {
 	id          	String @id @default(ulid())
 	content     	String
 
-    requestSessionId String
-    requestSession   RequestSession @relation(fields: [requestSessionId], references: [id], onDelete: Cascade)
+    requestSessionId String?
+    requestSession   RequestSession? @relation(fields: [requestSessionId], references: [id], onDelete: Cascade)
 
     planningChangeId String?
     planningChange   PlanningChange? @relation(fields: [planningChangeId], references: [id], onDelete: Cascade)
 
-    staff           Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
     staffId         String
+    staff           Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
 	createdAt   	DateTime @default(now())
 	updatedAt   	DateTime @updatedAt
