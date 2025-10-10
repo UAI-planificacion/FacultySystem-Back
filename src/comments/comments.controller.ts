@@ -13,49 +13,46 @@ export class CommentsController {
         private readonly commentService: CommentsService
     ) {}
 
-    // @Post()
-    // @UsePipes( CommentValidationPipe )
-    // create(
-    //     @Body() createCommentDto: CreateCommentDto
-    // ) {
-    //     return this.commentService.create( createCommentDto );
-    // }
 
-    // @Get( 'request/:id' )
-    // findAllByRequestId(
-    //     @Param( 'id' ) id: string,
-    // ) {
-    //     return this.commentService.findAllByRequestId( id );
-    // }
+    @Post()
+    @UsePipes( CommentValidationPipe )
+    create(
+        @Body() createCommentDto: CreateCommentDto
+    ) {
+        return this.commentService.create( createCommentDto );
+    }
 
 
-    // @Get( 'request-detail/:id' )
-    // findAllByRequestDetailId(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.commentService.findAllByRequestDetailId( id );
-    // }
+    @Get( 'request-session/:id' )
+    findAllByRequestSessionId(
+        @Param( 'id' ) id: string,
+    ) {
+        return this.commentService.findAllByRequestSessionId( id );
+    }
 
-    // @Get( ':id' )
-    // findOne(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.commentService.findOne( id );
-    // }
 
-    // @Patch( ':id' )
-    // update(
-    //     @Param( 'id' ) id: string,
-    //     @Body() updateCommentDto: UpdateCommentDto
-    // ) {
-    //     return this.commentService.update( id, updateCommentDto );
-    // }
+    @Get( 'planning-change/:id' )
+    findAllByPlanningChangeId(
+        @Param( 'id' ) id: string
+    ) {
+        return this.commentService.findAllByPlanningChangeId( id );
+    }
 
-    // @Delete( ':id' )
-    // remove(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.commentService.remove( id );
-    // }
+
+    @Patch( ':id' )
+    update(
+        @Param( 'id' ) id: string,
+        @Body() updateCommentDto: UpdateCommentDto
+    ) {
+        return this.commentService.update( id, updateCommentDto );
+    }
+
+
+    @Delete( ':id' )
+    remove(
+        @Param( 'id' ) id: string
+    ) {
+        return this.commentService.remove( id );
+    }
 
 }
