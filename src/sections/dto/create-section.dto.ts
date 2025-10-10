@@ -3,8 +3,8 @@ import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, Max, Min } from 'class-validator';
 
 import { BasicSectionDto }  from '@sections/dto/basic-section.dto';
-import { PeriodIdDto }      from '@sections/dto/fields/periodId.dto';
-import { SubjectIdDto }     from '@sections/dto/fields/subjectId.dto';
+import { PeriodIdDto }      from '@commons/dtos/periodId.dto';
+import { SubjectIdDto }     from '@commons/dtos/subjectId.dto';
 import { SessionDto }       from '@sessions/dto/session.dto';
 
 
