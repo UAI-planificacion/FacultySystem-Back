@@ -84,6 +84,13 @@ export class SectionsController {
         return this.sectionsService.findAll();
     }
 
+    @Get( 'not-planning' )
+    // @ApiOperation({ summary: 'Get all sections' })
+    // @ApiResponse({ status: 200, description: 'Return all sections' })
+    findSectionNotPlanning() {
+        return this.sectionsService.findSectionNotPlanning();
+    }
+
 
     // @Get( '/subjectId/:id' )
     // @ApiOperation({ summary: 'Get all sections' })
@@ -95,15 +102,15 @@ export class SectionsController {
     // }
 
 
-    // @Get( ':id' )
-    // @ApiOperation({ summary: 'Get a section by id' })
-    // @ApiResponse({ status: 200, description: 'Return the section' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // findOne(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.sectionsService.findOne( id );
-    // }
+    @Get( ':id' )
+    @ApiOperation({ summary: 'Get a section by id' })
+    @ApiResponse({ status: 200, description: 'Return the section' })
+    @ApiResponse({ status: 404, description: 'Section not found' })
+    findOne(
+        @Param( 'id' ) id: string
+    ) {
+        return this.sectionsService.findOne( id );
+    }
 
 
     // @Patch( ':id' )
