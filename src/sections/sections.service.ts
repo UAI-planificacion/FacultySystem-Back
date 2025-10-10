@@ -360,6 +360,19 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+
+    async findSectionNotPlanning() {
+        return await this.section.findMany({
+            where: {
+                sessions: {
+                    none: {}
+                }
+            },
+            select: this.#selectSection
+        });
+    }
+
+
     // async updateByGroup( groupId: string, updateSectionDto: UpdateGroupDto ) {
     //     try {
     //         const sectionUpdated = await this.section.updateManyAndReturn({
