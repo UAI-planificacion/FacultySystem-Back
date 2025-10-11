@@ -162,44 +162,45 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 // select  : this.#selectRequest
             });
 
-            await this.requestSession.createMany({
+            const requestSessionsCreated = await this.requestSession.createManyAndReturn({
                 data : requestSessions.map(( sessionDto ) => ({
-                    ...sessionDto,
-                    requestId: request.id
+                    session         : sessionDto.session,
+                    spaceId         : sessionDto.spaceId,
+                    isEnglish       : sessionDto.isEnglish,
+                    isConsecutive   : sessionDto.isConsecutive,
+                    inAfternoon     : sessionDto.inAfternoon,
+                    description     : sessionDto.description,
+                    spaceType       : sessionDto.spaceType,
+                    building        : sessionDto.building,
+                    professorId     : sessionDto.professorId,
+                    spaceSizeId     : sessionDto.spaceSizeId,
+                    requestId       : request.id
                 }))
             });
 
-            // const requestMapped = await this.findOne( request.id );
-            const requestMapped = await this.request.findUnique({
-                where : { id : request.id },
-                select: {
-                    ...this.#selectRequest,
-                    // requestSessions: {
-                    //     select: {
-                    //         id: true,
-                    //         sessionDayModules: {
-                    //             select: {
-                    //                 id: true,
-                    //                 dayModule: {
-                    //                     select: {
-                    //                         id : true,
-                    //                         dayId: true,
-                    //                         module: true
-                    //                     }
-                    //                 }
-                    //             }
-                    //         }
-                    //     }
-                    // }
-                }
+            const sessionDayModulesData = requestSessionsCreated.flatMap(( createdSession, index ) => {
+                const originalSession = requestSessions[index];
+                return originalSession.dayModulesId.map(( dayModuleId ) => ({
+                    requestSessionId    : createdSession.id,
+                    dayModuleId         : dayModuleId
+                }));
             });
 
-            this.sseService.emitEvent({
-                message : requestMapped,
-                action  : EnumAction.CREATE,
-                type    : Type.REQUEST,
-                origin
+            await this.sessionDayModule.createMany({
+                data : sessionDayModulesData
             });
+
+            const requestMapped = await this.request.findUnique({
+                where : { id : request.id },
+                select: this.#selectRequest
+            });
+
+            // this.sseService.emitEvent({
+            //     message : requestMapped,
+            //     action  : EnumAction.CREATE,
+            //     type    : Type.REQUEST,
+            //     origin
+            // });
 
             return requestMapped;
         } catch ( error ) {
@@ -282,12 +283,6 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                             select : {
                                 id : true,
                                 detail : true
-                            }
-                        },
-                        staffUpdate : {
-                            select : {
-                                id : true,
-                                name : true
                             }
                         },
                         sessionDayModules: {
