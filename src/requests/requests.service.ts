@@ -35,28 +35,32 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         totalDetails    : request._count.requesSessions,
         facultyId       : request.staffCreate.facultyId,
         section         : {
-            id          : request.section.id,
-            code        : request.section.code,
-            startDate   : request.section.startDate,
-            endDate     : request.section.endDate,
-            isClosed    : request.section.isClosed,
-            laboratory  : request.section.laboratory,
-            workshop    : request.section.workshop,
-            lecture     : request.section.lecture,
-            professor   : {
-                id      : request.section.professor.id,
-                name    : request.section.professor.name
+            id              : request.section.id,
+            code            : request.section.code,
+            startDate       : request.section.startDate,
+            endDate         : request.section.endDate,
+            isClosed        : request.section.isClosed,
+            laboratory      : request.section.laboratory,
+            workshop        : request.section.workshop,
+            tutoringSession : request.section.tutoringSession,
+            lecture         : request.section.lecture,
+            spaceSizeId     : request.section.spaceSizeId,
+            spaceType       : request.section.spaceType,
+            building        : request.section.building,
+            professor       : {
+                id              : request.section.professor.id,
+                name            : request.section.professor.name
             },
-            period      : {
+            period: {
                 id      : request.section.period.id,
                 name    : request.section.period.name
             },
-            subject     : {
+            subject: {
                 id      : request.section.subject.id,
                 name    : request.section.subject.name
             },
             countSessions: {
-                sessions: request.section._count.sessions
+                sessions    : request.section._count.sessions
             }
         },
     });
@@ -100,15 +104,19 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
         },
         section : {
             select : {
-                id          : true,
-                code        : true,
-                startDate   : true,
-                endDate     : true,
-                isClosed    : true,
-                laboratory  : true,
-                workshop    : true,
-                lecture     : true,
-                professor   : {
+                id              : true,
+                code            : true,
+                startDate       : true,
+                endDate         : true,
+                isClosed        : true,
+                laboratory      : true,
+                workshop        : true,
+                tutoringSession : true,
+                lecture         : true,
+                spaceType       : true,
+                spaceSizeId     : true,
+                building        : true,
+                professor       : {
                     select: {
                         id      : true,
                         name    : true  
