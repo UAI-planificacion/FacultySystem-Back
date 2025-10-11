@@ -264,6 +264,13 @@ export class SectionDto {
     })
     period: Period;
 
+
+    @ApiPropertyOptional({
+        description : 'The name of the  for the section.',
+        example     : 'Fall 2024',
+    })
+    building?: $Enums.Building;
+
     @ApiProperty({
         description : 'The name of the period for the section.',
         example     : 'Fall 2024',
