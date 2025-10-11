@@ -345,10 +345,11 @@ model Staff {
 
     staffCreate             Request[] @relation("staffCreate")
     staffUpdate             Request[] @relation("staffUpdate")
-    requestDetails          PlanningChange[] @relation("staffCreate")
-    requestDetailsUpdate    PlanningChange[] @relation("staffUpdate")
+
+    planningChangeCreate    PlanningChange[] @relation("staffCreate")
+    planningChangeUpdate    PlanningChange[] @relation("staffUpdate")
+
     comments                Comment[]
-    requestSessions         RequestSession[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -369,8 +370,6 @@ model Request {
     id              String @id @default(ulid())
     title           String
     status          Status @default(PENDING)
-    // isConsecutive   Boolean @default(false)
-    // description     String?
 
     staffCreateId   String
     staffCreate     Staff @relation("staffCreate", fields: [staffCreateId], references: [id], onDelete: Cascade)
@@ -381,14 +380,10 @@ model Request {
     sectionId       String @unique
     section         Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-    // details         RequestDetail[]
-    // comments        Comment[]
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 
     requestSessions RequestSession[]
-
 
     @@index([status])
 }
@@ -403,7 +398,7 @@ model RequestSession {
     inAfternoon     Boolean @default(false)
     description     String?
     spaceType       SpaceType?
-    // buildings       Building[]
+    building        Building
 
     professorId     String?
     professor       Professor? @relation(fields: [professorId], references: [id])
@@ -414,11 +409,8 @@ model RequestSession {
     requestId       String
     request         Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
 
-    staffUpdateId   String?
-    staffUpdate     Staff? @relation(fields: [staffUpdateId], references: [id], onDelete: Cascade)
-
-    comments        Comment[]
-    sessionDayModules SessionDayModule[]
+    comments            Comment[]
+    sessionDayModules   SessionDayModule[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -458,7 +450,7 @@ model PlanningChange {
     title           String
     status          Status @default(PENDING)
     sessionName     SessionName
-    // buildings       Building[]
+    building        Building
 
     spaceId         String?
     isEnglish       Boolean @default(false)
