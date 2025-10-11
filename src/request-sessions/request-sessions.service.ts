@@ -50,15 +50,54 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
 	}
 
 
+    #requestSessionMap = ( requestSession ) => ({
+        ...requestSession,
+        sessionDayModules: requestSession.sessionDayModules?.map(
+            ( sessionDayModule ) => sessionDayModule.dayModuleId
+        ),
+    });
+
+
 	async findAllByRequestId( requestId: string ) {
 		try {
 			const requestSessions = await this.requestSession.findMany({
 				where : { requestId },
-				// select  : this.#selectRequestSession
+                select : {
+                    id              : true,
+                    session         : true,
+                    spaceId         : true,
+                    isEnglish       : true,
+                    isConsecutive   : true,
+                    inAfternoon     : true,
+                    description     : true,
+                    spaceType       : true,
+                    building        : true,
+                    professor       : {
+                        select : {
+                            id: true,
+                            name: true,
+                        }
+                    },
+                    createdAt       : true,
+                    updatedAt       : true,
+                    spaceSize       : {
+                        select : {
+                            id      : true,
+                            detail  : true,
+                        }
+                    },
+                    sessionDayModules: {
+                        select : {
+                            dayModuleId: true
+                        }
+                    }
+                }
 			});
 
-			return requestSessions;
+			return requestSessions.map(( requestSession ) => this.#requestSessionMap( requestSession ));
+			// return requestSessions;
 		} catch ( error ) {
+			console.log('🚀 ~ file: request-sessions.service.ts:136 ~ error:', error)
 			throw PrismaException.catch( error, 'Failed to find request sessions' );
 		}
 	}
