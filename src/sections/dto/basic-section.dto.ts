@@ -1,9 +1,13 @@
-import { ApiProperty, IntersectionType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+
 import {
     IsNotEmpty,
     IsDate,
-}               from 'class-validator';
-import { Type } from 'class-transformer';
+    IsOptional,
+    IsEnum,
+}                   from 'class-validator';
+import { Type }     from 'class-transformer';
+import { $Enums }   from 'generated/prisma';
 
 import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
 import { ProfessorIdDto }   from '@commons/dtos/profesorId.dto';
@@ -25,6 +29,7 @@ export class BasicSectionDto extends IntersectionType(
     @IsNotEmpty({ message: 'Section start date is required.' })
     startDate: Date;
 
+
     @ApiProperty({
         description: 'The end date of the section.',
         example: '2025-12-31',
@@ -33,5 +38,14 @@ export class BasicSectionDto extends IntersectionType(
     @IsDate({ message: 'Section end date must be a valid date.' })
     @IsNotEmpty({ message: 'Section end date is required.' })
     endDate: Date;
+
+
+    @ApiPropertyOptional({
+        description: 'The building of the section.',
+        example: $Enums.Building.PREGRADO_A,
+    })
+    @IsOptional()
+    @IsEnum($Enums.Building, { message: 'Section building must be a valid building.' })
+    building?: $Enums.Building;
 
 }
