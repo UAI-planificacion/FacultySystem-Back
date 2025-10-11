@@ -1,20 +1,18 @@
-import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
 import {
-    IsArray,
     IsBoolean,
+    IsEnum,
     IsOptional,
     IsString,
     Length,
-    ValidateNested
 }                   from 'class-validator';
-import { Type }     from 'class-transformer';
+import { $Enums }   from 'generated/prisma';
 
 import { ProfessorIdDto }   from '@commons/dtos/profesorId.dto';
 import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
 import { SpaceTypeDto }     from '@commons/dtos/space-type.dto';
-import { DayModulesIdDto }   from '@commons/dtos/day-moduleid.dto';
-// import { CreateModuleDayDto }   from '@request-sessions/dto/create-module-day.dto';
+import { DayModulesIdDto }  from '@commons/dtos/day-moduleid.dto';
 
 
 export class BasicRequestPlanningDto extends IntersectionType(
@@ -58,7 +56,7 @@ export class BasicRequestPlanningDto extends IntersectionType(
     })
     @IsOptional()
     @IsBoolean()
-    isAfternoon: boolean = false;
+    inAfternoon: boolean = false;
 
 
     @ApiPropertyOptional({
@@ -71,37 +69,12 @@ export class BasicRequestPlanningDto extends IntersectionType(
     description?: string;
 
 
-    // @ApiPropertyOptional({
-    //     enum        : Object.values( Building ),
-    //     description : 'Building name or identifier'
-    // })
-    // @IsOptional()
-    // @IsString()
-    // @IsEnum( Building )
-    // building?: Building;
-
-
-    // @ApiPropertyOptional({
-    //     description : 'Module days',
-    //     isArray     : true,
-    //     type        : [CreateModuleDayDto]
-    // })
-    // @IsArray()
-    // @ValidateNested({ each: true })
-    // @IsOptional()
-    // @Type(() => CreateModuleDayDto)
-    // moduleDays: CreateModuleDayDto[] = [];
-
-
-    // @ApiPropertyOptional({
-    //     description : 'Module days',
-    //     isArray     : true,
-    //     type        : [DayModulesIdDto]
-    // })
-    // @IsArray()
-    // @ValidateNested({ each: true })
-    // @IsOptional()
-    // @Type(() => DayModulesIdDto)
-    // dayModulesId :DayModulesIdDto[] = [];
+    @ApiProperty({
+        enum        : Object.values( $Enums.Building ),
+        description : 'Building name or identifier'
+    })
+    @IsString()
+    @IsEnum( $Enums.Building )
+    building: $Enums.Building;
 
 }
