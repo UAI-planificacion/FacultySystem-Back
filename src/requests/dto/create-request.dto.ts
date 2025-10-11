@@ -25,7 +25,21 @@ export class CreateRequestDto extends IntersectionType(
     @ApiProperty({
         description : 'List of request sessions to create with the request (max 4)',
         type        : [ CreateRequestSessionDto ],
-        example     : []
+        example     : [
+            {
+                session         : 'C',
+                professorId     : 'PROF001',
+                spaceSizeId     : 'M',
+                spaceType       : 'ROOM',
+                dayModulesId    : [ 1, 2, 3 ],
+                spaceId         : '201-A',
+                isEnglish       : false,
+                isConsecutive   : false,
+                isAfternoon     : false,
+                description     : 'Cátedra principal',
+                building        : 'PREGRADO_A'
+            }
+        ]
     })
     @IsArray()
     @ArrayMinSize( 1 )
