@@ -56,6 +56,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         lecture         : true,
         tutoringSession : true,
         laboratory      : true,
+        building        : true,
         professor: {
             select : {
                 id      : true,
@@ -124,6 +125,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             lecture         : section.lecture,
             tutoringSession : section.tutoringSession,
             laboratory      : section.laboratory,
+            building        : section.building,
             professor       : section.professor?.id ? {
                 id      : section.professor?.id,
                 name    : section.professor?.name,
