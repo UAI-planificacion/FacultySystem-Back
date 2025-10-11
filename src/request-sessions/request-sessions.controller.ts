@@ -32,7 +32,7 @@ export class RequestSessionsController {
 
     @Get( ':id' )
     findOne(
-        @Param('id') id: string
+        @Param( 'id' ) id: string
     ) {
         return this.requestSessionsService.findOne( id );
     }
@@ -40,7 +40,7 @@ export class RequestSessionsController {
 
     @Patch( ':id' )
     update(
-        @Param('id') id: string,
+        @Param( 'id' ) id: string,
         @Body() updateRequestSessionDto: UpdateRequestSessionDto
     ) {
         return this.requestSessionsService.update( id, updateRequestSessionDto );
@@ -49,7 +49,7 @@ export class RequestSessionsController {
 
     @Delete( ':id' )
     remove(
-        @Param('id') id: string
+        @Param( 'id' ) id: string
     ) {
         return this.requestSessionsService.remove( id );
     }
