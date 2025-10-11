@@ -22,9 +22,9 @@ export class RequestSessionsController {
     }
 
 
-    @Get( ':requestId' )
+    @Get( '/request/:id' )
     findAllByRequestId(
-        @Param( 'requestId' ) requestId: string
+        @Param( 'id' ) requestId: string
     ) {
         return this.requestSessionsService.findAllByRequestId( requestId );
     }
