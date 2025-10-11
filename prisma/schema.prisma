@@ -113,6 +113,7 @@ model Section {
     startDate       DateTime
     endDate         DateTime
     spaceType       SpaceType?
+    building        Building?
 
     periodId        String
     period          Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
