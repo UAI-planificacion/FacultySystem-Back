@@ -366,52 +366,14 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             where: {
                 sessions: {
                     none: {}
+                },
+                request: {
+                    is: null
                 }
             },
             select: this.#selectSection
         });
     }
-
-
-    // async updateByGroup( groupId: string, updateSectionDto: UpdateGroupDto ) {
-    //     try {
-    //         const sectionUpdated = await this.section.updateManyAndReturn({
-    //             select : {
-    //                 id: true,
-    //             },
-    //             where   : { groupId },
-    //             data    : {
-    //                 code : updateSectionDto.code,
-    //                 size : updateSectionDto.size,
-    //             },
-    //         });
-
-    //         if ( !sectionUpdated.length ) throw new BadRequestException( 'Error updating section' );
-
-    //         await this.subjectSection.updateMany({
-    //             where   : { sectionId: { in: sectionUpdated.map( section => section.id )}},
-    //             data    : {
-    //                 periodId: updateSectionDto.periodId,
-    //             },
-    //         });
-
-    //         const sectiondata = await this.section.findMany({
-    //             where: {
-    //                 id: {
-    //                     in: sectionUpdated.map( section => section.id )
-    //                 }
-    //             },
-    //             select: this.#selectSection
-    //         })
-
-    //         const sections = sectiondata.map( section => this.#convertToSectionDto( section ));
-
-    //         return sections;
-    //     } catch ( error ) {
-    //         console.error( 'Error updating section:', error );
-    //         throw PrismaException.catch( error, 'Failed to update section' );
-    //     }
-    // }
 
 
     async massiveUpdate( ids: string[], updateSectionDto: UpdateSectionDto ) {
