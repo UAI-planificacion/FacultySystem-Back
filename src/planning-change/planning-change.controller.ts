@@ -37,13 +37,13 @@ export class PlanningChangeController {
     }
 
 
-    @Patch( ':id' )
-    update(
-        @Param( 'id' ) id: string,
-        @Body() updatePlanningChangeDto: UpdatePlanningChangeDto
-    ) {
-        return this.planningChangeService.update( id, updatePlanningChangeDto );
-    }
+    // @Patch( ':id' )
+    // update(
+    //     @Param( 'id' ) id: string,
+    //     @Body() updatePlanningChangeDto: UpdatePlanningChangeDto
+    // ) {
+    //     return this.planningChangeService.update( id, updatePlanningChangeDto );
+    // }
 
 
     @Delete( ':id' )
