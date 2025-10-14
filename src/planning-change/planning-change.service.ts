@@ -60,45 +60,45 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         return planningChange;
     }
 
-    async update( id: string, updatePlanningChangeDto: UpdatePlanningChangeDto ) {
-        try {
-            const { dayModulesId, ...data } = updatePlanningChangeDto;
+    // async update( id: string, updatePlanningChangeDto: UpdatePlanningChangeDto ) {
+    //     try {
+    //         const { dayModulesId, ...data } = updatePlanningChangeDto;
 
-            const planningChange = await this.planningChange.update({
-                where : { id },
-                data
-            });
+    //         const planningChange = await this.planningChange.update({
+    //             where : { id },
+    //             data
+    //         });
 
 
-            const dayModulesByPlanningChange = await this.sessionDayModule.findMany({
-				where : { planningChangeId: id },
-			});
+    //         const dayModulesByPlanningChange = await this.sessionDayModule.findMany({
+	// 			where : { planningChangeId: id },
+	// 		});
 
-            const currentDayModuleIds   = dayModulesByPlanningChange.map(( dm ) => dm.dayModuleId ).sort();
-			const newDayModuleIds       = ( dayModulesId || [] ).sort();
-			const areEqual              = currentDayModuleIds.length === newDayModuleIds.length &&
-				currentDayModuleIds.every(( id, index ) => id === newDayModuleIds[index] );
+    //         const currentDayModuleIds   = dayModulesByPlanningChange.map(( dm ) => dm.dayModuleId ).sort();
+	// 		const newDayModuleIds       = ( dayModulesId || [] ).sort();
+	// 		const areEqual              = currentDayModuleIds.length === newDayModuleIds.length &&
+	// 			currentDayModuleIds.every(( id, index ) => id === newDayModuleIds[index] );
 
-            if ( !areEqual ) {
-                await this.sessionDayModule.deleteMany({
-                    where : { planningChangeId: id },
-                });
+    //         if ( !areEqual ) {
+    //             await this.sessionDayModule.deleteMany({
+    //                 where : { planningChangeId: id },
+    //             });
 
-                if ( newDayModuleIds.length > 0 ) {
-                    await this.sessionDayModule.createMany({
-                        data : newDayModuleIds.map(( dayModuleId ) => ({
-                            dayModuleId,
-                            planningChangeId: planningChange.id
-                        })),
-                    });
-                }
-            }
+    //             if ( newDayModuleIds.length > 0 ) {
+    //                 await this.sessionDayModule.createMany({
+    //                     data : newDayModuleIds.map(( dayModuleId ) => ({
+    //                         dayModuleId,
+    //                         planningChangeId: planningChange.id
+    //                     })),
+    //                 });
+    //             }
+    //         }
 
-            return planningChange;
-        } catch (error) {
-			throw PrismaException.catch( error, 'Failed to update request session' );
-        }
-    }
+    //         return planningChange;
+    //     } catch (error) {
+	// 		throw PrismaException.catch( error, 'Failed to update request session' );
+    //     }
+    // }
 
     async remove(id: string) {
         try {
