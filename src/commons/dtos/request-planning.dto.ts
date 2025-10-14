@@ -12,14 +12,12 @@ import { $Enums }   from 'generated/prisma';
 import { ProfessorIdDto }   from '@commons/dtos/profesorId.dto';
 import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
 import { SpaceTypeDto }     from '@commons/dtos/space-type.dto';
-import { DayModulesIdDto }  from '@commons/dtos/day-moduleid.dto';
 
 
 export class BasicRequestPlanningDto extends IntersectionType(
     ProfessorIdDto,
     SpaceSizeIdDto,
     SpaceTypeDto,
-    DayModulesIdDto
 ) {
 
     @ApiPropertyOptional({
