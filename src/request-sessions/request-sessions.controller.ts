@@ -3,6 +3,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { RequestSessionsService }   from '@request-sessions/request-sessions.service';
 import { CreateRequestSessionDto }  from '@request-sessions/dto/create-request-session.dto';
 import { UpdateRequestSessionDto }  from '@request-sessions/dto/update-request-session.dto';
+import { UpdateSessionDayModulesDto } from './dto/update-session-day-modules.dto';
 
 
 @Controller( 'request-sessions' )
@@ -13,13 +14,13 @@ export class RequestSessionsController {
     ) {}
 
 
-    @Post( ':requestId' )
-    create(
-        @Body() createRequestSessionDto: CreateRequestSessionDto,
-        @Param( 'requestId' ) requestId: string
-    ) {
-        return this.requestSessionsService.create( requestId, createRequestSessionDto );
-    }
+    // @Post( ':requestId' )
+    // create(
+    //     @Body() createRequestSessionDto: CreateRequestSessionDto,
+    //     @Param( 'requestId' ) requestId: string
+    // ) {
+    //     return this.requestSessionsService.create( requestId, createRequestSessionDto );
+    // }
 
 
     @Get( '/request/:id' )
@@ -35,6 +36,14 @@ export class RequestSessionsController {
         @Param( 'id' ) id: string
     ) {
         return this.requestSessionsService.findOne( id );
+    }
+
+
+    @Patch( '/day-modules' )
+    updateSessionDayModules(
+        @Body() updateSessionDayModulesDto: UpdateSessionDayModulesDto[]
+    ) {
+        return this.requestSessionsService.updateSessionDayModules( updateSessionDayModulesDto );
     }
 
 
