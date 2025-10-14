@@ -275,6 +275,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                     select : {
                         id              : true,
                         session         : true,
+                        building        : true,
                         spaceId         : true,
                         isEnglish       : true,
                         isConsecutive   : true,
