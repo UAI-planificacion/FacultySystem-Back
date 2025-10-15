@@ -5,6 +5,7 @@ import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
 import { MassiveUpdateSessionDto } from './dto/massive-update-session.dto';
+import { CalculateAvailabilityDto } from './dto/calculate-availability.dto';
 
 
 @Controller( 'sessions' )
@@ -35,6 +36,15 @@ export class SessionsController {
     @Get()
     findAll() {
         return this.sessionsService.findAll();
+    }
+
+
+    @Post( 'calculate-availability/:sectionId' )
+    calculateAvailability(
+        @Param( 'sectionId' ) sectionId: string,
+        @Body() calculateAvailabilityDto: CalculateAvailabilityDto[]
+    ) {
+        return this.sessionsService.calculateSessionAvailability( sectionId, calculateAvailabilityDto );
     }
 
 
