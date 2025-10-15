@@ -8,6 +8,10 @@ export const envSchema = z.object({
     API_DOC_PREFIX  : z.string().default('docs'),
     CORS_ORIGIN     : z.string().default('*'),
 
+    //Reservation api
+    API_RESERVATION : z.string(),
+    SPACE_ENDPOINT  : z.string(),
+
     // DB
     PGDATABASE      : z.string(),
     PGHOST          : z.string(),
