@@ -113,55 +113,55 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     #convertToSectionDto = ( section: any ): SectionDto => ({
-            id              : section.id,
-            code            : section.code,
-            isClosed        : section.isClosed,
-            groupId         : section.groupId,
-            startDate       : section.startDate,
-            endDate         : section.endDate,
-            spaceSizeId     : section.spaceSizeId,
-            spaceType       : section.spaceType,
-            workshop        : section.workshop,
-            lecture         : section.lecture,
-            tutoringSession : section.tutoringSession,
-            laboratory      : section.laboratory,
-            building        : section.building,
-            professor       : section.professor?.id ? {
-                id      : section.professor?.id,
-                name    : section.professor?.name,
-            } : null,
-            subject: {
-                id      : section.subject.id,
-                name    : section.subject.name,
+        id              : section.id,
+        code            : section.code,
+        isClosed        : section.isClosed,
+        groupId         : section.groupId,
+        startDate       : section.startDate,
+        endDate         : section.endDate,
+        spaceSizeId     : section.spaceSizeId,
+        spaceType       : section.spaceType,
+        workshop        : section.workshop,
+        lecture         : section.lecture,
+        tutoringSession : section.tutoringSession,
+        laboratory      : section.laboratory,
+        building        : section.building,
+        professor       : section.professor?.id ? {
+            id      : section.professor?.id,
+            name    : section.professor?.name,
+        } : null,
+        subject: {
+            id      : section.subject.id,
+            name    : section.subject.name,
+        },
+        period: {
+            id      : section.period.id,
+            name    : section.period.name,
+        },
+        sessions : section.sessions.map(( session : any ) => ({
+            id                      : session.id,
+            name                    : session.name,
+            spaceId                 : session.spaceId,
+            isEnglish               : session.isEnglish,
+            chairsAvailable         : session.chairsAvailable,
+            correctedRegistrants    : session.correctedRegistrants,
+            realRegistrants         : session.realRegistrants,
+            plannedBuilding         : session.plannedBuilding,
+            professor               : session.professor,
+            dayId                   : session.dayModule.dayId,
+            dayModuleId             : session.dayModule.id,
+            date                    : session.date,
+            module                  : {
+                id          : session.dayModule.module.id,
+                code        : session.dayModule.module.code,
+                name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
+                startHour   : session.dayModule.module.startHour,
+                endHour     : session.dayModule.module.endHour,
+                difference  : session.dayModule.module.difference,
             },
-            period: {
-                id      : section.period.id,
-                name    : section.period.name,
-            },
-            sessions : section.sessions.map(( session : any ) => ({
-                id                      : session.id,
-                name                    : session.name,
-                spaceId                 : session.spaceId,
-                isEnglish               : session.isEnglish,
-                chairsAvailable         : session.chairsAvailable,
-                correctedRegistrants    : session.correctedRegistrants,
-                realRegistrants         : session.realRegistrants,
-                plannedBuilding         : session.plannedBuilding,
-                professor               : session.professor,
-                dayId                   : session.dayModule.dayId,
-                dayModuleId             : session.dayModule.id,
-                date                    : session.date,
-                module                  : {
-                    id          : session.dayModule.module.id,
-                    code        : session.dayModule.module.code,
-                    name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
-                    startHour   : session.dayModule.module.startHour,
-                    endHour     : session.dayModule.module.endHour,
-                    difference  : session.dayModule.module.difference,
-                },
-            }))
-        })
-    
+        }))
+    })
+
 
     // async createBasic(
     //     subjectId                   : string,
@@ -332,7 +332,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             throw new NotFoundException( 'Section not found.' );
         }
 
-        return section;
+        return this.#convertToSectionDto( section );
     }
 
 
