@@ -1,20 +1,34 @@
-import { BadRequestException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    NotFoundException,
+    OnModuleInit
+} from '@nestjs/common';
 
 import { $Enums, PrismaClient } from 'generated/prisma';
 
+import {
+    SessionAvailabilityResponse,
+    AvailableSpace,
+    AvailableProfessor,
+    ScheduledDate
+}                                   from '@sessions/interfaces/session-availability.interface';
 import { PrismaException }          from '@config/prisma-catch';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
 import { SectionsService }          from '@sections/sections.service';
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
+import { SpacesService }            from '@commons/services/spaces.service';
+import { CalculateAvailabilityDto } from './dto/calculate-availability.dto';
 
 
 @Injectable()
 export class SessionsService extends PrismaClient implements OnModuleInit {
 
     constructor(
-        private readonly sectionsService: SectionsService
+        private readonly sectionsService : SectionsService,
+        private readonly spacesService   : SpacesService
     ) {
         super();
     }
@@ -93,6 +107,229 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             return this.#convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create session' );
+        }
+    }
+
+
+    async calculateSessionAvailability( sectionId: string, calculateAvailabilityDtos: CalculateAvailabilityDto[] ): Promise<SessionAvailabilityResponse[]> {
+        try {
+            // 1. Obtener la información de la sección con sus fechas
+            const section = await this.section.findUnique({
+                where   : { id: sectionId },
+                select  : {
+                    id          : true,
+                    startDate   : true,
+                    endDate     : true,
+                    professorId : true,
+                }
+            });
+
+            if ( !section ) {
+                throw new NotFoundException( `Section with id ${sectionId} not found` );
+            }
+
+            const { startDate, endDate } = section;
+
+            // 2. Obtener todos los espacios del servicio externo (una sola vez)
+            const allSpaces = await this.spacesService.getSpaces();
+
+            // 3. Procesar cada sesión
+            const results: SessionAvailabilityResponse[] = [];
+
+            for ( const calculateAvailabilityDto of calculateAvailabilityDtos ) {
+                const { session, building, spaceIds, spaceType, spaceSizeId, professorIds, dayModuleIds } = calculateAvailabilityDto;
+
+                // 3.1. Filtrar espacios según los criterios de esta sesión
+                let filteredSpaces = allSpaces.filter( space => space.active );
+
+                if ( spaceIds && spaceIds.length > 0 ) {
+                    // Si vienen spaceIds, filtrar solo esos
+                    filteredSpaces = filteredSpaces.filter( space => spaceIds.includes( space.name ) );
+                } else {
+                    // Si no vienen spaceIds, filtrar por building, type y/o size
+                    if ( building ) {
+                        filteredSpaces = filteredSpaces.filter( space => space.building === building );
+                    }
+
+                    if ( spaceType ) {
+                        filteredSpaces = filteredSpaces.filter( space => space.type === spaceType );
+                    }
+
+                    if ( spaceSizeId ) {
+                        filteredSpaces = filteredSpaces.filter( space => space.size === spaceSizeId );
+                    }
+                }
+
+                // 3.2. Obtener información de los dayModules de esta sesión
+                const dayModules = await this.dayModule.findMany({
+                    where   : {
+                        id: { in: dayModuleIds }
+                    },
+                    include : {
+                        day     : true,
+                        module  : true,
+                    }
+                });
+
+                if ( dayModules.length !== dayModuleIds.length ) {
+                    throw new BadRequestException( `Some dayModuleIds are invalid: ${dayModuleIds.join( ', ' )}` );
+                }
+
+                // 3.3. Calcular todas las fechas posibles para cada dayModule de esta sesión
+                const scheduledDates: ScheduledDate[] = [];
+
+                for ( const dayModule of dayModules ) {
+                    const dayOfWeek = dayModule.day.id;
+                    const dates     = this.calculateDatesForDayOfWeek( startDate, endDate, dayOfWeek );
+
+                    for ( const date of dates ) {
+                        scheduledDates.push({
+                            date        : date,
+                            dayModuleId : dayModule.id,
+                            dayName     : dayModule.day.name,
+                            timeRange   : `${dayModule.module.startHour}-${dayModule.module.endHour}`,
+                        });
+                    }
+                }
+
+                // 3.4. Validar disponibilidad de espacios para esta sesión
+                const availableSpaces: AvailableSpace[] = [];
+
+                for ( const space of filteredSpaces ) {
+                    let isAvailable = true;
+
+                    for ( const scheduledDate of scheduledDates ) {
+                        const existingSession = await this.session.findFirst({
+                            where: {
+                                date        : scheduledDate.date,
+                                dayModuleId : scheduledDate.dayModuleId,
+                                spaceId     : space.name,
+                            }
+                        });
+
+                        if ( existingSession ) {
+                            isAvailable = false;
+                            break;
+                        }
+                    }
+
+                    if ( isAvailable ) {
+                        availableSpaces.push({
+                            id       : space.name,
+                            name     : space.name,
+                            building : space.building,
+                            type     : space.type,
+                            capacity : space.capacity,
+                        });
+                    }
+                }
+
+                // 3.5. Caso edge: Si vinieron spaceIds pero ninguno está disponible, buscar similares
+                if ( spaceIds && spaceIds.length > 0 && availableSpaces.length === 0 ) {
+                    // Obtener características de los espacios solicitados
+                    const requestedSpaces = allSpaces.filter( space => spaceIds.includes( space.name ) );
+                    
+                    if ( requestedSpaces.length > 0 ) {
+                        const buildings = [...new Set( requestedSpaces.map( s => s.building ) )];
+                        const types     = [...new Set( requestedSpaces.map( s => s.type ) )];
+                        const sizes     = [...new Set( requestedSpaces.map( s => s.size ) )];
+
+                        // Filtrar espacios similares
+                        let similarSpaces = allSpaces.filter( space => 
+                            space.active && 
+                            !spaceIds.includes( space.name ) &&
+                            ( buildings.includes( space.building ) || types.includes( space.type ) || sizes.includes( space.size ) )
+                        );
+
+                        // Validar disponibilidad de espacios similares
+                        for ( const space of similarSpaces ) {
+                            let isAvailable = true;
+
+                            for ( const scheduledDate of scheduledDates ) {
+                                const existingSession = await this.session.findFirst({
+                                    where: {
+                                        date        : scheduledDate.date,
+                                        dayModuleId : scheduledDate.dayModuleId,
+                                        spaceId     : space.name,
+                                    }
+                                });
+
+                                if ( existingSession ) {
+                                    isAvailable = false;
+                                    break;
+                                }
+                            }
+
+                            if ( isAvailable ) {
+                                availableSpaces.push({
+                                    id       : space.name,
+                                    name     : space.name,
+                                    building : space.building,
+                                    type     : space.type,
+                                    capacity : space.capacity,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                // 3.6. Validar disponibilidad de profesores para esta sesión
+                const availableProfessors: AvailableProfessor[] = [];
+
+                if ( professorIds && professorIds.length > 0 ) {
+                    for ( const professorId of professorIds ) {
+                        // Obtener información del profesor
+                        const professor = await this.professor.findUnique({
+                            where   : { id: professorId },
+                            select  : {
+                                id      : true,
+                                name    : true,
+                            }
+                        });
+
+                        if ( !professor ) {
+                            continue;
+                        }
+
+                        let isAvailable = true;
+
+                        for ( const scheduledDate of scheduledDates ) {
+                            const existingSession = await this.session.findFirst({
+                                where: {
+                                    date        : scheduledDate.date,
+                                    dayModuleId : scheduledDate.dayModuleId,
+                                    professorId : professorId,
+                                }
+                            });
+
+                            if ( existingSession ) {
+                                isAvailable = false;
+                                break;
+                            }
+                        }
+
+                        availableProfessors.push({
+                            id        : professor.id,
+                            name      : professor.name,
+                            available : isAvailable,
+                        });
+                    }
+                }
+
+                // 3.7. Agregar resultado de esta sesión
+                results.push({
+                    session             : session,
+                    availableSpaces     : availableSpaces,
+                    availableProfessors : availableProfessors,
+                    scheduledDates      : scheduledDates,
+                    isReadyToCreate     : availableSpaces.length > 0,
+                });
+            }
+
+            // 4. Retornar todos los resultados
+            return results;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to calculate session availability' );
         }
     }
 
