@@ -65,7 +65,7 @@ export class SpacesService {
                 return spaces;
             } catch ( error ) {
                 lastError = error instanceof Error ? error : new Error( String( error ) );
-                
+
                 if ( attempt < maxRetries ) {
                     console.warn( `Attempt ${attempt + 1} failed. Retrying...`, lastError.message );
                     await this.#delay( 1000 * ( attempt + 1 ) ); // Exponential backoff
@@ -85,7 +85,7 @@ export class SpacesService {
     async #fetchSpacesFromAPI(): Promise<Space[]> {
         const API_RESERVATION   = ENV().API_RESERVATION;
         const SPACE_ENDPOINT    = ENV().SPACE_ENDPOINT;
-        const url               = `${API_RESERVATION}${SPACE_ENDPOINT}`;
+        const url               = `${API_RESERVATION}/${SPACE_ENDPOINT}`;
 
         const response = await fetch( url, {
             method  : 'GET',
