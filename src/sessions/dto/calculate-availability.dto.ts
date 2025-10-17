@@ -11,7 +11,7 @@ export class CalculateAvailabilityDto {
 
     // Uno de los 2
     spaceType?: $Enums.SpaceType;
-    spaceSizeId?: $Enums.SizeValue;
+    spaceSize?: $Enums.SizeValue;
 
     professorIds?: string[];
 
