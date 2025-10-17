@@ -7,6 +7,7 @@ export interface AvailableSpace {
 	building : $Enums.Building;
 	type     : $Enums.SpaceType;
 	capacity : number;
+    size     : $Enums.SizeValue;
 }
 
 
