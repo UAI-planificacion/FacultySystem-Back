@@ -111,7 +111,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async calculateSessionAvailability( sectionId: string, calculateAvailabilityDtos: CalculateAvailabilityDto[] ): Promise<SessionAvailabilityResponse[]> {
+    async calculateSessionAvailability(
+        sectionId                   : string,
+        calculateAvailabilityDtos   : CalculateAvailabilityDto[]
+    ): Promise<SessionAvailabilityResponse[]> {
         try {
             // 1. Obtener la información de la sección con sus fechas
             const section = await this.section.findUnique({
@@ -137,7 +140,15 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             const results: SessionAvailabilityResponse[] = [];
 
             for ( const calculateAvailabilityDto of calculateAvailabilityDtos ) {
-                const { session, building, spaceIds, spaceType, spaceSizeId, professorIds, dayModuleIds } = calculateAvailabilityDto;
+                const {
+                    session,
+                    building,
+                    spaceIds,
+                    spaceType,
+                    spaceSize,
+                    professorIds,
+                    dayModuleIds
+                } = calculateAvailabilityDto;
 
                 // 3.1. Filtrar espacios según los criterios de esta sesión
                 let filteredSpaces = allSpaces.filter( space => space.active );
@@ -155,8 +166,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         filteredSpaces = filteredSpaces.filter( space => space.type === spaceType );
                     }
 
-                    if ( spaceSizeId ) {
-                        filteredSpaces = filteredSpaces.filter( space => space.size === spaceSizeId );
+                    if ( spaceSize ) {
+                        filteredSpaces = filteredSpaces.filter( space => space.size === spaceSize );
                     }
                 }
 
@@ -220,6 +231,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             building : space.building,
                             type     : space.type,
                             capacity : space.capacity,
+                            size     : space.size,
                         });
                     }
                 }
@@ -267,6 +279,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                                     building : space.building,
                                     type     : space.type,
                                     capacity : space.capacity,
+                                    size     : space.size,
                                 });
                             }
                         }
