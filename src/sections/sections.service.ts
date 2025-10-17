@@ -108,6 +108,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     }
                 },
             }
+        },
+        request : {
+            select: {
+                id: true,
+            }
         }
     }
 
@@ -159,7 +164,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 endHour     : session.dayModule.module.endHour,
                 difference  : session.dayModule.module.difference,
             },
-        }))
+        })),
+        haveRequest: !!section.request?.id
     })
 
 
@@ -299,7 +305,14 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async findAll() {
         const sections = await this.section.findMany({
-            select: this.#selectSection
+            select: this.#selectSection,
+            where : {
+                period: {
+                    createdAt : {
+                        gte: new Date( new Date().getFullYear(), 0, 1 ),
+                    }
+                }
+            }
         });
 
         return sections.map( section => this.#convertToSectionDto( section ));
