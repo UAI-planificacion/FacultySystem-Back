@@ -277,4 +277,9 @@ export class SectionDto {
     })
     sessions: Session[];
 
+    @ApiPropertyOptional({
+        description : 'The name of the period for the section.',
+        example     : 'Fall 2024',
+    })
+    haveRequest: boolean;
 }
