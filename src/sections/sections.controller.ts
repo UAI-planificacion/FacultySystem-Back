@@ -91,6 +91,13 @@ export class SectionsController {
         return this.sectionsService.findSectionNotPlanning();
     }
 
+    @Get( 'planning' )
+    // @ApiOperation({ summary: 'Get all sections' })
+    // @ApiResponse({ status: 200, description: 'Return all sections' })
+    findSectionPlanning() {
+        return this.sectionsService.findSectionPlanning();
+    }
+
 
     // @Get( '/subjectId/:id' )
     // @ApiOperation({ summary: 'Get all sections' })
