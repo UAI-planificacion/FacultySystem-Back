@@ -41,7 +41,7 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         })
 
         if ( !planningChange ) {
-            throw new NotFoundException( 'Planning change not found' );
+            throw new NotFoundException( `Planning change not found with id: ${id}` );
         }
 
         return planningChange;
@@ -56,6 +56,57 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         if ( !planningChange ) {
             throw new NotFoundException( 'Planning change not found' );
         }
+
+        return planningChange;
+    }
+
+
+    async findSessionWhitouthPlanningChangeId() {
+        const planningChange = await this.session.findMany({
+            where: { planningChange: null },
+            select: {
+                id: true,
+                name: true,
+                date: true,
+                professor: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                dayModule: {
+                    select: {
+                        id: true,
+                        dayId: true,
+                        module : {
+                            select: {
+                                id: true,
+                                startHour: true,
+                                endHour: true,
+                                difference: true,
+                                code: true,
+                            }
+                        }
+                    }
+                },
+                spaceId: true,
+                isEnglish: true,
+                section: {
+                    select: {
+                        id: true,
+                        code: true,
+                        startDate: true,
+                        endDate: true,
+                        subject: {
+                            select: {
+                                id: true,
+                                name: true,
+                            }
+                        }
+                    }
+                },
+            }
+        });
 
         return planningChange;
     }
