@@ -41,6 +41,7 @@ export class BasicPlanningChangeDto extends BasicRequestPlanningDto {
     @IsOptional()
     sessionId?: string;
 
+
     @ApiProperty({
         enum        : Object.values( $Enums.SessionName ),
         description : 'Session name',
