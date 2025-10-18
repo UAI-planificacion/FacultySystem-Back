@@ -134,6 +134,7 @@ model Section {
 
     sessions        Session[]
     request         Request?
+    planningChange  PlanningChange?
 
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
@@ -163,7 +164,7 @@ model Session {
     // spaceSizeId             SizeValue?
     // spaceSize               Size? @relation(fields: [spaceSizeId], references: [id])
 
-    requestDetail           PlanningChange?
+    planningChange           PlanningChange?
 }
 
 
@@ -450,8 +451,8 @@ model PlanningChange {
     id              String @id @default(ulid())
     title           String
     status          Status @default(PENDING)
-    sessionName     SessionName
-    building        Building
+    sessionName     SessionName?
+    building        Building?
 
     spaceId         String?
     isEnglish       Boolean @default(false)
@@ -475,6 +476,9 @@ model PlanningChange {
 
     sessionId       String? @unique
     session         Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+    sectionId       String? @unique
+    section         Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
     sessionDayModules SessionDayModule[]
 
