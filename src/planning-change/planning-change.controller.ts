@@ -37,6 +37,11 @@ export class PlanningChangeController {
     }
 
 
+    @Get( '/without/session' )
+    findSessionWhitouthPlanningChangeId() {
+        return this.planningChangeService.findSessionWhitouthPlanningChangeId();
+    }
+
     // @Patch( ':id' )
     // update(
     //     @Param( 'id' ) id: string,
