@@ -646,34 +646,44 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 
     findAll() {
-        try {
-            return this.session.findMany();
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to find all sessions' );
-        }
+        return this.session.findMany();
     }
 
 
     async findOne( id: string ) {
-        try {
-            const session = await this.session.findUnique({
-                where: { id },
-                select: this.#selectSession,
-            });
+        const session = await this.session.findUnique({
+            where: { id },
+            select: this.#selectSession,
+        });
 
-            return this.#convertToSessionDto( session );
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to find session' );
+        if ( !session ) {
+            throw new NotFoundException( `Session with id ${id} not found` );
         }
+
+        return this.#convertToSessionDto( session );
+    }
+
+
+    async findBySectionId( sectionId : string ) {
+        const session = await this.session.findMany({
+            where: { sectionId },
+            select: this.#selectSession,
+        });
+
+        if ( !session ) {
+            throw new NotFoundException( `Session with section id ${sectionId} not found` );
+        }
+
+        return session.map( this.#convertToSessionDto );
     }
 
 
     async update( id: string, updateSessionDto: UpdateSessionDto ) {
         try {
             const session = await this.session.update({
-                where: { id },
-                data: updateSessionDto,
-                select: this.#selectSession,
+                where   : { id },
+                data    : updateSessionDto,
+                select  : this.#selectSession,
             });
 
             return this.#convertToSessionDto( session );
