@@ -70,6 +70,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 name    : true,
             }
         },
+        planningChange : {
+            select :{
+                id: true
+            }
+        }
     }
 
 
@@ -83,17 +88,18 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         realRegistrants         : session.realRegistrants,
         plannedBuilding         : session.plannedBuilding,
         professor               : session.professor,
-        dayId                   : session.dayModule.dayId,
-        dayModuleId             : session.dayModule.id,
+        dayId                   : session.dayModule?.dayId || null,
+        dayModuleId             : session.dayModule?.id || null,
         date                    : session.date,
-        module                  : {
+        planningChangeId        : session.planningChange?.id || null,
+        module                  : session.dayModule?.module ? {
             id          : session.dayModule.module.id,
             code        : session.dayModule.module.code,
             name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
             startHour   : session.dayModule.module.startHour,
             endHour     : session.dayModule.module.endHour,
             difference  : session.dayModule.module.difference,
-        }
+        } : null,
     });
 
 
@@ -652,8 +658,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
     async findOne( id: string ) {
         const session = await this.session.findUnique({
-            where: { id },
-            select: this.#selectSession,
+            where   : { id },
+            select  : this.#selectSession,
         });
 
         if ( !session ) {
@@ -670,11 +676,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             select: this.#selectSession,
         });
 
-        if ( !session ) {
-            throw new NotFoundException( `Session with section id ${sectionId} not found` );
-        }
+        if ( session.length === 0 ) return [];
 
-        return session.map( this.#convertToSessionDto );
+        return  session.map( this.#convertToSessionDto );
     }
 
 
