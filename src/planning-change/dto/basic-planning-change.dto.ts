@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
 import {
     IsEnum,
@@ -9,9 +9,13 @@ import {
 import { $Enums }   from 'generated/prisma';
 
 import { BasicRequestPlanningDto }  from '@commons/dtos/request-planning.dto';
+import { DayModulesIdDto }          from '@commons/dtos/day-moduleid.dto';
 
 
-export class BasicPlanningChangeDto extends BasicRequestPlanningDto {
+export class BasicPlanningChangeDto extends IntersectionType(
+    BasicRequestPlanningDto,
+    DayModulesIdDto
+) {
 
     @ApiProperty({
         description : 'Title of the planning change',
@@ -42,12 +46,32 @@ export class BasicPlanningChangeDto extends BasicRequestPlanningDto {
     sessionId?: string;
 
 
+    @ApiPropertyOptional({
+        description: 'Section ID',
+        example    : '01JCZZ14C9YNV6J4BNK9T1B3YP'
+    })
+    @IsString()
+    @Length( 0, 27 )
+    @IsOptional()
+    sectionId?: string;
+
+
     @ApiProperty({
         enum        : Object.values( $Enums.SessionName ),
         description : 'Session name',
         example     : $Enums.SessionName.C
     })
     @IsEnum( $Enums.SessionName )
-    sessionName: $Enums.SessionName;
+    @IsOptional()
+    sessionName?: $Enums.SessionName;
+
+
+    @ApiProperty({
+        enum        : Object.values( $Enums.Building ),
+        description : 'Building name or identifier'
+    })
+    @IsEnum( $Enums.Building )
+    @IsOptional()
+    building?: $Enums.Building;
 
 }
