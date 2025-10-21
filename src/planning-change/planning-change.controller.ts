@@ -21,12 +21,12 @@ export class PlanningChangeController {
     }
 
 
-    @Get( '/session/:id' )
-    findOneBySessionId(
-        @Param( 'id' ) id: string
-    ) {
-        return this.planningChangeService.findOneBySessionId( id );
-    }
+    // @Get( '/session/:id' )
+    // findOneBySessionId(
+    //     @Param( 'id' ) id: string
+    // ) {
+    //     return this.planningChangeService.findOneBySessionId( id );
+    // }
 
 
     @Get( ':id' )
@@ -37,18 +37,18 @@ export class PlanningChangeController {
     }
 
 
-    @Get( '/without/session' )
-    findSessionWhitouthPlanningChangeId() {
-        return this.planningChangeService.findSessionWhitouthPlanningChangeId();
-    }
-
-    // @Patch( ':id' )
-    // update(
-    //     @Param( 'id' ) id: string,
-    //     @Body() updatePlanningChangeDto: UpdatePlanningChangeDto
-    // ) {
-    //     return this.planningChangeService.update( id, updatePlanningChangeDto );
+    // @Get( '/without/session' )
+    // findSessionWhitouthPlanningChangeId() {
+    //     return this.planningChangeService.findSessionWhitouthPlanningChangeId();
     // }
+
+    @Patch( ':id' )
+    update(
+        @Param( 'id' ) id: string,
+        @Body() updatePlanningChangeDto: UpdatePlanningChangeDto
+    ) {
+        return this.planningChangeService.update( id, updatePlanningChangeDto );
+    }
 
 
     @Delete( ':id' )
