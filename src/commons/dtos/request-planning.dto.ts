@@ -66,13 +66,4 @@ export class BasicRequestPlanningDto extends IntersectionType(
     @Length( 0, 255 )
     description?: string;
 
-
-    @ApiProperty({
-        enum        : Object.values( $Enums.Building ),
-        description : 'Building name or identifier'
-    })
-    @IsString()
-    @IsEnum( $Enums.Building )
-    building: $Enums.Building;
-
 }
