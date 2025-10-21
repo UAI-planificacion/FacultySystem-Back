@@ -3,121 +3,70 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { $Enums } from "generated/prisma";
 
 
-export class Session {
-    @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
-    })
-    id: string;
+export class SectionSession {
 
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+    @ApiPropertyOptional({
+        description : 'List of space identifiers assigned to the section.',
+        example     : [ 'clx15746g000008l3f1z9h8y7', 'clx15746g000008l3f1z9h8y8' ],
     })
-    name: string;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    spaceId: string;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    isEnglish: boolean;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    chairsAvailable: number;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    correctedRegistrants: number;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    realRegistrants: number;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    plannedBuilding: string;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    module: Module;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    dayId: number;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 1,
-    })
-    dayModuleId : number;
-
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
-    })
-    professor: Professor;
+    spaceIds: string[];
 
 
-    @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+    @ApiPropertyOptional({
+        description : 'List of day identifiers when the section takes place.',
+        example     : [ 1, 3, 5 ],
     })
-    date: Date;
+    dayIds: number[];
+
+
+    @ApiPropertyOptional({
+        description : 'List of module identifiers for the section schedule.',
+        example     : [ 1, 2, 3 ],
+    })
+    moduleIds: number[];
+
+
+    @ApiPropertyOptional({
+        description : 'List of professor identifiers assigned to the section.',
+        example     : [ 'clx15746g000008l3f1z9h8y7' ],
+    })
+    professorIds: string[];
+
 }
-
 
 export class Module {
 
     @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
+        description : 'Unique identifier of the module.',
+        example     : 1,
     })
     id: number;
 
 
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Code of the module.',
+        example     : 'MOD-A',
     })
     code: string;
 
 
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Start time of the module.',
+        example     : '08:00',
     })
     startHour: string;
 
 
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'End time of the module.',
+        example     : '09:30',
     })
     endHour: string;
 
 
     @ApiPropertyOptional({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Time difference or duration of the module.',
+        example     : '1.5 hours',
     })
     difference: string | null;
 
@@ -125,56 +74,67 @@ export class Module {
 
 
 export class Professor {
+
     @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
+        description : 'Unique identifier of the professor.',
+        example     : 'clx15746g000008l3f1z9h8y7',
     })
     id: string;
 
+
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Full name of the professor.',
+        example     : 'Dr. Juan Pérez',
     })
     name: string;
+
 }
 
 
 export class Subject {
+
     @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
+        description : 'Unique identifier of the subject.',
+        example     : 'clx15746g000008l3f1z9h8y7',
     })
     id: string;
 
+
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Name of the subject.',
+        example     : 'Programación Avanzada',
     })
     name: string;
+
 }
 
 
 export class Period {
+
     @ApiProperty({
-        description : 'The period of the day for the section.',
-        example     : '10:00 AM',
+        description : 'Unique identifier of the period.',
+        example     : 1,
     })
     id: number;
 
+
     @ApiProperty({
-        description : 'The day of the week for the section.',
-        example     : 'Monday',
+        description : 'Name of the academic period.',
+        example     : 'Otoño 2024',
     })
     name: string;
+
 }
+
 
 export class SectionDto {
 
     @ApiProperty({
-        description : 'The unique identifier of the section.',
+        description : 'Unique identifier of the section.',
         example     : 'clx15746g000008l3f1z9h8y7',
     })
     id: string;
+
 
     @ApiProperty({
         description : 'Indicates if the section is closed.',
@@ -182,104 +142,133 @@ export class SectionDto {
     })
     isClosed: boolean;
 
+
     @ApiProperty({
         description : 'The code of the section.',
         example     : 101,
     })
     code: number;
 
+
     @ApiProperty({
-        description : 'The start date of the section.',
-        example     : '2024-01-01',
+        description : 'Start date of the section.',
+        example     : '2024-03-01T00:00:00.000Z',
     })
     startDate : Date;
 
+
     @ApiProperty({
-        description : 'The end date of the section.',
-        example     : '2024-01-01',
+        description : 'End date of the section.',
+        example     : '2024-07-15T00:00:00.000Z',
     })
     endDate : Date;
 
+
     @ApiProperty({
-        description : 'The type of space for the section.',
+        description : 'Type of space required for the section (e.g., classroom, laboratory).',
         example     : 'ROOM',
         enum        : $Enums.SpaceType,
         nullable    : true,
     })
     spaceType : $Enums.SpaceType | null;
 
+
     @ApiProperty({
-        description : 'The size of the section.',
+        description : 'Size of the space required for the section.',
         example     : 'MEDIUM',
         enum        : $Enums.SizeValue,
         nullable    : true,
     })
     spaceSizeId: $Enums.SizeValue | null;
 
+
     @ApiProperty({
-        description : 'The number of workshop for the section.',
-        example     : 1,
+        description : 'Number of workshop sessions for the section.',
+        example     : 2,
     })
     workshop    : number;
 
+
     @ApiProperty({
-        description : 'The number of lecture for the section.',
-        example     : 1,
+        description : 'Number of lecture sessions for the section.',
+        example     : 3,
     })
     lecture     : number;
 
+
     @ApiProperty({
-        description : 'The number of tutoring session for the section.',
+        description : 'Number of tutoring sessions for the section.',
         example     : 1,
     })
     tutoringSession : number;
 
+
     @ApiProperty({
-        description : 'The number of laboratory for the section.',
-        example     : 1,
+        description : 'Number of laboratory sessions for the section.',
+        example     : 2,
     })
     laboratory  : number;
 
+
     @ApiProperty({
-        description : 'The ID of the group for the section.',
+        description : 'Unique identifier of the group associated with the section.',
         example     : 'clx15746g000008l3f1z9h8y7',
     })
     groupId: string;
 
+
     @ApiProperty({
-        description : 'The name of the period for the section.',
-        example     : 'Fall 2024',
+        description : 'Professor assigned to the section.',
+        example     : { id: 'clx15746g000008l3f1z9h8y7', name: 'Dr. Juan Pérez' },
+        nullable    : true,
+        type        : () => Professor,
     })
     professor: Professor | null;
 
+
     @ApiProperty({
-        description : 'The name of the period for the section.',
-        example     : 'Fall 2024',
+        description : 'Subject of the section.',
+        example     : { id: 'clx15746g000008l3f1z9h8y7', name: 'Programación Avanzada' },
+        type        : () => Subject,
     })
     subject: Subject;
 
+
     @ApiProperty({
-        description : 'The name of the period for the section.',
-        example     : 'Fall 2024',
+        description : 'Academic period of the section.',
+        example     : { id: 1, name: 'Otoño 2024' },
+        type        : () => Period,
     })
     period: Period;
 
 
     @ApiPropertyOptional({
-        description : 'The name of the  for the section.',
-        example     : 'Fall 2024',
+        description : 'Building where the section takes place.',
+        example     : 'BUILDING_A',
+        enum        : $Enums.Building,
     })
     building?: $Enums.Building;
 
-    @ApiProperty({
-        description : 'The name of the period for the section.',
-        example     : 'Fall 2024',
-    })
-    sessions: Session[];
 
     @ApiPropertyOptional({
-        description : 'The name of the period for the section.',
-        example     : 'Fall 2024',
+        description : 'Total number of sessions in the section.',
+        example     : 58,
+    })
+    sessionsCount : number;
+
+
+    @ApiPropertyOptional({
+        description : 'Indicates if the section has a pending request.',
+        example     : true,
     })
     haveRequest: boolean;
+
+
+    @ApiPropertyOptional({
+        description : 'Session details including spaces, days, modules and professors.',
+        example     : { spaceIds: [ 'space1', 'space2' ], dayIds: [ 1, 2, 3 ], moduleIds: [ 1, 2 ], professorIds: [ 'prof1' ] },
+        type        : () => SectionSession,
+    })
+    sessions : SectionSession;
+
 }
