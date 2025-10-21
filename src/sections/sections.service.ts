@@ -30,18 +30,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 		this.$connect();
 	}
 
-    //TODO: Crear servicio para obtener secciones por su offerId
-    // async findAllByOfferId( offerId: string ) {
-    //     const sections = await this.section.findMany({
-    //         select  : this.#selectSection,
-    //         where   : {
-    //             offerId
-    //         }
-    //     });
-
-    //     return sections.map(( section ) => this.#convertToSectionDto( section ));
-    // }
-
 
     #selectSection = {
         id              : true,
@@ -77,28 +65,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         },
         sessions: {
             select: {
-                id                      : true,
-                name                    : true,
-                spaceId                 : true,
-                isEnglish               : true,
-                chairsAvailable         : true,
-                correctedRegistrants    : true,
-                realRegistrants         : true,
-                plannedBuilding         : true,
-                date                    : true,
-                dayModule               : {
-                    select: {
-                        id      : true,
-                        dayId   : true,
-                        module  : {
-                            select: {
-                                id          : true,
-                                code        : true,
-                                startHour   : true,
-                                endHour     : true,
-                                difference  : true,
-                            }
-                        },
+                spaceId     : true,
+                dayModule   : {
+                    select      : {
+                        dayId       : true,
+                        moduleId    : true,
                     }
                 },
                 professor: {
@@ -113,7 +84,12 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             select: {
                 id: true,
             }
-        }
+        },
+        _count: {
+            select: {
+                sessions: true
+            }
+        },
     }
 
 
@@ -143,74 +119,15 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             id      : section.period.id,
             name    : section.period.name,
         },
-        sessions : section.sessions.map(( session : any ) => ({
-            id                      : session.id,
-            name                    : session.name,
-            spaceId                 : session.spaceId,
-            isEnglish               : session.isEnglish,
-            chairsAvailable         : session.chairsAvailable,
-            correctedRegistrants    : session.correctedRegistrants,
-            realRegistrants         : session.realRegistrants,
-            plannedBuilding         : session.plannedBuilding,
-            professor               : session.professor,
-            dayId                   : session.dayModule.dayId,
-            dayModuleId             : session.dayModule.id,
-            date                    : session.date,
-            module                  : {
-                id          : session.dayModule.module.id,
-                code        : session.dayModule.module.code,
-                name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
-                startHour   : session.dayModule.module.startHour,
-                endHour     : session.dayModule.module.endHour,
-                difference  : session.dayModule.module.difference,
-            },
-        })),
+        sessionsCount : section._count.sessions,
+        sessions : {
+            spaceIds      : section.sessions.map(( session : any ) => session.spaceId),
+            dayIds        : section.sessions.map(( session : any ) => session.dayModule.dayId),
+            moduleIds     : section.sessions.map(( session : any ) => session.dayModule.moduleId),
+            professorIds  : section.sessions.map(( session : any ) => session.professor.id),
+        },
         haveRequest: !!section.request?.id
     })
-
-
-    // async createBasic(
-    //     subjectId                   : string,
-    //     createInitialSectionDtos    : CreateInitialSectionDto[]
-    // ): Promise<SectionDto[]> {
-    //     try {
-    //         if ( !createInitialSectionDtos || createInitialSectionDtos.length === 0 ) {
-    //             throw new BadRequestException( 'At least one section must be provided' );
-    //         }
-
-    //         const sectionsData = createInitialSectionDtos.map( dto => ({
-    //             id          : ulid(),
-    //             code        : dto.code,
-    //             session     : dto.session,
-    //             periodId    : dto.periodId,
-    //             groupId     : dto.groupId,
-    //         }));
-
-    //         const toInserted = sectionsData.map(data => ({
-    //             id      : data.id,
-    //             code    : data.code,
-    //             session : data.session,
-    //             groupId : data.groupId,
-    //         }))
-
-    //         await this.section.createMany({ data: toInserted });
-
-    //         const subjectSectionsData = sectionsData.map(( section, index ) => ({
-    //             sectionId   : section.id,
-    //             subjectId   : subjectId,
-    //             periodId    : section.periodId,
-    //         }));
-
-    //         await this.subjectSection.createMany({
-    //             data: subjectSectionsData
-    //         });
-
-    //         return this.findAllBySubjectId( subjectId );
-    //     } catch ( error ) {
-    //         console.error( 'Error creating sections:', error );
-    //         throw PrismaException.catch( error, 'Failed to create sections' );
-    //     }
-    // }
 
 
     async createOfferSections( createSectionDto: CreateSectionDto ) {
