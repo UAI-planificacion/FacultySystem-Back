@@ -39,7 +39,11 @@ export class SectionsController {
 
     @Post( 'offer' )
     @ApiOperation({ summary: 'Create a new section' })
-    @ApiResponse({ status: 201, description: 'The section has been successfully created.' })
+    @ApiResponse({
+        status      : 201,
+        description : 'The section has been successfully created.',
+        type        : SectionDto
+    })
     @ApiResponse({ status: 400, description: 'Bad Request.' })
     create(
         @Body() createSectionDto: CreateSectionDto
@@ -79,7 +83,11 @@ export class SectionsController {
 
     @Get()
     @ApiOperation({ summary: 'Get all sections' })
-    @ApiResponse({ status: 200, description: 'Return all sections' })
+    @ApiResponse({
+        status      : 200,
+        description : 'Return all sections',
+        type        :  [SectionDto]
+    })
     findAll() {
         return this.sectionsService.findAll();
     }
