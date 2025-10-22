@@ -151,7 +151,7 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
     #planingChangeMap = ( planningChange: any ) => ({
         ...planningChange,
         dayModulesId: planningChange.sessionDayModules?.map(( dm ) => dm.dayModuleId ) ?? [],
-    })
+    });
 
 
     async create( createPlanningChangeDto: CreatePlanningChangeDto ) {
@@ -194,6 +194,20 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         }
 
         return this.#planingChangeMap ( planningChange );
+    }
+
+
+    async findByFacultyId( facultyId: string ) {
+        const planningChange = await this.planningChange.findMany({
+            where   : { staffCreate: { facultyId }},
+            select  : this.#selectPlanningChange
+        })
+
+        if ( !planningChange ) {
+            throw new NotFoundException( `Planning change not found with faculty id: ${facultyId}` );
+        }
+
+        return planningChange.map(( planningChange ) => this.#planingChangeMap ( planningChange ));
     }
 
 
