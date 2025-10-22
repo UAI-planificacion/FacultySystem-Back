@@ -23,7 +23,7 @@ export class CommentsController {
     }
 
 
-    @Get( 'request-session/:id' )
+    @Get( 'request-sessions/:id' )
     findAllByRequestSessionId(
         @Param( 'id' ) id: string,
     ) {
