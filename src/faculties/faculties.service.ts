@@ -66,6 +66,20 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             //         }
             //     }
             // }
+
+            where: {
+                staffCreate: {
+                    facultyId: faculty.id
+                }
+            }
+        });
+
+        const facultyTotalPlanningChanges = await this.planningChange.count({
+            where: {
+                staffCreate: {
+                    facultyId: faculty.id
+                }
+            }
         });
 
         return {
@@ -75,6 +89,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             totalSubjects   : faculty._count.subjects,
             totalStaff      : faculty._count.staff,
             totalRequests   : facultyTotalRequests,
+            totalPlanningChanges : facultyTotalPlanningChanges,
             // totalOffers     : facultyTotalOffers,
             isActive        : faculty.isActive,
             createdAt       : faculty.createdAt,
@@ -87,6 +102,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
         const totalSubjects     = await this.subject.count();
         const totalStaff        = await this.staff.count();
         const totalRequests     = await this.request.count();
+        const totalPlanningChanges = await this.planningChange.count();
         // const totalOffers       = await this.offer.count();
         const facultiesCounts   = await this.faculty.findMany({
             select : this.#selectFactulty,
@@ -100,7 +116,7 @@ export class FacultiesService extends PrismaClient implements OnModuleInit {
             totalSubjects,
             totalStaff,
             totalRequests,
-            // totalOffers,
+            totalPlanningChanges,
             faculties,
         };
     }
