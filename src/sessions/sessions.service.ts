@@ -74,6 +74,20 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             select :{
                 id: true
             }
+        },
+        section : {
+            select : {
+                id : true,
+                code : true,
+                startDate : true,
+                endDate: true,
+                subject: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
+            }
         }
     }
 
@@ -92,6 +106,16 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         dayModuleId             : session.dayModule?.id || null,
         date                    : session.date,
         planningChangeId        : session.planningChange?.id || null,
+        section               : {
+            id : session.section?.id || null,
+            code : session.section?.code || null,
+            startDate : session.section?.startDate || null,
+            endDate : session.section?.endDate || null,
+            subject : {
+                id : session.section?.subject?.id || null,
+                name : session.section?.subject?.name || null,
+            }
+        },
         module                  : session.dayModule?.module ? {
             id          : session.dayModule.module.id,
             code        : session.dayModule.module.code,
