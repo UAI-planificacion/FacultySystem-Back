@@ -39,7 +39,7 @@ export class BasicSubjectDto extends IntersectionType(
     })
     @IsString()
     @IsOptional()
-    @Max( 28 )
+    @Length( 0, 28 )
     gradeId?: string;
 
 }
