@@ -4,8 +4,9 @@ import { SessionsService }          from '@sessions/sessions.service';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
-import { MassiveUpdateSessionDto } from './dto/massive-update-session.dto';
-import { CalculateAvailabilityDto } from './dto/calculate-availability.dto';
+import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
+import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
+import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
 
 
 @Controller( 'sessions' )
@@ -55,13 +56,11 @@ export class SessionsController {
     }
 
 
-    @Get( 'availables/:sectionId/:dayModuleId/:spaceId' )
+    @Post( 'availables' )
     findAvailableSessions(
-        @Param( 'sectionId' ) sectionId: string,
-        @Param( 'dayModuleId' ) dayModuleId: string,
-        @Param( 'spaceId' ) spaceId: string
+        @Body() availableSessionDto: AvailableSessionDto
     ) {
-        return this.sessionsService.findAvailableSessions( sectionId, dayModuleId, spaceId );
+        return this.sessionsService.findAvailableSessions( availableSessionDto );
     }
 
 
