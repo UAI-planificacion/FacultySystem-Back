@@ -13,14 +13,15 @@ import {
     AvailableProfessor,
     ScheduledDate
 }                                   from '@sessions/interfaces/session-availability.interface';
+import { SpacesService }            from '@commons/services/spaces.service';
 import { PrismaException }          from '@config/prisma-catch';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
 import { SectionsService }          from '@sections/sections.service';
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
-import { SpacesService }            from '@commons/services/spaces.service';
-import { CalculateAvailabilityDto } from './dto/calculate-availability.dto';
+import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
+import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
 
 
 @Injectable()
@@ -391,10 +392,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
 
             if ( !section ) {
-                throw new Error( `Section with id ${sectionId} not found` );
+                throw new NotFoundException( `Section with id ${sectionId} not found` );
             }
 
             const { startDate, endDate } = section;
+
             const sessionsToCreate: Array<{
                 name        : $Enums.SessionName;
                 sectionId   : string;
@@ -426,18 +428,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                 // 4. Calcular todas las fechas posibles para cada dayModule
                 for ( const dayModule of dayModules ) {
-                    const dayOfWeek = dayModule.day.id; // 1 = Lunes, 7 = Domingo
-                    const startHour = dayModule.module.startHour;
-                    const endHour   = dayModule.module.endHour;
-
                     // Calcular todas las fechas que coinciden con este día de la semana
-                    const dates = this.calculateDatesForDayOfWeek( startDate, endDate, dayOfWeek );
+                    const dates = this.calculateDatesForDayOfWeek( startDate, endDate, dayModule.day.id );
 
                     // 5. Crear una sesión para cada fecha calculada
                     for ( const date of dates ) {
-                        // Combinar fecha con hora de inicio del módulo
-                        const sessionDate = this.combineDateAndTime( date, startHour );
-
                         sessionsToCreate.push({
                             name        : session,
                             sectionId   : sectionId,
@@ -445,7 +440,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             spaceId     : spaceId,
                             professorId : professorId   || section.professorId,
                             isEnglish   : isEnglish     || false,
-                            date        : sessionDate,
+                            date,
                         });
                     }
                 }
@@ -466,87 +461,87 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 	/**
-	 * Find all available dates for a session based on dayModuleId and spaceId
-	 * @param sectionId - ID of the session to get the section date range
-	 * @param dayModuleId - ID of the day module (day + time range)
-	 * @param spaceId - ID of the space to check availability
+	 * Find all available dates for a session based on dayModuleId, spaceId and professorId
+	 * @param availableSessionDto - Object containing sessionId, dayModuleId, spaceId and professorId
 	 * @returns Array of available dates or empty array if none available
 	 */
-	async findAvailableSessions( sectionId: string, dayModuleId: string, spaceId: string ): Promise<Date[]> {
+	async findAvailableSessions(
+        availableSessionDto: AvailableSessionDto
+	): Promise<Date[]> {
 		try {
-			// 1. Obtener la sesión con su sección relacionada
-			const section = await this.section.findUnique({
-				where   : { id: sectionId },
-				select  : {
-					startDate   : true,
-					endDate     : true,
+            const { sessionId, dayModuleId, spaceId, professorId } = availableSessionDto;
+			// 1. Get current session with professor and section date range
+			const session = await this.session.findUnique({
+				where	: { id: sessionId },
+				select	: {
+					professorId	: true,
+					section		: {
+						select: {
+							startDate	: true,
+							endDate		: true
+						}
+					}
 				}
 			});
-			// const session = await this.session.findUnique({
-			// 	where   : { id: sessionId },
-			// 	select  : {
-			// 		// id      : true,
-			// 		section : {
-			// 			select: {
-			// 				id          : true,
-			// 				startDate   : true,
-			// 				endDate     : true,
-			// 			}
-			// 		}
-			// 	}
-			// });
 
-			if ( !section ) {
-                throw new NotFoundException( `Section with id ${sectionId} not found` );
+			if ( !session ) {
+				throw new NotFoundException( `Session with id ${sessionId} not found` );
 			}
-			// if ( !session || !session.section ) {
-			// 	return [];
-			// }
 
-			const { startDate, endDate } = section;
-			// const { startDate, endDate } = session.section;
+			const { startDate, endDate } = session.section;
 
-			// 2. Obtener información del dayModule
+			// 2. Get dayModule information
 			const dayModule = await this.dayModule.findUnique({
-				where   : { id: Number( dayModuleId ) },
-				include : {
-					day     : true,
-					module  : true,
+				where	: { id: Number( dayModuleId ) },
+				include	: {
+					day		: true,
+					module	: true,
 				}
 			});
 
 			if ( !dayModule ) {
-                throw new NotFoundException( `DayModule with id ${dayModuleId} not found` );
+				throw new NotFoundException( `DayModule with id ${dayModuleId} not found` );
 			}
 
-			const dayOfWeek = dayModule.day.id;
-			const startHour = dayModule.module.startHour;
+			// 3. Calculate all possible dates for this day of the week
+			const possibleDates = this.calculateDatesForDayOfWeek( startDate, endDate, dayModule.day.id );
 
-			// 3. Calcular todas las fechas posibles para este día de la semana
-			const possibleDates = this.calculateDatesForDayOfWeek( startDate, endDate, dayOfWeek );
+			// 4. Find all sessions with space conflicts (1 query)
+			const spaceConflicts = await this.session.findMany({
+				where: {
+					spaceId	: spaceId,
+					date	: { in: possibleDates }
+				},
+				select: { date: true }
+			});
 
-			// 4. Filtrar las fechas que están disponibles (sin conflictos)
-			const availableDates: Date[] = [];
+			// 5. Find all sessions with professor conflicts (1 query, only if professor is different)
+			let professorConflicts: { date: Date }[] = [];
 
-			for ( const date of possibleDates ) {
-				// Combinar fecha con hora de inicio del módulo
-				const sessionDate = this.combineDateAndTime( date, startHour );
-
-				// Verificar si existe una sesión en esta fecha y espacio
-				const existingSession = await this.session.findFirst({
+			if ( professorId && professorId !== session.professorId ) {
+				professorConflicts = await this.session.findMany({
 					where: {
-						date    : sessionDate,
-						spaceId : spaceId,
-					}
+						professorId	: professorId,
+						dayModuleId	: Number( dayModuleId ),
+						date		: { in: possibleDates }
+					},
+					select: { date: true }
 				});
-
-				// Si no existe sesión, la fecha está disponible
-				if ( !existingSession ) {
-					availableDates.push( sessionDate );
-				}
 			}
 
-			// 5. Retornar las fechas disponibles
+			// 6. Filter available dates (no queries in the loop)
+			const availableDates = possibleDates.filter( date => {
+				const hasSpaceConflict = spaceConflicts.some( sc => 
+					sc.date.getTime() === date.getTime()
+				);
+
+				const hasProfessorConflict = professorConflicts.some( pc => 
+					pc.date.getTime() === date.getTime()
+				);
+
+				return !hasSpaceConflict && !hasProfessorConflict;
+			});
+
 			return availableDates;
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to find available sessions' );
@@ -574,6 +569,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         // Calcular días hasta el primer día objetivo
         let daysUntilTarget = targetDayJS - currentDayOfWeek;
+
         if ( daysUntilTarget < 0 ) {
             daysUntilTarget += 7;
         }
@@ -582,25 +578,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         // Agregar todas las fechas que coincidan con el día de la semana
         while ( currentDate <= endDate ) {
-            dates.push( new Date( currentDate ) );
+            dates.push( new Date( currentDate ));
             currentDate.setDate( currentDate.getDate() + 7 ); // Siguiente semana
         }
 
         return dates;
-    }
-
-
-    /**
-     * Combine a date with a time string (HH:mm format)
-     * @param date - Date to combine
-     * @param timeString - Time string in HH:mm format
-     * @returns Combined DateTime
-     */
-    private combineDateAndTime( date: Date, timeString: string ): Date {
-        const [hours, minutes] = timeString.split( ':' ).map( Number );
-        const combined = new Date( date );
-        combined.setHours( hours, minutes, 0, 0 );
-        return combined;
     }
 
 
@@ -653,7 +635,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         // Validar conflictos dentro del mismo array de sesiones a crear
         const sessionMap = new Map<string, any>();
-        
+
         for ( const session of sessionsToCreate ) {
             if ( !session.spaceId ) {
                 continue;
@@ -721,60 +703,153 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async massiveUpdate( updateSectionDto: MassiveUpdateSessionDto ) {
-        try {
-            const { ids, ...data }  = updateSectionDto;
+	async massiveUpdate( updateSectionDto: MassiveUpdateSessionDto ) {
+		try {
+			const { ids, professorId, spaceId, ...otherData } = updateSectionDto;
 
-            if ( Object.keys( data ).length === 0 ) {
-                throw new BadRequestException( 'No data to update' );
-            }
+			if ( Object.keys( otherData ).length === 0 && !professorId && !spaceId ) {
+				throw new BadRequestException( 'No data to update' );
+			}
 
-            const sessionsUpdated   = await this.session.updateManyAndReturn({
-                select  : { id: true },
-                where   : { id: { in: ids }},
-                data
-            });
+			// 1. Update normal fields (without professorId and spaceId)
+			if ( Object.keys( otherData ).length > 0 ) {
+				await this.session.updateMany({
+					where	: { id: { in: ids }},
+					data	: otherData
+				});
+			}
 
-            if ( !sessionsUpdated ) {
-                throw new BadRequestException( 'Error updating sessions' );
-            }
+			// Get current sessions info for validation (needed for professor and/or space)
+			let currentSessions;
 
-            const sessionsData = await this.session.findMany({
-                select  : this.#selectSession,
-                where   : {
-                    id: {
-                        in: sessionsUpdated.map( session => session.id )
-                    }
-                }
-            })
+			if ( professorId || spaceId ) {
+				currentSessions = await this.session.findMany({
+					where	: { id: { in: ids }},
+					select	: { id: true, date: true, dayModuleId: true, professorId: true, spaceId: true }
+				});
+			}
 
-            return sessionsData.map( session => this.#convertToSessionDto( session ));
-        } catch ( error ) {
-            console.error( 'Error updating section:', error );
-            throw PrismaException.catch( error, 'Failed to update section' );
-        }
-    }
+			// 2. Update professorId only if it comes in the DTO
+			if ( professorId ) {
+
+				// Find sessions where the new professor is already assigned
+				const professorSessions = await this.session.findMany({
+					where: {
+						professorId	: professorId,
+						date		: { in: currentSessions.map( s => s.date ) },
+						dayModuleId	: { in: currentSessions.map( s => s.dayModuleId! ) }
+					},
+					select: { id: true, date: true, dayModuleId: true }
+				});
+
+				// Filter sessions that CAN be updated
+				const sessionIdsToUpdate: string[] = [];
+
+				for ( const currentSession of currentSessions ) {
+					// If it already has the same professor, skip
+					if ( currentSession.professorId === professorId ) {
+						continue;
+					}
+
+					// Check if the professor has a conflict in this date/dayModuleId
+					const hasConflict = professorSessions.find( ps => 
+						ps.date.getTime() === currentSession.date.getTime() && 
+						ps.dayModuleId === currentSession.dayModuleId
+					);
+
+					if ( hasConflict ) {
+						continue;
+					}
+
+					// Professor available, add to the list
+					sessionIdsToUpdate.push( currentSession.id );
+				}
+
+				// Update only valid sessions
+				if ( sessionIdsToUpdate.length > 0 ) {
+					await this.session.updateMany({
+						where	: { id: { in: sessionIdsToUpdate }},
+						data	: { professorId }
+					});
+				}
+			}
+
+			// 3. Update spaceId only if it comes in the DTO
+			if ( spaceId ) {
+				// Find sessions where the new space is already occupied
+				const spaceSessions = await this.session.findMany({
+					where: {
+						spaceId		: spaceId,
+						date		: { in: currentSessions.map( s => s.date ) },
+						dayModuleId	: { in: currentSessions.map( s => s.dayModuleId ) }
+					},
+					select: { id: true, date: true, dayModuleId: true }
+				});
+
+				// Filter sessions that CAN be updated
+				const sessionIdsToUpdate: string[] = [];
+
+				for ( const currentSession of currentSessions ) {
+					// If it already has the same space, skip
+					if ( currentSession.spaceId === spaceId ) {
+						continue;
+					}
+
+					// Check if the space has a conflict in this date/dayModuleId
+					const hasConflict = spaceSessions.find( ss => 
+						ss.date.getTime() === currentSession.date.getTime() && 
+						ss.dayModuleId === currentSession.dayModuleId
+					);
+
+					if ( hasConflict ) {
+						continue;
+					}
+
+					// Space available, add to the list
+					sessionIdsToUpdate.push( currentSession.id );
+				}
+
+				// Update only valid sessions
+				if ( sessionIdsToUpdate.length > 0 ) {
+					await this.session.updateMany({
+						where	: { id: { in: sessionIdsToUpdate }},
+						data	: { spaceId }
+					});
+				}
+			}
+
+			// 4. Return all updated sessions
+			const sessionsData = await this.session.findMany({
+				select	: this.#selectSession,
+				where	: { id: { in: ids }}
+			});
+
+			return sessionsData.map( session => this.#convertToSessionDto( session ));
+		} catch ( error ) {
+			console.error( 'Error updating section:', error );
+			throw PrismaException.catch( error, 'Failed to update section' );
+		}
+	}
+
+	remove( id: string ) {
+		try {
+			return this.session.delete({
+				where: { id }
+			});
+		} catch ( error ) {
+			throw PrismaException.catch( error, 'Failed to delete session' );
+		}
+	}
 
 
-    remove( id: string ) {
-        try {
-            return this.session.delete({
-                where: { id }
-            });
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to delete session' );
-        }
-    }
-
-
-    massiveRemove( ids: string[] ) {
-        try {
-            return this.session.deleteMany({
-                where: { id: { in: ids } }
-            });
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to delete sessions' );
-        }
-    }
+	massiveRemove( ids: string[] ) {
+		try {
+			return this.session.deleteMany({
+				where: { id: { in: ids } }
+			});
+		} catch ( error ) {
+			throw PrismaException.catch( error, 'Failed to delete sessions' );
+		}
+	}
 
 }
