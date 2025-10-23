@@ -158,11 +158,8 @@ model Session {
     professorId             String?
     professor               Professor? @relation(fields: [professorId], references: [id])
 
-    dayModuleId             Int?
-    dayModule               DayModule? @relation(fields: [dayModuleId], references: [id])
-
-    // spaceSizeId             SizeValue?
-    // spaceSize               Size? @relation(fields: [spaceSizeId], references: [id])
+    dayModuleId             Int
+    dayModule               DayModule @relation(fields: [dayModuleId], references: [id])
 
     planningChange           PlanningChange?
 }
