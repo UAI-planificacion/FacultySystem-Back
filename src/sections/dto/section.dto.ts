@@ -6,6 +6,12 @@ import { $Enums } from "generated/prisma";
 export class SectionSession {
 
     @ApiPropertyOptional({
+        description : 'List of identifiers assigned to the section.',
+        example     : [ 'clx15746g000008l3f1z9h8y7', 'clx15746g000008l3f1z9h8y8' ],
+    })
+    ids : string[];
+
+    @ApiPropertyOptional({
         description : 'List of space identifiers assigned to the section.',
         example     : [ 'clx15746g000008l3f1z9h8y7', 'clx15746g000008l3f1z9h8y8' ],
     })

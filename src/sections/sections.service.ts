@@ -65,6 +65,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         },
         sessions: {
             select: {
+                id          : true,
                 spaceId     : true,
                 dayModule   : {
                     select      : {
@@ -121,6 +122,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         },
         sessionsCount : section._count.sessions,
         sessions : {
+            ids         : section.sessions.map(( session : any ) => session.id),
             spaceIds      : section.sessions.map(( session : any ) => session.spaceId),
             dayIds        : section.sessions.map(( session : any ) => session.dayModule.dayId),
             moduleIds     : section.sessions.map(( session : any ) => session.dayModule.moduleId),
