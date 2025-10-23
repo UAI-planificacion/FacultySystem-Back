@@ -49,18 +49,17 @@ export class BaseSessionDto {
 	professorId?: string;
 
 
-	@ApiPropertyOptional({
+	@ApiProperty({
 		type        : Number,
         description: 'ID of the day-module (schedule slot) for the section.',
 		example     : 1,
 		minimum     : 1
 	})
-	@IsOptional()
     @IsInt({ message: 'DayModule ID must be an integer.' })
     @Min( 1, { message: 'DayModule ID cannot be negative.' })
     @Max( 100000, { message: 'DayModule ID cannot exceed 1000.' } )
 	@Transform(({ value }) => parseInt( value ))
-	dayModuleId?: number;
+	dayModuleId: number;
 
 
     @ApiPropertyOptional({
