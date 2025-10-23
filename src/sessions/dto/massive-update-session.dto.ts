@@ -1,7 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, Length, Max, MaxLength, Min } from "class-validator";
-import { $Enums } from "generated/prisma";
+
+import {
+    IsArray,
+    IsBoolean,
+    IsEnum,
+    IsInt,
+    IsOptional,
+    IsString,
+    Length,
+    Max,
+    MaxLength,
+    Min
+}                   from "class-validator";
+import { Type }     from "class-transformer";
+import { $Enums }   from "generated/prisma";
+
 
 export class MassiveUpdateSessionDto {
 
@@ -13,6 +26,7 @@ export class MassiveUpdateSessionDto {
     @IsArray()
     @IsString({ each: true })
     ids: string[]
+
 
     @ApiPropertyOptional({
 		enum        : $Enums.SessionName,
@@ -33,6 +47,17 @@ export class MassiveUpdateSessionDto {
     @IsString({ message: 'Professor ID must be a string.' })
     @Length( 1, 10 )
 	professorId?: string;
+
+
+    @ApiPropertyOptional({
+		type        : String,
+        description : 'ID of the space assigned to the section.',
+		example     : 'SPACE001'
+	})
+	@IsOptional()
+    @IsString({ message: 'Space ID must be a string.' })
+    @Length( 1, 10 )
+	spaceId?: string;
 
 
     @ApiPropertyOptional({
