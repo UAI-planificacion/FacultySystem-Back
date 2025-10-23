@@ -119,11 +119,7 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         try {
             const subject = await this.subject.update({
                 where   : { id },
-                data    : {
-                    name            : updateSubjectDto.name,
-                    spaceType       : updateSubjectDto.spaceType,
-                    spaceSizeId     : updateSubjectDto.spaceSizeId,
-                },
+                data    : updateSubjectDto,
                 select  : this.#selectSubject
             });
 
