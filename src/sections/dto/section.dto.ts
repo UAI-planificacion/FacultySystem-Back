@@ -130,6 +130,30 @@ export class Period {
     })
     name: string;
 
+    @ApiProperty({
+        description : 'Start date of the period.',
+        example     : '2024-03-01T00:00:00.000Z',
+    })
+    startDate: Date;
+
+    @ApiProperty({
+        description : 'End date of the period.',
+        example     : '2024-07-15T00:00:00.000Z',
+    })
+    endDate: Date;
+
+    @ApiPropertyOptional({
+        description : 'Opening date of the period.',
+        example     : '2024-03-01T00:00:00.000Z',
+    })
+    openingDate: Date | null;
+
+    @ApiPropertyOptional({
+        description : 'Closing date of the period.',
+        example     : '2024-07-15T00:00:00.000Z',
+    })
+    closingDate: Date | null;
+
 }
 
 
