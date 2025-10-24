@@ -5,13 +5,24 @@ import { IsNumber, IsOptional, IsString, Length } from "class-validator";
 
 export class AvailableSessionDto {
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'Session ID',
         example: '123456789012345678901234'
     })
     @IsString()
-    @Length( 26, 28 )
-    sessionId: string;
+    @Length( 0, 28 )
+    @IsOptional()
+    sessionId?: string;
+
+
+    @ApiPropertyOptional({
+        description: 'Section ID',
+        example: '123456789012345678901234'
+    })
+    @IsString()
+    @Length( 0, 28 )
+    @IsOptional()
+    sectionId?: string;
 
 
     @ApiProperty({
