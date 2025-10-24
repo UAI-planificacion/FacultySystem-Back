@@ -469,26 +469,49 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         availableSessionDto: AvailableSessionDto
 	): Promise<Date[]> {
 		try {
-            const { sessionId, dayModuleId, spaceId, professorId } = availableSessionDto;
+            const { sessionId, sectionId, dayModuleId, spaceId, professorId } = availableSessionDto;
 			// 1. Get current session with professor and section date range
-			const session = await this.session.findUnique({
-				where	: { id: sessionId },
-				select	: {
-					professorId	: true,
-					section		: {
-						select: {
-							startDate	: true,
-							endDate		: true
-						}
-					}
-				}
-			});
 
-			if ( !session ) {
+            let sectionSession;
+            let startDate : Date | null = null;
+            let endDate   : Date | null = null;
+
+            if ( sessionId ) {
+                sectionSession = await this.session.findUnique({
+                    where	: { id: sessionId },
+                    select	: {
+                        professorId	: true,
+                        section		: {
+                            select: {
+                                startDate	: true,
+                                endDate		: true
+                            }
+                        }
+                    }
+                });
+
+                startDate = sectionSession.section.startDate;
+                endDate   = sectionSession.section.endDate;
+            }
+
+            if ( sectionId ) {
+                sectionSession = await this.section.findUnique({
+                    where   : { id: sectionId },
+                    select  : {
+                        startDate   : true,
+                        endDate     : true,
+                    }
+                });
+
+                startDate = sectionSession.startDate;
+                endDate   = sectionSession.endDate;
+            }
+
+			if ( !sectionSession || !startDate || !endDate ) {
 				throw new NotFoundException( `Session with id ${sessionId} not found` );
 			}
 
-			const { startDate, endDate } = session.section;
+			// const { startDate, endDate } = sectionSession.section;
 
 			// 2. Get dayModule information
 			const dayModule = await this.dayModule.findUnique({
@@ -518,7 +541,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 			// 5. Find all sessions with professor conflicts (1 query, only if professor is different)
 			let professorConflicts: { date: Date }[] = [];
 
-			if ( professorId && professorId !== session.professorId ) {
+			if ( professorId && professorId !== sectionSession.professorId ) {
 				professorConflicts = await this.session.findMany({
 					where: {
 						professorId	: professorId,
