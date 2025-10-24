@@ -38,16 +38,16 @@ export class SectionsController {
 
 
     @Post( 'offer' )
-    @ApiOperation({ summary: 'Create a new section' })
+    @ApiOperation({ summary: 'Create offer for many sections' })
     @ApiResponse({
         status      : 201,
-        description : 'The section has been successfully created.',
+        description : 'The sections has been successfully created.',
         type        : SectionDto
     })
     @ApiResponse({ status: 400, description: 'Bad Request.' })
     create(
         @Body() createSectionDto: CreateSectionDto
-    ) {
+    ): Promise<SectionDto[]> {
         return this.sectionsService.createOfferSections( createSectionDto );
     }
 
@@ -128,16 +128,16 @@ export class SectionsController {
     }
 
 
-    // @Patch( ':id' )
-    // @ApiOperation({ summary: 'Update a section' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // update(
-    //     @Param( 'id' ) id: string,
-    //     @Body() updateSectionDto: UpdateSectionDto
-    // ) {
-    //     return this.sectionsService.update( id, updateSectionDto );
-    // }
+    @Patch( ':id' )
+    @ApiOperation({ summary: 'Update a section' })
+    @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
+    @ApiResponse({ status: 404, description: 'Section not found' })
+    update(
+        @Param( 'id' ) id: string,
+        @Body() updateSectionDto: UpdateSectionDto
+    ) {
+        return this.sectionsService.update( id, updateSectionDto );
+    }
 
 
     // @Patch( 'massive/:ids' )
