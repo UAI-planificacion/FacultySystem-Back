@@ -59,8 +59,12 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         },
         period      : {
             select: {
-                id      : true,
-                name    : true,
+                id          : true,
+                name        : true,
+                startDate   : true,
+                endDate     : true,
+                openingDate : true,
+                closingDate : true,
             }
         },
         sessions: {
@@ -117,8 +121,12 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             name    : section.subject.name,
         },
         period: {
-            id      : section.period.id,
-            name    : section.period.name,
+            id          : section.period.id,
+            name        : section.period.name,
+            startDate   : section.period.startDate,
+            endDate     : section.period.endDate,
+            openingDate : section.period.openingDate,
+            closingDate : section.period.closingDate,
         },
         sessionsCount : section._count.sessions,
         sessions : {
@@ -150,7 +158,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             }));
 
             // Create all sections
-            // const createdSections = await this.section.createManyAndReturn({
             await this.section.createMany({
                 data: sectionsToCreate
             });
@@ -163,47 +170,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             });
 
             return sections.map( section => this.#convertToSectionDto( section ));
-
-            // Prepare sessions data for all sections
-            // let allSessionsData: any[] = [];
-
-            // // //TODO: Corregir el map dentro del for esto es Big O(n^2) ineficiente
-            // for ( const section of createdSections ) {
-            //     const sectionSessions = sessions.map( session => ({
-            //         ...session,
-            //         sectionId   : section.id,
-            //         professorId : professorId || session.professorId
-            //     }));
-
-            //     allSessionsData.push( ...sectionSessions );
-            // }
-
-            // const allSessionsData = createdSections.flatMap(section =>
-            //     sessions.map( session => ({
-            //         ...session,
-            //         sectionId: section.id,
-            //         professorId: professorId || session.professorId,
-            //     }))
-            // );
-
-            // Create all sessions for all sections
-            // await this.session.createMany({ data: allSessionsData });
-
-            // Return the created sections with their sessions
-            // const sectionsWithSessions = await this.section.findMany({
-            //     where: {
-            //         id: {
-            //             in: createdSections.map( s => s.id )
-            //         }
-            //     },
-            //     select: this.#selectSection
-            // });
-
-            // if ( sectionsWithSessions.length === 0 ) {
-            //     throw new BadRequestException( 'Error retrieving created sections' );
-            // }
-
-            // return sectionsWithSessions.map( section => this.#convertToSectionDto( section ));
         } catch ( error ) {
             console.error( 'Error creating sections:', error );
             throw PrismaException.catch( error, 'Failed to create sections' );
@@ -322,33 +288,33 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async massiveUpdate( ids: string[], updateSectionDto: UpdateSectionDto ) {
-        try {
-            const sectionUpdated = await this.section.updateManyAndReturn({
-                select : {
-                    id: true,
-                },
-                where   : { id: { in: ids }},
-                data    : updateSectionDto
-            });
+    // async massiveUpdate( ids: string[], updateSectionDto: UpdateSectionDto ) {
+    //     try {
+    //         const sectionUpdated = await this.section.updateManyAndReturn({
+    //             select : {
+    //                 id: true,
+    //             },
+    //             where   : { id: { in: ids }},
+    //             data    : updateSectionDto
+    //         });
 
-            if ( !sectionUpdated ) throw new BadRequestException( 'Error updating section' );
+    //         if ( !sectionUpdated ) throw new BadRequestException( 'Error updating section' );
 
-            const sectiondata = await this.section.findMany({
-                where: {
-                    id: {
-                        in: sectionUpdated.map( section => section.id )
-                    }
-                },
-                select: this.#selectSection
-            })
+    //         const sectiondata = await this.section.findMany({
+    //             where: {
+    //                 id: {
+    //                     in: sectionUpdated.map( section => section.id )
+    //                 }
+    //             },
+    //             select: this.#selectSection
+    //         })
 
-            return sectiondata.map( section => this.#convertToSectionDto( section ));
-        } catch ( error ) {
-            console.error( 'Error updating section:', error );
-            throw PrismaException.catch( error, 'Failed to update section' );
-        }
-    }
+    //         return sectiondata.map( section => this.#convertToSectionDto( section ));
+    //     } catch ( error ) {
+    //         console.error( 'Error updating section:', error );
+    //         throw PrismaException.catch( error, 'Failed to update section' );
+    //     }
+    // }
 
 
     async update( id: string, updateSectionDto: UpdateSectionDto ) {
@@ -382,18 +348,18 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async removeByGroupId( groupId: string ): Promise<boolean> {
-        try {
-            const section = await this.section.deleteMany({
-                where: { groupId }
-            });
+    // async removeByGroupId( groupId: string ): Promise<boolean> {
+    //     try {
+    //         const section = await this.section.deleteMany({
+    //             where: { groupId }
+    //         });
 
-            return section.count > 0;
-        } catch ( error ) {
-            console.error( 'Error deleting section:', error );
-            throw PrismaException.catch( error, 'Failed to delete section' );
-        }
-    }
+    //         return section.count > 0;
+    //     } catch ( error ) {
+    //         console.error( 'Error deleting section:', error );
+    //         throw PrismaException.catch( error, 'Failed to delete section' );
+    //     }
+    // }
 
     /**
      * Process an Excel file containing section data
