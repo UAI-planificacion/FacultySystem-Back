@@ -137,7 +137,44 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             professorIds  : section.sessions.map(( session : any ) => session.professor.id),
         },
         haveRequest: !!section.request?.id
-    })
+    });
+
+
+    async createMassiveOfferSections( createSectionDto: CreateSectionDto[] ) {
+        try {
+            // const {
+            //     numberOfSections,
+            //     ...sectionBaseData
+            // } = createSectionDto;
+
+            // // Generate a single groupId for all sections
+            // const groupId = ulid();
+
+            // // Create multiple sections with sequential codes
+            // const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
+            //     code: index + 1,
+            //     groupId,
+            //     ...sectionBaseData
+            // }));
+
+            // // Create all sections
+            // await this.section.createMany({
+            //     data: sectionsToCreate
+            // });
+
+            // const sections = await this.section.findMany({
+            //     select  : this.#selectSection,
+            //     where   : {
+            //         groupId
+            //     }
+            // });
+
+            // return sections.map( section => this.#convertToSectionDto( section ));
+        } catch ( error ) {
+            console.error( 'Error creating sections:', error );
+            throw PrismaException.catch( error, 'Failed to create sections' );
+        }
+    }
 
 
     async createOfferSections( createSectionDto: CreateSectionDto ) {
