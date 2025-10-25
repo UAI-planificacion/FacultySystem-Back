@@ -52,6 +52,21 @@ export class SectionsController {
     }
 
 
+    @Post( 'massive-offers' )
+    @ApiOperation({ summary: 'Create offer for many sections' })
+    @ApiResponse({
+        status      : 201,
+        description : 'The sections has been successfully created.',
+        type        : SectionDto
+    })
+    @ApiResponse({ status: 400, description: 'Bad Request.' })
+    massiveCreate(
+        @Body() createSectionDto: CreateSectionDto[]
+    ){
+        return this.sectionsService.createMassiveOfferSections( createSectionDto );
+    }
+
+
     // @Post( 'upload-excel' )
     // @ApiOperation({ summary: 'Upload and process Excel file with section data' })
     // @ApiConsumes( 'multipart/form-data' )
