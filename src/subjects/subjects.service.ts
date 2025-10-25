@@ -167,11 +167,16 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
 
         const subjectsToCreate = newSubjects.map( subjectData => {
             return {
+                facultyId,
                 id              : subjectData.id,
                 name            : subjectData.name,
                 spaceType       : subjectData.spaceType,
                 spaceSizeId     : subjectData.spaceSizeId,
-                facultyId
+                gradeId         : subjectData.gradeId,
+                workshop        : subjectData.workshop,
+                lecture         : subjectData.lecture,
+                tutoringSession : subjectData.tutoringSession,
+                laboratory      : subjectData.laboratory
             };
         });
 
