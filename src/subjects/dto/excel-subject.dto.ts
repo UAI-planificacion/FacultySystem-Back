@@ -14,15 +14,16 @@ import { BasicSubjectDto } from '@subjects/dto/basic-subject.dto';
  * Interface representing the structure of Excel columns for subject import
  */
 export interface IExcelSubject {
-	id				: string;
-	name			: string;
-	facultyId		: string;
-    spaceType       : SpaceType | undefined;
-    spaceSizeId     : SizeValue | undefined;
-    workshop        : number;
-    lecture         : number;
-    tutoringSession : number;
-    laboratory      : number;
+	id			: string;
+	name		: string;
+	facultyId	: string | undefined;
+    spaceType   : SpaceType | undefined;
+    spaceSize   : SizeValue | undefined;
+    grade       : string | undefined;
+    catedra     : number;
+    ayudantia   : number;
+    taller      : number;
+    laboratorio : number;
 }
 
 
