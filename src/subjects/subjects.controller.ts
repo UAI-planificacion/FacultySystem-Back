@@ -134,7 +134,7 @@ export class SubjectsController {
             }
 
             // Validate required columns
-            const requiredColumns   = ['id', 'name', 'students', 'costCenterId'];
+            const requiredColumns   = ['id', 'name'];
             const firstRow          = jsonData[0];
             const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
 
@@ -145,21 +145,33 @@ export class SubjectsController {
             }
 
             // Process data and convert to proper format
-            const processedData = jsonData.map( ( row, index ) => {
+            const processedData = jsonData.map(( row, index ) => {
                 try {
+                    const workshop          = Number( row.taller )      || 0;
+                    const lecture           = Number( row.catedra )     || 0;
+                    const tutoringSession   = Number( row.ayudantia )   || 0;
+                    const laboratory        = Number( row.laboratorio ) || 0;
+
+                    if ( workshop === 0 && lecture === 0 && tutoringSession === 0 && laboratory === 0 ) {
+                        throw new BadRequestException( 
+                            `Row ${index + 2} has no valid data, check the values` 
+                        );
+                    }
+
                     return {
-                        id              : String( row.id || '' ).trim(),
-                        name            : String( row.name || '' ).trim(),
-                        spaceType       : row.spaceType,
-                        spaceSizeId     : row.spaceSizeId,
-                        facultyId       : String( row.facultyId || '' ).trim(),
-                        workshop        : Number( row.workshop ) || 0,
-                        lecture         : Number( row.lecture ) || 0,
-                        tutoringSession : Number( row.tutoringSession ) || 0,
-                        laboratory      : Number( row.laboratory ) || 0,
+                        facultyId,
+                        id          : row.id.trim(),
+                        name        : row.name.trim(),
+                        spaceType   : row.spaceType,
+                        spaceSizeId : row.spaceSize,
+                        gradeId     : row.grade,
+                        workshop,
+                        lecture,
+                        tutoringSession,
+                        laboratory,
                     };
                 } catch ( error ) {
-                    throw new BadRequestException( 
+                    throw new BadRequestException(
                         `Error processing row ${index + 2}: ${error.message}` 
                     );
                 }
@@ -181,72 +193,5 @@ export class SubjectsController {
             );
         }
     }
-
-
-    /**
-     * Parse array field from Excel (handles comma-separated values, arrays, and Excel dates)
-     * @param field - Field value from Excel
-     * @returns Array of Date objects
-     */
-    // #parseArrayField( field: any ): Date[] {
-    //     if ( !field ) return [];
-
-    //     // Handle arrays
-    //     if ( Array.isArray( field ) ) {
-    //         return field.map( item => this.#convertToDate( item )).filter( date => date !== null );
-    //     }
-
-    //     // Handle comma-separated strings
-    //     if ( typeof field === 'string' ) {
-    //         return field.split( ',' )
-    //             .map( item => item.trim() )
-    //             .filter( item => item.length > 0 )
-    //             .map( item => this.#convertToDate( item ) )
-    //             .filter( date => date !== null );
-    //     }
-
-    //     // Handle single values (including Excel dates)
-    //     const convertedDate = this.#convertToDate( field );
-    //     return convertedDate ? [convertedDate] : [];
-    // }
-
-
-    /**
-     * Convert Excel date or string to Date object
-     * @param value - Value to convert (can be Excel date, string, or number)
-     * @returns Date object or null if conversion fails
-     */
-    // #convertToDate( value: any ): Date | null {
-    //     if ( !value ) return null;
-
-    //     // Handle Date objects
-    //     if ( value instanceof Date ) {
-    //         return isNaN( value.getTime() ) ? null : value;
-    //     }
-
-    //     // Handle Excel date numbers (days since 1900-01-01)
-    //     if ( typeof value === 'number' ) {
-    //         // Excel date serial number conversion
-    //         const excelEpoch = new Date( 1900, 0, 1 );
-    //         const date = new Date( excelEpoch.getTime() + ( value - 1 ) * 24 * 60 * 60 * 1000 );
-    //         return isNaN( date.getTime() ) ? null : date;
-    //     }
-
-    //     // Handle strings
-    //     if ( typeof value === 'string' ) {
-    //         const trimmed = value.trim();
-
-    //         if ( trimmed === '' ) return null;
-
-    //         const date = new Date( trimmed );
-
-    //         return isNaN( date.getTime() ) ? null : date;
-    //     }
-
-    //     // Fallback: try to parse as string
-    //     const date = new Date( String( value ).trim() );
-
-    //     return isNaN( date.getTime() ) ? null : date;
-    // }
 
 }
