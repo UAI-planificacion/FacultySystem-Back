@@ -10,7 +10,8 @@ import {
     Delete,
     UseInterceptors,
     UploadedFile,
-    ParseUUIDPipe
+    ParseUUIDPipe,
+    BadRequestException
 }                           from '@nestjs/common';
 import {
     ApiTags,
@@ -21,12 +22,18 @@ import {
 }                           from '@nestjs/swagger';
 import { FileInterceptor }  from '@nestjs/platform-express';
 
+import * as XLSX from 'xlsx';
+
 import { SectionsService }          from '@sections/sections.service';
 import { CreateSectionDto }         from '@sections/dto/create-section.dto';
 import { UpdateSectionDto }         from '@sections/dto/update-section.dto';
 import { SectionDto }               from '@sections/dto/section.dto';
 import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
 import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
+import {
+    BulkCreateSectionDto,
+    IExcelSection
+}                                   from '@sections/dto/excel-section.dto';
 
 @ApiTags( 'Sections' )
 @Controller( 'sections' )
@@ -67,33 +74,134 @@ export class SectionsController {
     }
 
 
-    // @Post( 'upload-excel' )
-    // @ApiOperation({ summary: 'Upload and process Excel file with section data' })
-    // @ApiConsumes( 'multipart/form-data' )
-    // @ApiBody({
-    //     schema: {
-    //         type        : 'object',
-    //         properties  : {
-    //             file        : {
-    //                 type        : 'string',
-    //                 format      : 'binary',
-    //                 description : 'Excel file with section data'
-    //             }
-    //         }
-    //     }
-    // })
-    // @ApiResponse({ 
-    //     status      : 200,
-    //     description : 'Excel file processed successfully',
-    //     type        : [SectionDto]
-    // })
-    // @ApiResponse({ status: 400, description: 'Bad Request or invalid file format' })
-    // @UseInterceptors( FileInterceptor( 'file' ))
-    // async uploadExcelFile(
-    //     @UploadedFile() file: Express.Multer.File
-    // ): Promise<SectionDto[]> {
-    //     return this.sectionsService.processExcelFile( file );
-    // }
+    /**
+     * Upload Excel file and create section offers in bulk
+     * @param file - Excel file containing section offers data
+     * @returns Result of bulk creation with success/error details
+     */
+    @Post( 'massive-upload-offers' )
+    @UseInterceptors( FileInterceptor( 'file' ) )
+    @ApiConsumes( 'multipart/form-data' )
+    @ApiBody({
+        description : 'Excel file with section offers data',
+        schema      : {
+            type       : 'object',
+            properties : {
+                file : {
+                    type   : 'string',
+                    format : 'binary'
+                }
+            }
+        }
+    })
+    @ApiResponse({
+        status      : 201,
+        description : 'Excel file processed and sections created successfully',
+        type        : [SectionDto]
+    })
+    @ApiResponse({ status: 400, description: 'Bad Request or invalid file format' })
+    async uploadExcelOffers(
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        if ( !file ) {
+            throw new BadRequestException( 'No file uploaded' );
+        }
+
+        if ( !file.originalname.match( /\.(xlsx|xls)$/ ) ) {
+            throw new BadRequestException( 'Only Excel files are allowed' );
+        }
+
+        try {
+            // Read Excel file
+            const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Convert to JSON
+            const jsonData: IExcelSection[] = XLSX.utils.sheet_to_json( worksheet );
+
+            if ( jsonData.length === 0 ) {
+                throw new BadRequestException( 'Excel file is empty or has no valid data' );
+            }
+
+            // Validate required columns
+            const requiredColumns   = [
+                'periodId',
+                'subjectId',
+                'spaceSizeId',
+                'spaceType',
+                'startDate',
+                'endDate',
+                'numberOfSections'
+            ];
+            const firstRow          = jsonData[0];
+            const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
+
+            if ( missingColumns.length > 0 ) {
+                throw new BadRequestException( 
+                    `Missing required columns: ${missingColumns.join( ', ' )}` 
+                );
+            }
+
+            // Process data and convert to proper format
+            const processedData: CreateSectionDto[] = jsonData.map(( row, index ) => {
+                try {
+                    const workshop          = Number( row.workshop )         || 0;
+                    const lecture           = Number( row.lecture )          || 0;
+                    const tutoringSession   = Number( row.tutoringSession )  || 0;
+                    const laboratory        = Number( row.laboratory )       || 0;
+                    const numberOfSections  = Number( row.numberOfSections ) || 1;
+
+                    if ( workshop === 0 && lecture === 0 && tutoringSession === 0 && laboratory === 0 ) {
+                        throw new BadRequestException( 
+                            `Row ${index + 2} has no valid session data, check the values` 
+                        );
+                    }
+
+                    if ( numberOfSections < 1 ) {
+                        throw new BadRequestException( 
+                            `Row ${index + 2} has invalid numberOfSections value, must be at least 1` 
+                        );
+                    }
+
+                    return {
+                        periodId        : row.periodId?.toString().trim(),
+                        subjectId       : row.subjectId?.toString().trim(),
+                        professorId     : row.professorId?.toString().trim() || undefined,
+                        spaceSizeId     : row.spaceSizeId || undefined,
+                        spaceType       : row.spaceType || undefined,
+                        startDate       : new Date( row.startDate ),
+                        endDate         : new Date( row.endDate ),
+                        building        : row.building || undefined,
+                        workshop,
+                        lecture,
+                        tutoringSession,
+                        laboratory,
+                        numberOfSections,
+                    };
+                } catch ( error ) {
+                    throw new BadRequestException(
+                        `Error processing row ${index + 2}: ${error.message}` 
+                    );
+                }
+            });
+
+            // Create bulk DTO
+            const bulkCreateDto: BulkCreateSectionDto = {
+                sections : processedData
+            };
+
+            // Process bulk creation
+            return await this.sectionsService.createMassiveOfferSections( bulkCreateDto.sections );
+        } catch ( error ) {
+            if ( error instanceof BadRequestException ) {
+                throw error;
+            }
+            throw new BadRequestException( 
+                `Error processing Excel file: ${error.message}` 
+            );
+        }
+    }
 
 
     @Get()
@@ -120,16 +228,6 @@ export class SectionsController {
     findSectionPlanning() {
         return this.sectionsService.findSectionPlanning();
     }
-
-
-    // @Get( '/subjectId/:id' )
-    // @ApiOperation({ summary: 'Get all sections' })
-    // @ApiResponse({ status: 200, description: 'Return all sections' })
-    // findAllByFacultyId(
-    //     @Param( 'id' ) subjectId: string
-    // ) {
-    //     return this.sectionsService.findAllBySubjectId( subjectId );
-    // }
 
 
     @Get( ':id' )
