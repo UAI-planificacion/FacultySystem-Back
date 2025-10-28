@@ -1,13 +1,11 @@
-import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
 import {
     IsBoolean,
-    IsEnum,
     IsOptional,
     IsString,
     Length,
-}                   from 'class-validator';
-import { $Enums }   from 'generated/prisma';
+} from 'class-validator';
 
 import { ProfessorIdDto }   from '@commons/dtos/profesorId.dto';
 import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
