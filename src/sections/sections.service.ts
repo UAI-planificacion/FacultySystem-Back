@@ -128,13 +128,13 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             openingDate : section.period.openingDate,
             closingDate : section.period.closingDate,
         },
-        sessionsCount : section._count.sessions,
-        sessions : {
-            ids         : section.sessions.map(( session : any ) => session.id),
-            spaceIds      : section.sessions.map(( session : any ) => session.spaceId),
-            dayIds        : section.sessions.map(( session : any ) => session.dayModule.dayId),
-            moduleIds     : section.sessions.map(( session : any ) => session.dayModule.moduleId),
-            professorIds  : section.sessions.map(( session : any ) => session.professor.id),
+        sessionsCount   : section._count.sessions,
+        sessions        : {
+            ids             : section.sessions.map(( session : any ) => session.id),
+            spaceIds        : section.sessions.map(( session : any ) => session.spaceId),
+            dayIds          : section.sessions.map(( session : any ) => session.dayModule.dayId),
+            moduleIds       : section.sessions.map(( session : any ) => session.dayModule.moduleId),
+            professorIds    : section.sessions.map(( session : any ) => session.professor.id),
         },
         haveRequest: !!section.request?.id
     });
@@ -142,36 +142,59 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async createMassiveOfferSections( createSectionDto: CreateSectionDto[] ) {
         try {
-            // const {
-            //     numberOfSections,
-            //     ...sectionBaseData
-            // } = createSectionDto;
+            const allSectionsToCreate : any[]       = [];
+            const groupIds            : string[]    = [];
 
-            // // Generate a single groupId for all sections
-            // const groupId = ulid();
+            // Process each section offer
+            for ( const sectionOffer of createSectionDto ) {
+                const {
+                    numberOfSections,
+                    ...sectionBaseData
+                } = sectionOffer;
 
-            // // Create multiple sections with sequential codes
-            // const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
-            //     code: index + 1,
-            //     groupId,
-            //     ...sectionBaseData
-            // }));
+                // Clean empty string values and convert to undefined
+                const cleanedData = Object.entries( sectionBaseData ).reduce(( acc, [key, value] ) => {
+                    // Convert empty strings to undefined for optional fields
+                    if ( value === '' || value === null ) {
+                        acc[key] = undefined;
+                    } else {
+                        acc[key] = value;
+                    }
+                    return acc;
+                }, {} as any );
 
-            // // Create all sections
-            // await this.section.createMany({
-            //     data: sectionsToCreate
-            // });
+                // Generate a single groupId for all sections of this offer
+                const groupId = ulid();
+                groupIds.push( groupId );
 
-            // const sections = await this.section.findMany({
-            //     select  : this.#selectSection,
-            //     where   : {
-            //         groupId
-            //     }
-            // });
+                // Create multiple sections with sequential codes
+                const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
+                    code    : index + 1,
+                    groupId,
+                    ...cleanedData
+                }));
 
-            // return sections.map( section => this.#convertToSectionDto( section ));
+                allSectionsToCreate.push( ...sectionsToCreate );
+            }
+
+            // Create all sections in bulk
+            await this.section.createMany({
+                data : allSectionsToCreate
+            });
+
+            // Retrieve all created sections
+            const sections = await this.section.findMany({
+                select  : this.#selectSection,
+                where   : {
+                    groupId : {
+                        in : groupIds
+                    }
+                }
+            });
+
+            return sections.map( section => this.#convertToSectionDto( section ));
         } catch ( error ) {
-            console.error( 'Error creating sections:', error );
+            console.log('🚀 ~ file: sections.service.ts:186 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to create sections' );
         }
     }
@@ -208,7 +231,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             return sections.map( section => this.#convertToSectionDto( section ));
         } catch ( error ) {
-            console.error( 'Error creating sections:', error );
             throw PrismaException.catch( error, 'Failed to create sections' );
         }
     }
@@ -259,8 +281,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async findOne( id: string ) {
         const section = await this.section.findUnique({
-            where: { id },
-            select: this.#selectSection
+            where   : { id },
+            select  : this.#selectSection
         });
 
         if ( !section ) {
@@ -279,9 +301,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             await this.section.update({
                 where   : { id: sectionId },
-                data    : {
-                    isClosed,
-                },
+                data    : { isClosed },
             });
 
             sectiondata = {
@@ -291,11 +311,9 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             return sectiondata;
         } catch ( error ) {
-            console.error( 'Error updating section:', error );
             throw PrismaException.catch( error, 'Failed to update section' );
         }
     }
-
 
 
     async findSectionNotPlanning() {
@@ -323,35 +341,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             select: this.#selectSection
         });
     }
-
-
-    // async massiveUpdate( ids: string[], updateSectionDto: UpdateSectionDto ) {
-    //     try {
-    //         const sectionUpdated = await this.section.updateManyAndReturn({
-    //             select : {
-    //                 id: true,
-    //             },
-    //             where   : { id: { in: ids }},
-    //             data    : updateSectionDto
-    //         });
-
-    //         if ( !sectionUpdated ) throw new BadRequestException( 'Error updating section' );
-
-    //         const sectiondata = await this.section.findMany({
-    //             where: {
-    //                 id: {
-    //                     in: sectionUpdated.map( section => section.id )
-    //                 }
-    //             },
-    //             select: this.#selectSection
-    //         })
-
-    //         return sectiondata.map( section => this.#convertToSectionDto( section ));
-    //     } catch ( error ) {
-    //         console.error( 'Error updating section:', error );
-    //         throw PrismaException.catch( error, 'Failed to update section' );
-    //     }
-    // }
 
 
     async update( id: string, updateSectionDto: UpdateSectionDto ) {
@@ -384,19 +373,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         }
     }
 
-
-    // async removeByGroupId( groupId: string ): Promise<boolean> {
-    //     try {
-    //         const section = await this.section.deleteMany({
-    //             where: { groupId }
-    //         });
-
-    //         return section.count > 0;
-    //     } catch ( error ) {
-    //         console.error( 'Error deleting section:', error );
-    //         throw PrismaException.catch( error, 'Failed to delete section' );
-    //     }
-    // }
 
     /**
      * Process an Excel file containing section data
