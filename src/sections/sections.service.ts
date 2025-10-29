@@ -145,6 +145,28 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             const allSectionsToCreate : any[]       = [];
             const groupIds            : string[]    = [];
 
+            // Get all unique subjectIds from the request
+            const uniqueSubjectIds = [...new Set( createSectionDto.map( offer => offer.subjectId ))];
+
+            // Fetch all subjects in a single query
+            const subjects = await this.subject.findMany({
+                where   : {
+                    id : {
+                        in : uniqueSubjectIds
+                    }
+                },
+                select  : {
+                    id              : true,
+                    lecture         : true,
+                    workshop        : true,
+                    tutoringSession : true,
+                    laboratory      : true,
+                }
+            });
+
+            // Create a Map for quick access to subjects by id
+            const subjectsMap = new Map( subjects.map( subject => [subject.id, subject] ));
+
             // Process each section offer
             for ( const sectionOffer of createSectionDto ) {
                 const {
@@ -162,6 +184,22 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     }
                     return acc;
                 }, {} as any );
+
+                if (
+                    sectionOffer.lecture            === 0
+                    && sectionOffer.workshop        === 0
+                    && sectionOffer.tutoringSession === 0
+                    && sectionOffer.laboratory      === 0
+                ) {
+                    const subject = subjectsMap.get( sectionOffer.subjectId );
+
+                    if ( subject ) {
+                        cleanedData.lecture         = subject.lecture;
+                        cleanedData.workshop        = subject.workshop;
+                        cleanedData.tutoringSession = subject.tutoringSession;
+                        cleanedData.laboratory      = subject.laboratory;
+                    }
+                }
 
                 // Generate a single groupId for all sections of this offer
                 const groupId = ulid();
