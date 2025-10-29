@@ -152,12 +152,6 @@ export class SectionsController {
                     const laboratory        = Number( row.laboratory )       || 0;
                     const numberOfSections  = Number( row.numberOfSections ) || 1;
 
-                    if ( workshop === 0 && lecture === 0 && tutoringSession === 0 && laboratory === 0 ) {
-                        throw new BadRequestException( 
-                            `Row ${index + 2} has no valid session data, check the values` 
-                        );
-                    }
-
                     if ( numberOfSections < 1 ) {
                         throw new BadRequestException( 
                             `Row ${index + 2} has invalid numberOfSections value, must be at least 1` 
