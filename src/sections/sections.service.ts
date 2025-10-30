@@ -161,11 +161,29 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     workshop        : true,
                     tutoringSession : true,
                     laboratory      : true,
+                    spaceSizeId     : true,
+                    spaceType       : true,
+                }
+            });
+
+            const periods = await this.period.findMany({
+                where   : {
+                    id : {
+                        in : createSectionDto.map( offer => offer.periodId )
+                    }
+                },
+                select  : {
+                    id          : true,
+                    startDate   : true,
+                    endDate     : true,
+                    openingDate : true,
+                    closingDate : true,
                 }
             });
 
             // Create a Map for quick access to subjects by id
-            const subjectsMap = new Map( subjects.map( subject => [subject.id, subject] ));
+            const subjectsMap   = new Map( subjects.map( subject => [subject.id, subject] ));
+            const periodsMap    = new Map( periods.map( period => [period.id, period] ));
 
             // Process each section offer
             for ( const sectionOffer of createSectionDto ) {
@@ -173,6 +191,17 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     numberOfSections,
                     ...sectionBaseData
                 } = sectionOffer;
+
+                const period        = periodsMap.get( sectionOffer.periodId );
+                const currentDate   = new Date();
+
+                if ( period?.openingDate && currentDate < period.openingDate ) {
+                    continue;
+                }
+
+                if ( period?.closingDate && currentDate > period.closingDate ) {
+                    continue;
+                }
 
                 // Clean empty string values and convert to undefined
                 const cleanedData = Object.entries( sectionBaseData ).reduce(( acc, [key, value] ) => {
@@ -184,6 +213,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     }
                     return acc;
                 }, {} as any );
+
+                cleanedData.spaceSizeId ??= subjectsMap.get( sectionOffer.subjectId )?.spaceSizeId;
+                cleanedData.spaceType   ??= subjectsMap.get( sectionOffer.subjectId )?.spaceType;
+                cleanedData.startDate   ??= periodsMap.get( sectionOffer.periodId )?.startDate;
+                cleanedData.endDate     ??= periodsMap.get( sectionOffer.periodId )?.endDate;
 
                 if (
                     sectionOffer.lecture            === 0
@@ -232,7 +266,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             return sections.map( section => this.#convertToSectionDto( section ));
         } catch ( error ) {
-            console.log('🚀 ~ file: sections.service.ts:186 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to create sections' );
         }
     }
@@ -249,10 +282,66 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             const groupId = ulid();
 
             // Create multiple sections with sequential codes
+            
+            const subject = await this.subject.findUnique({
+                where: {
+                    id : createSectionDto.subjectId
+                },
+                select : {
+                    spaceSizeId     : true,
+                    spaceType       : true,
+                    laboratory      : true,
+                    workshop        : true,
+                    lecture         : true,
+                    tutoringSession : true,
+                }
+            });
+
+            if ( !subject ) {
+                throw new NotFoundException('Subject not found');
+            }
+
+            const period = await this.period.findUnique({
+                where: { id : createSectionDto.periodId},
+                select : {
+                    startDate   : true,
+                    endDate     : true,
+                    openingDate : true,
+                    closingDate : true,
+                }
+            });
+
+            if ( !period ) {
+                throw new NotFoundException('Period not found');
+            }
+
+            let lecture         = createSectionDto.lecture;
+            let workshop        = createSectionDto.workshop;
+            let tutoringSession = createSectionDto.tutoringSession;
+            let laboratory      = createSectionDto.laboratory;
+
+            if (
+                createSectionDto.lecture            === 0
+                && createSectionDto.workshop        === 0
+                && createSectionDto.tutoringSession === 0
+                && createSectionDto.laboratory      === 0
+            ) {
+                lecture         = subject.lecture;
+                workshop        = subject.workshop;
+                tutoringSession = subject.tutoringSession;
+                laboratory      = subject.laboratory;
+            }
+
             const sectionsToCreate = Array.from({ length: numberOfSections }, ( _, index ) => ({
                 code: index + 1,
                 groupId,
-                ...sectionBaseData
+                ...sectionBaseData,
+                startDate   : createSectionDto.startDate    || period.startDate,
+                endDate     : createSectionDto.endDate      || period.endDate,
+                lecture,
+                workshop,
+                tutoringSession,
+                laboratory,
             }));
 
             // Create all sections
