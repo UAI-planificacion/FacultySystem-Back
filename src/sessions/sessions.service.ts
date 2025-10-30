@@ -680,8 +680,19 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    findAll() {
-        return this.session.findMany();
+    async findAll() {
+        const sessions = await this.session.findMany({
+            select: this.#selectSession,
+            // where : {
+            //     createdAt: {
+            //         gte: new Date( new Date().setDate( new Date().getDate() - 7 ) ),
+            //     }
+            // }
+        });
+
+        if ( sessions?.length === 0 ) return [];
+
+        return sessions.map( this.#convertToSessionDto );
     }
 
 
