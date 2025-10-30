@@ -14,6 +14,84 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
     }
 
 
+    #selectSection = {
+        section: {
+            select: {
+                id          : true,
+                code        : true,
+                isClosed    : true,
+                groupId     : true,
+                startDate   : true,
+                endDate     : true,
+                spaceType   : true,
+                professor   : {
+                    select: {
+                        id      : true,
+                        name    : true
+                    }
+                },
+                spaceSize: {
+                    select: {
+                        id      : true,
+                        detail  : true,
+                    }
+                },
+                subject: {
+                    select: {
+                        id      : true,
+                        name    : true,
+                    }
+                },
+                period : {
+                    select : {
+                        id      : true,
+                        name    : true,
+                    }
+                },
+                workshop        : true,
+                lecture         : true,
+                tutoringSession : true,
+                laboratory      : true,
+            }
+        }
+    };
+
+
+    #selectSession = {
+        session       : {
+            select : {
+                id          : true,
+                name        : true,
+                spaceId     : true,
+                date        : true,
+                isEnglish   : true,
+                ...this.#selectSection,
+                professor   : {
+                    select: {
+                        id      : true,
+                        name    : true
+                    }
+                },
+                dayModule : {
+                    select : {
+                        id      : true,
+                        dayId   : true,
+                        module  : {
+                            select : {
+                                id          : true,
+                                startHour   : true,
+                                endHour     : true,
+                                difference  : true,
+                                code        : true,
+                            }
+                        }
+                    }
+                },
+            }
+        }
+    };
+
+
     #selectPlanningChange = {
         id              : true,
         title           : true,
@@ -41,76 +119,6 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         },
         sessionId : true,
         sectionId: true,
-        // session       : {
-        //     select : {
-        //         id          : true,
-        //         name        : true,
-        //         spaceId     : true,
-        //         date        : true,
-        //         isEnglish   : true,
-        //         professor   : {
-        //             select: {
-        //                 id      : true,
-        //                 name    : true
-        //             }
-        //         },
-        //         dayModule : {
-        //             select : {
-        //                 id      : true,
-        //                 dayId   : true,
-        //                 module  : {
-        //                     select : {
-        //                         id          : true,
-        //                         startHour   : true,
-        //                         endHour     : true,
-        //                         difference  : true,
-        //                         code        : true,
-        //                     }
-        //                 }
-        //             }
-        //         },
-        //     }
-        // },
-        // section       : {
-        //     select: {
-        //         id          : true,
-        //         code        : true,
-        //         isClosed    : true,
-        //         groupId     : true,
-        //         startDate   : true,
-        //         endDate     : true,
-        //         spaceType   : true,
-        //         spaceSizeId : true,
-        //         professor   : {
-        //             select: {
-        //                 id      : true,
-        //                 name    : true
-        //             }
-        //         },
-        //         spaceSize: {
-        //             select: {
-        //                 id      : true,
-        //                 detail  : true,
-        //             }
-        //         },
-        //         subject: {
-        //             select: {
-        //                 id      : true,
-        //                 name    : true,
-        //             }
-        //         },
-        //         period : {
-        //             select : {
-        //                 id      : true,
-        //                 name    : true,
-        //             }
-        //         },
-        //         workshop        : true,
-        //         lecture         : true,
-        //         tutoringSession : true,
-        //         laboratory      : true,
-        //     }
-        // },
         createdAt       : true,
         updatedAt       : true,
         staffCreate       : {
@@ -128,21 +136,6 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
         sessionDayModules: {
             select: {
                 dayModuleId: true,
-                // dayModule: {
-                //     select: {
-                //         id          : true,
-                //         dayId       : true,
-                //         module      : {
-                //             select: {
-                //                 id          : true,
-                //                 startHour   : true,
-                //                 endHour     : true,
-                //                 difference  : true,
-                //                 code        : true,
-                //             }
-                //         }
-                //     }
-                // }
             }
         }
     }
@@ -197,6 +190,27 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
     }
 
 
+    async findAll() {
+        const planningChange = await this.planningChange.findMany({
+            select: {
+                ...this.#selectPlanningChange,
+                ...this.#selectSection,
+                ...this.#selectSession,
+            }
+        })
+
+        if ( !planningChange ) {
+            throw new NotFoundException( 'Planning change not found' );
+        }
+
+        return planningChange.map(( planningChange ) => ({
+            ...this.#planingChangeMap ( planningChange ),
+            section: planningChange.section,
+            session: planningChange.session
+        }));
+    }
+
+
     async findByFacultyId( facultyId: string ) {
         const planningChange = await this.planningChange.findMany({
             where   : { staffCreate: { facultyId }},
@@ -209,70 +223,6 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
 
         return planningChange.map(( planningChange ) => this.#planingChangeMap ( planningChange ));
     }
-
-
-    // async findOneBySessionId( sessionId: string ) {
-    //     const planningChange = await this.planningChange.findUnique({
-    //         where: { sessionId }
-    //     })
-
-    //     if ( !planningChange ) {
-    //         throw new NotFoundException( 'Planning change not found' );
-    //     }
-
-    //     return planningChange;
-    // }
-
-
-    // async findSessionWhitouthPlanningChangeId() {
-    //     const planningChange = await this.session.findMany({
-    //         where: { planningChange: null },
-    //         select: {
-    //             id: true,
-    //             name: true,
-    //             date: true,
-    //             professor: {
-    //                 select: {
-    //                     id: true,
-    //                     name: true,
-    //                 }
-    //             },
-    //             dayModule: {
-    //                 select: {
-    //                     id: true,
-    //                     dayId: true,
-    //                     module : {
-    //                         select: {
-    //                             id: true,
-    //                             startHour: true,
-    //                             endHour: true,
-    //                             difference: true,
-    //                             code: true,
-    //                         }
-    //                     }
-    //                 }
-    //             },
-    //             spaceId: true,
-    //             isEnglish: true,
-    //             section: {
-    //                 select: {
-    //                     id: true,
-    //                     code: true,
-    //                     startDate: true,
-    //                     endDate: true,
-    //                     subject: {
-    //                         select: {
-    //                             id: true,
-    //                             name: true,
-    //                         }
-    //                     }
-    //                 }
-    //             },
-    //         }
-    //     });
-
-    //     return planningChange;
-    // }
 
 
     async update( id: string, updatePlanningChangeDto: UpdatePlanningChangeDto ) {
