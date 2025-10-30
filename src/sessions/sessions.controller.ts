@@ -39,6 +39,7 @@ export class SessionsController {
         return this.sessionsService.findAll();
     }
 
+
     @Get( 'section/:sectionId' )
     findBySectionId(
         @Param( 'sectionId' ) sectionId: string
