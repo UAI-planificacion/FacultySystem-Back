@@ -1,7 +1,6 @@
-import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
 import {
-    IsNotEmpty,
     IsDate,
     IsOptional,
     IsEnum,
@@ -20,24 +19,24 @@ export class BasicSectionDto extends IntersectionType(
     SpaceTypeDto
 ) {
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'The start date of the section.',
         example: '2025-01-01',
     })
     @Type(() => Date)
     @IsDate({ message: 'Section start date must be a valid date.' })
-    @IsNotEmpty({ message: 'Section start date is required.' })
-    startDate: Date;
+    @IsOptional()
+    startDate?: Date;
 
 
-    @ApiProperty({
+    @ApiPropertyOptional({
         description: 'The end date of the section.',
         example: '2025-12-31',
     })
     @Type(() => Date)
     @IsDate({ message: 'Section end date must be a valid date.' })
-    @IsNotEmpty({ message: 'Section end date is required.' })
-    endDate: Date;
+    @IsOptional()
+    endDate?: Date;
 
 
     @ApiPropertyOptional({
