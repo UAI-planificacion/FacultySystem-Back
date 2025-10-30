@@ -128,11 +128,6 @@ export class SectionsController {
             const requiredColumns   = [
                 'periodId',
                 'subjectId',
-                'spaceSizeId',
-                'spaceType',
-                'startDate',
-                'endDate',
-                'numberOfSections'
             ];
             const firstRow          = jsonData[0];
             const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
@@ -146,11 +141,11 @@ export class SectionsController {
             // Process data and convert to proper format
             const processedData: CreateSectionDto[] = jsonData.map(( row, index ) => {
                 try {
-                    const workshop          = Number( row.workshop )         || 0;
-                    const lecture           = Number( row.lecture )          || 0;
-                    const tutoringSession   = Number( row.tutoringSession )  || 0;
-                    const laboratory        = Number( row.laboratory )       || 0;
-                    const numberOfSections  = Number( row.numberOfSections ) || 1;
+                    const workshop          = Number( row.taller )              || 0;
+                    const lecture           = Number( row.catedra )             || 0;
+                    const tutoringSession   = Number( row.ayudantia )           || 0;
+                    const laboratory        = Number( row.laboratorio )         || 0;
+                    const numberOfSections  = Number( row.numberOfSections )    || 1;
 
                     if ( numberOfSections < 1 ) {
                         throw new BadRequestException( 
@@ -162,11 +157,11 @@ export class SectionsController {
                         periodId        : row.periodId?.toString().trim(),
                         subjectId       : row.subjectId?.toString().trim(),
                         professorId     : row.professorId?.toString().trim() || undefined,
-                        spaceSizeId     : row.spaceSizeId || undefined,
-                        spaceType       : row.spaceType || undefined,
-                        startDate       : new Date( row.startDate ),
-                        endDate         : new Date( row.endDate ),
-                        building        : row.building || undefined,
+                        spaceSizeId     : row.spaceSizeId   || undefined,
+                        spaceType       : row.spaceType     || undefined,
+                        startDate       : row.startDate     ? new Date( row.startDate ) : undefined,
+                        endDate         : row.endDate       ? new Date( row.endDate )   : undefined,
+                        building        : row.building      || undefined,
                         workshop,
                         lecture,
                         tutoringSession,
@@ -191,6 +186,7 @@ export class SectionsController {
             if ( error instanceof BadRequestException ) {
                 throw error;
             }
+
             throw new BadRequestException( 
                 `Error processing Excel file: ${error.message}` 
             );
