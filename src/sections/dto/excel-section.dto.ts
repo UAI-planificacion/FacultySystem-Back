@@ -21,10 +21,10 @@ export interface IExcelSection {
 	startDate			: Date | string;
 	endDate				: Date | string;
 	building			: $Enums.Building | undefined;
-	laboratory			: number;
-	lecture				: number;
-	tutoringSession     : number;
-	workshop			: number;
+	laboratorio			: number;
+	catedra				: number;
+	ayudantia           : number;
+	taller		        : number;
 	numberOfSections	: number;
 }
 
