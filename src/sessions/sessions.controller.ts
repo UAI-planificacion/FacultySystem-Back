@@ -97,6 +97,7 @@ export class SessionsController {
         return this.sessionsService.remove( id );
     }
 
+
     @Delete( 'massive/:ids' )
     massiveRemove(
         @Param( 'ids' ) ids: string
