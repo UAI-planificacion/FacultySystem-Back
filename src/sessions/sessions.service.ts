@@ -107,14 +107,14 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         dayModuleId             : session.dayModule?.id || null,
         date                    : session.date,
         planningChangeId        : session.planningChange?.id || null,
-        section               : {
-            id : session.section?.id || null,
-            code : session.section?.code || null,
-            startDate : session.section?.startDate || null,
-            endDate : session.section?.endDate || null,
-            subject : {
-                id : session.section?.subject?.id || null,
-                name : session.section?.subject?.name || null,
+        section                 : {
+            id          : session.section?.id || null,
+            code        : session.section?.code || null,
+            startDate   : session.section?.startDate || null,
+            endDate     : session.section?.endDate || null,
+            subject     : {
+                id          : session.section?.subject?.id || null,
+                name        : session.section?.subject?.name || null,
             }
         },
         module                  : session.dayModule?.module ? {
@@ -163,6 +163,27 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             }
 
             const { startDate, endDate } = section;
+            const currentDate = new Date();
+            currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
+
+            // Validar que la fecha actual esté dentro del rango permitido
+            if ( currentDate < startDate ) {
+                throw new BadRequestException(
+                    `No se pueden calcular sesiones antes de la fecha de inicio de la sección. ` +
+                    `La sección inicia el ${startDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}.`
+                );
+            }
+
+            // No permitir calcular sesiones si la fecha actual es mayor o igual a la fecha de fin
+            if ( currentDate >= endDate ) {
+                throw new BadRequestException(
+                    `No se pueden calcular sesiones en o después de la fecha de fin de la sección. ` +
+                    `La sección finaliza el ${endDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}. ` +
+                    `Las sesiones deben calcularse antes de la fecha de fin.`
+                );
+            }
 
             // 2. Obtener todos los espacios del servicio externo (una sola vez)
             const allSpaces = await this.spacesService.getSpaces();
@@ -396,6 +417,27 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             }
 
             const { startDate, endDate } = section;
+            const currentDate = new Date();
+            currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
+
+            // Validar que la fecha actual esté dentro del rango permitido
+            if ( currentDate < startDate ) {
+                throw new BadRequestException(
+                    `No se pueden crear sesiones antes de la fecha de inicio de la sección. ` +
+                    `La sección inicia el ${startDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}.`
+                );
+            }
+
+            // No permitir crear sesiones si la fecha actual es mayor o igual a la fecha de fin
+            if ( currentDate >= endDate ) {
+                throw new BadRequestException(
+                    `No se pueden crear sesiones en o después de la fecha de fin de la sección. ` +
+                    `La sección finaliza el ${endDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}. ` +
+                    `Las sesiones deben crearse antes de la fecha de fin.`
+                );
+            }
 
             const sessionsToCreate: Array<{
                 name        : $Enums.SessionName;
@@ -456,6 +498,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             // 8. Retornar la sección completa con las sesiones creadas
             return this.sectionsService.findOne( sectionId );
         } catch ( error ) {
+            console.log('🚀 ~ file: sessions.service.ts:459 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to create sessions' );
         }
     }
