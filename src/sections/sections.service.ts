@@ -192,14 +192,29 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     ...sectionBaseData
                 } = sectionOffer;
 
-                const period        = periodsMap.get( sectionOffer.periodId );
-                const currentDate   = new Date();
+                const period = periodsMap.get( sectionOffer.periodId );
 
-                if ( period?.openingDate && currentDate < period.openingDate ) {
+                if ( !period ) {
+                    console.warn( `Period ${sectionOffer.periodId} not found, skipping section offer` );
                     continue;
                 }
 
-                if ( period?.closingDate && currentDate > period.closingDate ) {
+                const currentDate = new Date();
+                currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
+
+                // Use openingDate/closingDate if they exist, otherwise use startDate/endDate
+                const effectiveOpeningDate = period.openingDate || period.startDate;
+                const effectiveClosingDate = period.closingDate || period.endDate;
+
+                // Validate current date is within the allowed range
+                if ( currentDate < effectiveOpeningDate ) {
+                    console.warn( `Current date is before period opening date, skipping section offer` );
+                    continue;
+                }
+
+                // Don't allow creating sections if current date is past or equal to closing date
+                if ( currentDate >= effectiveClosingDate ) {
+                    console.warn( `Current date is past or equal to period closing date, skipping section offer` );
                     continue;
                 }
 
@@ -281,8 +296,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             // Generate a single groupId for all sections
             const groupId = ulid();
 
-            // Create multiple sections with sequential codes
-            
             const subject = await this.subject.findUnique({
                 where: {
                     id : createSectionDto.subjectId
@@ -313,6 +326,32 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             if ( !period ) {
                 throw new NotFoundException('Period not found');
+            }
+
+            const currentDate = new Date();
+            currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
+
+            // Use openingDate/closingDate if they exist, otherwise use startDate/endDate
+            const effectiveOpeningDate = period.openingDate || period.startDate;
+            const effectiveClosingDate = period.closingDate || period.endDate;
+
+            // Validar que la fecha actual esté dentro del rango permitido
+            if ( currentDate < effectiveOpeningDate ) {
+                throw new BadRequestException(
+                    `No se pueden crear secciones antes de la fecha de apertura del período. ` +
+                    `El período abre el ${effectiveOpeningDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}.`
+                );
+            }
+
+            // No permitir crear secciones si la fecha actual es mayor o igual a la fecha de cierre
+            if ( currentDate >= effectiveClosingDate ) {
+                throw new BadRequestException(
+                    `No se pueden crear secciones en o después de la fecha de cierre del período. ` +
+                    `El período cierra el ${effectiveClosingDate.toISOString().split( 'T' )[0]}, ` +
+                    `la fecha actual es ${currentDate.toISOString().split( 'T' )[0]}. ` +
+                    `Las secciones deben crearse antes de la fecha de cierre.`
+                );
             }
 
             let lecture         = createSectionDto.lecture;
