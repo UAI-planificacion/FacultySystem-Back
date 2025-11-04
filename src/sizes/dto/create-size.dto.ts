@@ -1,4 +1,4 @@
-import { ApiHideProperty, ApiProperty } from '@nestjs/swagger'; // Added ApiHideProperty
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import {
     IsEnum,
     IsInt,
@@ -7,20 +7,9 @@ import {
     ValidatorConstraint,
     ValidatorConstraintInterface,
     ValidationArguments,
-} from 'class-validator';
-import { $Enums } from 'generated/prisma';
+}                   from 'class-validator';
+import { $Enums }   from 'generated/prisma';
 
-// export enum SizeValueDto {
-//     XS  = 'XS',
-//     XE  = 'XE',
-//     S   = 'S',
-//     SE  = 'SE',
-//     MS  = 'MS',
-//     M   = 'M',
-//     L   = 'L',
-//     XL  = 'XL',
-//     XXL = 'XXL',
-// }
 
 @ValidatorConstraint({ name: 'customSizeLogic', async: false })
 export class CustomSizeLogicConstraint implements ValidatorConstraintInterface {
@@ -49,6 +38,7 @@ export class CustomSizeLogicConstraint implements ValidatorConstraintInterface {
         return 'Invalid combination of size parameters. Valid combinations are: (min and max together), or (only lessThan), or (only greaterThan), or no optional parameters.';
     }
 }
+
 
 export class CreateSizeDto {
     @ApiHideProperty()
@@ -106,4 +96,5 @@ export class CreateSizeDto {
     @IsOptional()
     @IsInt({ message: 'Greater than value must be an integer.' })
     greaterThan?: number;
+
 }
