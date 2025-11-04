@@ -224,21 +224,27 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
                         dayId: true
                     }
                 }
-            }
+            },
+            orderBy: {
+                startHour: 'asc',
+            },
         });
 
         return modules.map( module => ({
-            id          : module.id,
-            code        : module.code,
-            difference  : module.difference,
-            startHour   : module.startHour,
-            endHour     : module.endHour,
-            isActive    : module.isActive,
-            createdAt   : module.createdAt,
-            updatedAt   : module.updatedAt,
+            // id          : module.id,
+            // code        : module.code,
+            // difference  : module.difference,
+            // startHour   : module.startHour,
+            // endHour     : module.endHour,
+            // isActive    : module.isActive,
+            // createdAt   : module.createdAt,
+            // updatedAt   : module.updatedAt,
+            // name        : `M${module.code}`,
+            // days        : module.dayModules.map( dayModule => dayModule.dayId ),
+            ...module,
             name        : `M${module.code}`,
             days        : module.dayModules.map( dayModule => dayModule.dayId ),
-        })).sort(( a, b ) => Number( a.code ) - Number( b.code ));
+        }));
     }
 
 
