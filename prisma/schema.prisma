@@ -231,8 +231,10 @@ model DayModule {
 
 
 enum PeriodStatus {
-    InProgress
-    Closed
+    Pending // Aún no comienza el periodo en startDate
+    InProgress //EN progreso cuando startdate < now < endDate
+    Opened //Abierto cuando openingDate < now < endDate
+    Closed //Cerrado cuando endDate === now
 }
 
 
