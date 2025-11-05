@@ -144,7 +144,7 @@ model Section {
 model Session {
     id                      String @id @default(ulid())
     name                    SessionName
-    spaceId                 String
+    spaceId                 String?
     correctedRegistrants    Int?
     realRegistrants         Int?
     plannedBuilding         String?
@@ -191,12 +191,36 @@ model Day {
 enum ModuleDifference {
     A
     B
+    C
+    D
+    E
+    F
+    G
+    H
+    I
+    J
+    K
+    L
+    M
+    N
+    O
+    P
+    Q
+    R
+    S
+    T
+    U
+    V
+    W
+    X
+    Y
+    Z
 }
 
 
 model Module {
     id          Int @id @default(autoincrement())
-    code        String
+    code        String?
     difference  ModuleDifference?
     startHour   String
     endHour     String
@@ -209,8 +233,6 @@ model Module {
 
     @@index([code])
 }
-
-
 
 
 model DayModule {
