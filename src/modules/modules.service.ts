@@ -1,7 +1,8 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 
 import { ModuleDifference, Prisma, PrismaClient } from 'generated/prisma';
 
+import { PrismaException } from '@config/prisma-catch';
 import { CreateModuleDto } from '@modules/dto/create-module.dto';
 import { UpdateModuleDto } from '@modules/dto/update-module.dto';
 
@@ -14,106 +15,145 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 	}
 
 
-    #convertHourToMinutes( time: string ): number {
-        const [hours, minutes] = time.split( ':' ).map( Number );
-        return hours * 60 + minutes;
+    async #calculateAndSetOrderAndDifference( dayIds: number[] ): Promise<void> {
+        await this.$transaction( async ( prisma ) => {
+            for ( const dayId of dayIds ) {
+                await this.#processSingleDay( dayId, prisma );
+            }
+        });
     }
 
 
-    async #calculateAndSetOrderAndDifference(dayIds: number[]): Promise<void> {
-        const moduleDifferencesToUpdate: Map<number, ModuleDifference | null> = new Map();
-        const modulesInAffectedDays = await this.module.findMany({
-            select  : { id: true },
-            where   : {
-                dayModules: {
-                    some: {
-                        dayId: { in: dayIds }
-                    }
-                }
+    async #processSingleDay(
+        dayId   : number,
+        prisma  : Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>
+    ): Promise<void> {
+        const dayModules = await prisma.dayModule.findMany({
+            where: { dayId },
+            include: {
+                module: true,
+            },
+            orderBy: {
+                module: {
+                    startHour: 'asc',
+                },
             },
         });
 
-        modulesInAffectedDays.forEach(mod => {
-            moduleDifferencesToUpdate.set(mod.id, null);
-        });
+        if ( dayModules.length === 0 ) {
+            return;
+        }
 
+        const updatePromises: Prisma.PrismaPromise<any>[] = [];
 
-        for ( const dayId of dayIds ) {
-            const dayModules = await this.dayModule.findMany({
-                where   : { dayId: dayId },
-                include : { module: true },
-            });
-
-            const sortedModules = dayModules.sort((a, b) => {
-                const timeA = this.#convertHourToMinutes( a.module.startHour );
-                const timeB = this.#convertHourToMinutes( b.module.startHour );
-
-                if ( timeA !== timeB ) {
-                    return timeA - timeB;
-                }
-
-                const endTimeA = this.#convertHourToMinutes( a.module.endHour );
-                const endTimeB = this.#convertHourToMinutes( b.module.endHour );
-
-                return endTimeA - endTimeB;
-            });
-
-            const dayModuleOrderUpdates: Prisma.PrismaPromise<any>[] = [];
-
-            for ( let i = 0; i < sortedModules.length; i++ ) {
-                const currentDayModule = sortedModules[i];
-
-                dayModuleOrderUpdates.push(
-                    this.dayModule.update({
-                        where   : { id: currentDayModule.id },
-                        data    : { order: i }
+        // 1. Actualizar el 'order' en DayModule (esto no cambia, sigue siendo correcto).
+        dayModules.forEach(( dayModule, index ) => {
+            if ( dayModule.order !== index ) {
+                updatePromises.push(
+                    prisma.dayModule.update({
+                        where   : { id: dayModule.id },
+                        data    : { order: index },
                     })
                 );
             }
+        });
 
-            for ( let i = 0; i < sortedModules.length; i++ ) {
-                const currentModule             = sortedModules[i].module;
-                const currentModuleEndMinutes   = this.#convertHourToMinutes( currentModule.endHour );
+        // 2. Agrupar módulos por solapamiento (esto no cambia, el algoritmo es el mismo).
+        const conflictGroups: (typeof dayModules)[] = [];
 
-                if ( i + 1 < sortedModules.length ) {
-                    const nextModule                = sortedModules[i + 1].module;
-                    const nextModuleStartMinutes    = this.#convertHourToMinutes( nextModule.startHour );
+        if ( dayModules.length > 0 ) {
+            let currentGroup        = [dayModules[0]];
+            let maxEndTimeInGroup   = dayModules[0].module.endHour;
 
-                    if ( currentModuleEndMinutes > nextModuleStartMinutes ) {
-                        moduleDifferencesToUpdate.set( currentModule.id, ModuleDifference.A );
-                        moduleDifferencesToUpdate.set( nextModule.id, ModuleDifference.B );
+            for ( let i = 1; i < dayModules.length; i++ ) {
+                const currentDayModule  = dayModules[i];
+                const currentModule     = currentDayModule.module;
+
+                if ( currentModule.startHour < maxEndTimeInGroup ) {
+                    currentGroup.push(currentDayModule);
+                    if ( currentModule.endHour > maxEndTimeInGroup ) {
+                        maxEndTimeInGroup = currentModule.endHour;
                     }
+                } else {
+                    conflictGroups.push( currentGroup );
+                    currentGroup = [currentDayModule];
+                    maxEndTimeInGroup = currentModule.endHour;
                 }
             }
 
-            await this.$transaction( dayModuleOrderUpdates );
-        }
+            conflictGroups.push( currentGroup );
+        }  
 
-        const moduleDifferenceUpdatePromises: Prisma.PrismaPromise<any>[] = [];
+        const allModuleIdsToReset = new Set( dayModules.map( dm => dm.moduleId ));
 
-        moduleDifferencesToUpdate.forEach(( difference, moduleId ) => {
-            moduleDifferenceUpdatePromises.push(
-                this.module.update({
-                    where   : { id: moduleId },
-                    data    : { difference: difference }
-                })
-            );
+        conflictGroups.forEach((group, groupIndex) => {
+            const groupNumber = groupIndex + 1; // El grupo ahora es 1, 2, 3...
+
+            // Si el grupo tiene más de un módulo, es un conflicto y lleva letra
+            if (group.length > 1) {
+                group.forEach(( dayModule, itemIndex ) => {
+                    const differenceLetter  = String.fromCharCode( 65 + itemIndex ); // A, B, C..
+                    const newCode           = `${groupNumber}${differenceLetter}`; // "1A", "1B", etc
+
+                    // Actualizamos tanto 'code' como 'difference' en el Module.
+                    updatePromises.push(
+                        prisma.module.update({
+                            where: { id: dayModule.moduleId },
+                            data: {
+                                code: newCode,
+                                difference: differenceLetter as ModuleDifference,
+                            },
+                        })
+                    );
+
+                    allModuleIdsToReset.delete( dayModule.moduleId );
+                });
+            } else {
+                // Si el grupo tiene un solo módulo, no hay conflicto.
+                const dayModule = group[0];
+                const newCode   = `${groupNumber}`; // El código es solo el número del grupo.
+
+                // Actualizamos 'code' y ponemos 'difference' a null.
+                updatePromises.push(
+                    prisma.module.update({
+                        where: { id: dayModule.moduleId },
+                        data: {
+                            code: newCode,
+                            difference: null,
+                        },
+                    })
+                );
+                allModuleIdsToReset.delete(dayModule.moduleId);
+            }
         });
 
-        if ( moduleDifferenceUpdatePromises.length > 0 ) {
-            await this.$transaction( moduleDifferenceUpdatePromises );
+        // 4. Ejecutar todas las actualizaciones.
+        if ( updatePromises.length > 0 ) {
+            await Promise.all( updatePromises );
         }
     }
 
 
     async createMany( createModuleDtos: CreateModuleDto[] ) {
         try {
+            const existModule = await this.module.findMany({
+                where: {
+                    startHour: {
+                        in: createModuleDtos.map( createModuleDto => createModuleDto.startHour ),
+                    }
+                },
+            });
+
+            if ( existModule.length > 0 ) {
+                throw new BadRequestException( `Existenten módulos con la misma hora de inicio: ${ existModule.map( module => module.startHour ).join( ', ' )}` );
+            }
+
             const allAffectedDayIds: Set<number> = new Set();
 
             await this.$transaction( async ( prisma ) => {
                 for ( const createModuleDto of createModuleDtos ) {
-                    const { days: dayIds, ...data }   = createModuleDto;
-                    const module                = await prisma.module.create({ data: { ...data, difference: null } });
+                    const { dayIds, ...data }   = createModuleDto;
+                    const module                = await prisma.module.create({ data: { ...data, difference: null }});
 
                     await prisma.dayModule.createMany({
                         data: dayIds.map( dayId => {
@@ -134,41 +174,9 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
             return await this.findAllModules();
         } catch (error) {
-            console.error( 'Error creating modules:', error );
-            throw error;
+            throw PrismaException.catch( error, 'Error creating modules' );
         }
     }
-
-
-    // async create( createModuleDto: CreateModuleDto ) {
-    //     try {
-    //         const { dayIds, ...data } = createModuleDto;
-    //         const module = await this.module.create({ data });
-
-    //         await this.dayModule.createMany({
-    //             data: dayIds.map(dayId => ({
-    //                 moduleId: module.id,
-    //                 dayId,
-    //             })),
-    //         });
-
-    //         await this.#calculateAndSetOrder( dayIds );
-
-    //         return this.module.findUnique({
-    //             where: { id: module.id },
-    //             include: {
-    //                 dayModules: {
-    //                     orderBy: {
-    //                         order: 'asc'
-    //                     }
-    //                 }
-    //             },
-    //         });
-    //     } catch ( error ) {
-    //         console.error( 'Error creating module:', error );
-    //         throw error;
-    //     }
-    // }
 
 
     async #filterModules() {
@@ -265,7 +273,20 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
     async update( id: number, updateModuleDto: UpdateModuleDto ) {
         try {
-            const { days: dayIds, ...data } = updateModuleDto;
+            const existModule = await this.module.findMany({
+                where: {
+                    AND: [
+                        { id: { not: id } },
+                        { startHour: updateModuleDto.startHour },
+                    ],
+                },
+            });
+
+            if ( existModule.length > 0 ) {
+                throw new BadRequestException( `Existenten módulos con la misma hora de inicio: ${ existModule.map( module => module.startHour ).join( ', ' )}` );
+            }
+
+            const { dayIds: dayIds, ...data } = updateModuleDto;
 
             const existingModule = await this.module.findUnique({
                 where   : { id },
@@ -273,7 +294,7 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
             });
 
             if ( !existingModule ) {
-                throw new Error( `Module with ID ${id} not found.` );
+                throw new BadRequestException( `Module with ID ${id} not found.` );
             }
 
             const affectedDayIds: Set<number> = new Set();
@@ -306,8 +327,7 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
             return await this.findAllModules();
         } catch ( error ) {
-            console.error( 'Error updating module:', error );
-            throw error;
+            throw PrismaException.catch( error, 'Error updating module' );
         }
     }
 
@@ -331,8 +351,7 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
 
             return await this.findAllModules();
         } catch (error) {
-            console.error('Error deleting module:', error);
-            throw error;
+            throw PrismaException.catch( error, 'Error deleting module' );
         }
     }
 
