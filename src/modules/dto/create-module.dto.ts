@@ -51,13 +51,13 @@ export function IsEndDateAfterStartDate(
 }
 
 export class CreateModuleDto {
-    @ApiProperty({
-        description: 'The code of the module.',
-        example: 'M101',
-    })
-    @IsString()
-    @IsNotEmpty()
-    code: string;
+    // @ApiProperty({
+    //     description: 'The code of the module.',
+    //     example: 'M101',
+    // })
+    // @IsString()
+    // @IsNotEmpty()
+    // code: string;
 
     @ApiProperty({
         description: 'The start hour of the module in HH:MM format.',
@@ -94,6 +94,6 @@ export class CreateModuleDto {
     @ArrayMinSize(1)
     @IsNotEmpty({ each: true })
     @ArrayUnique()
-    days: number[];
+    dayIds: number[];
 
 }
