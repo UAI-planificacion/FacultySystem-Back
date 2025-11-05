@@ -18,18 +18,18 @@ import { PrismaException }          from '@config/prisma-catch';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
-import { SectionsService }          from '@sections/sections.service';
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
+import { SectionsService }          from '@sections/sections.service';
 
 
 @Injectable()
 export class SessionsService extends PrismaClient implements OnModuleInit {
 
     constructor(
-        private readonly sectionsService : SectionsService,
-        private readonly spacesService   : SpacesService
+        private readonly sectionsService    : SectionsService,
+        private readonly spacesService      : SpacesService
     ) {
         super();
     }
@@ -117,7 +117,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 name        : session.section?.subject?.name || null,
             }
         },
-        module                  : session.dayModule?.module ? {
+        module: session.dayModule?.module ? {
             id          : session.dayModule.module.id,
             code        : session.dayModule.module.code,
             name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
@@ -151,10 +151,15 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             const section = await this.section.findUnique({
                 where   : { id: sectionId },
                 select  : {
-                    id          : true,
-                    startDate   : true,
-                    endDate     : true,
-                    professorId : true,
+                    id      : true,
+                    period  : {
+                        select : {
+                            startDate   : true,
+                            endDate     : true,
+                            openingDate : true,
+                            closingDate : true,
+                        }
+                    }
                 }
             });
 
@@ -162,8 +167,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 throw new NotFoundException( `Section with id ${sectionId} not found` );
             }
 
-            const { startDate, endDate } = section;
-            const currentDate = new Date();
+            const startDate     = section.period.openingDate || section.period.startDate;
+            const endDate       = section.period.closingDate || section.period.endDate;
+            const currentDate   = new Date();
+
             currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
 
             // Validar que la fecha actual esté dentro del rango permitido
@@ -406,9 +413,15 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 where   : { id: sectionId },
                 select  : {
                     id          : true,
-                    startDate   : true,
-                    endDate     : true,
                     professorId : true,
+                    period: {
+                        select : {
+                            startDate   : true,
+                            endDate     : true,
+                            openingDate : true,
+                            closingDate : true,
+                        }
+                    }
                 }
             });
 
@@ -416,7 +429,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 throw new NotFoundException( `Section with id ${sectionId} not found` );
             }
 
-            const { startDate, endDate } = section;
+            const startDate = section.period.openingDate || section.period.startDate;
+            const endDate   = section.period.closingDate || section.period.endDate;
+
+            // const { startDate, endDate } = section;
             const currentDate = new Date();
             currentDate.setHours( 0, 0, 0, 0 ); // Reset time to start of day for comparison
 
@@ -443,7 +459,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 name        : $Enums.SessionName;
                 sectionId   : string;
                 dayModuleId : number;
-                spaceId     : string;
+                spaceId     : string | null;
                 professorId : string | null;
                 isEnglish   : boolean;
                 date        : Date;
@@ -465,7 +481,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 });
 
                 if ( dayModules.length !== dayModuleIds.length ) {
-                    throw new Error( `Some dayModuleIds are invalid: ${dayModuleIds.join( ', ' )}` );
+                    throw new BadRequestException( `Some dayModuleIds are invalid: ${dayModuleIds.join( ', ' )}` );
                 }
 
                 // 4. Calcular todas las fechas posibles para cada dayModule
@@ -479,8 +495,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             name        : session,
                             sectionId   : sectionId,
                             dayModuleId : dayModule.id,
-                            spaceId     : spaceId,
-                            professorId : professorId   || section.professorId,
+                            spaceId     : spaceId       || null,
+                            professorId : professorId   || null,
                             isEnglish   : isEnglish     || false,
                             date,
                         });
@@ -496,9 +512,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
 
             // 8. Retornar la sección completa con las sesiones creadas
-            return this.sectionsService.findOne( sectionId );
+            return await this.sectionsService.findOne( sectionId );
         } catch ( error ) {
-            console.log('🚀 ~ file: sessions.service.ts:459 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to create sessions' );
         }
     }
@@ -664,11 +679,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 continue;
             }
 
-            // Buscar sesiones existentes con la misma fecha y espacio
+            // Buscar sesiones existentes con la misma fecha, espacio y módulo
             const existingSessions = await this.session.findMany({
                 where: {
-                    date    : session.date,
-                    spaceId : session.spaceId,
+                    date        : session.date,
+                    spaceId     : session.spaceId,
                 },
                 select: {
                     id          : true,
@@ -707,13 +722,19 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 continue;
             }
 
-            const key = `${session.date.toISOString()}_${session.spaceId}`;
+            // Normalizar la fecha a medianoche para comparar solo el día
+            const normalizedDate = new Date( session.date );
+
+            normalizedDate.setHours( 0, 0, 0, 0 );
+
+            // Incluir dayModuleId en la clave para permitir múltiples sesiones en el mismo día pero diferentes módulos
+            const key = `${normalizedDate.toISOString()}_${session.dayModuleId}_${session.spaceId}`;
             
             if ( sessionMap.has( key ) ) {
                 const conflicting = sessionMap.get( key );
                 throw new Error(
                     `Conflict detected in request: Multiple sessions (${conflicting.name} and ${session.name}) ` +
-                    `are scheduled for the same date ${session.date.toISOString().split( 'T' )[0]} ` +
+                    `are scheduled for the same date ${normalizedDate.toISOString().split( 'T' )[0]} ` +
                     `and space ${session.spaceId}.`
                 );
             }
@@ -761,7 +782,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         if ( session.length === 0 ) return [];
 
-        return  session.map( this.#convertToSessionDto );
+        return session.map( this.#convertToSessionDto );
     }
 
 
