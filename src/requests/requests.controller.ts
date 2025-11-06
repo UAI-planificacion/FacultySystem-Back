@@ -26,12 +26,17 @@ export class RequestsController {
 		return this.requestsService.create( createRequestDto, origin );
 	}
 
+    @Get()
+    findAll() {
+        return this.requestsService.findAll();
+    }
+
 
 	@Get( '/faculty/:facultyId' )
-	findAll(
+	findAllByFacultyId(
 		@Param( 'facultyId' ) facultyId: string
 	) {
-		return this.requestsService.findAll( facultyId );
+		return this.requestsService.findAllByFacultyId( facultyId );
 	}
 
 
