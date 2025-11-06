@@ -132,9 +132,9 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         sessions        : {
             ids             : section.sessions.map(( session : any ) => session.id),
             spaceIds        : section.sessions.map(( session : any ) => session.spaceId),
-            dayIds          : section.sessions.map(( session : any ) => session.dayModule.dayId),
-            moduleIds       : section.sessions.map(( session : any ) => session.dayModule.moduleId),
-            professorIds    : section.sessions.map(( session : any ) => session.professor.id),
+            dayIds          : section.sessions.map(( session : any ) => session.dayModule?.dayId),
+            moduleIds       : section.sessions.map(( session : any ) => session.dayModule?.moduleId),
+            professorIds    : section.sessions.map(( session : any ) => session.professor?.id),
         },
         haveRequest: !!section.request?.id
     });
