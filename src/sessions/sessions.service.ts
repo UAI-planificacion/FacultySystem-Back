@@ -274,6 +274,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                                 date        : scheduledDate.date,
                                 dayModuleId : scheduledDate.dayModuleId,
                                 spaceId     : space.name,
+                                sectionId   : { not: sectionId },
                             }
                         });
 
@@ -322,6 +323,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                                         date        : scheduledDate.date,
                                         dayModuleId : scheduledDate.dayModuleId,
                                         spaceId     : space.name,
+                                        sectionId   : { not: sectionId },
                                     }
                                 });
 
@@ -371,6 +373,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                                     date        : scheduledDate.date,
                                     dayModuleId : scheduledDate.dayModuleId,
                                     professorId : professorId,
+                                    sectionId   : { not: sectionId },
                                 }
                             });
 
@@ -514,6 +517,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             // 8. Retornar la sección completa con las sesiones creadas
             return await this.sectionsService.findOne( sectionId );
         } catch ( error ) {
+            console.log('🚀 ~ file: sessions.service.ts:517 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to create sessions' );
         }
     }
@@ -679,11 +683,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 continue;
             }
 
-            // Buscar sesiones existentes con la misma fecha, espacio y módulo
+            // Buscar sesiones existentes con la misma fecha, espacio y módulo (excluyendo la misma sección)
             const existingSessions = await this.session.findMany({
                 where: {
                     date        : session.date,
                     spaceId     : session.spaceId,
+                    dayModuleId : session.dayModuleId,
+                    sectionId   : { not: session.sectionId },
                 },
                 select: {
                     id          : true,
