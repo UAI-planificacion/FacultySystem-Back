@@ -217,7 +217,20 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async findAll( facultyId: string ) {
+    async findAll() {
+        const requests = await this.request.findMany({
+            select  : this.#selectRequest,
+        });
+
+        if ( requests.length === 0 ) {
+            return [];
+        }
+
+        return requests.map(( request ) => this.#requestMap( request ));
+    }
+
+
+    async findAllByFacultyId( facultyId: string ) {
         const requests = await this.request.findMany({
             select  : this.#selectRequest,
             where   : {
@@ -226,6 +239,10 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 }
             }
         });
+
+        if ( requests.length === 0 ) {
+            return [];
+        }
 
         return requests.map(( request ) => this.#requestMap( request ));
     }
