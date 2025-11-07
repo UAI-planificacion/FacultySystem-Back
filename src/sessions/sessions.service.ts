@@ -956,4 +956,20 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 		}
 	}
 
+
+    async calculateSessionAvailabilitySpaceOrProfessor(
+        sectionId: string,
+        calculateAvailabilityDto: CalculateAvailabilityDto[]
+    ) {
+        try {
+
+            
+
+
+
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to calculate session availability' );
+        }
+    }
+
 }
