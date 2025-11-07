@@ -6,6 +6,6 @@ export class AppController {
 
     @Get()
     getHello(): string {
-        return 'Bienvenido al Sistema de Facultad Académica Backend';
+        return 'Bienvenido al Sistema Académico de la Universidad Adolfo Ibañez';
     }
 }
