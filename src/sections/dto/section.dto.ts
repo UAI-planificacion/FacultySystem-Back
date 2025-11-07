@@ -4,41 +4,37 @@ import { $Enums } from "generated/prisma";
 
 
 export class SectionSession {
-
-    @ApiPropertyOptional({
-        description : 'List of identifiers assigned to the section.',
-        example     : [ 'clx15746g000008l3f1z9h8y7', 'clx15746g000008l3f1z9h8y8' ],
+    @ApiProperty({
+        description : 'Unique identifier of the session.',
+        example     : 'clx15746g000008l3f1z9h8y7',
     })
-    ids : string[];
+    id : string;
 
-    @ApiPropertyOptional({
-        description : 'List of space identifiers assigned to the section.',
-        example     : [ 'clx15746g000008l3f1z9h8y7', 'clx15746g000008l3f1z9h8y8' ],
+    @ApiProperty({
+        description : 'Unique identifier of the space.',
+        example     : 'clx15746g000008l3f1z9h8y7',
     })
-    spaceIds: string[];
+    spaceId : string;
 
-
-    @ApiPropertyOptional({
-        description : 'List of day identifiers when the section takes place.',
-        example     : [ 1, 3, 5 ],
+    @ApiProperty({
+        description : 'Unique identifier of the day.',
+        example     : 1,
     })
-    dayIds: number[];
+    dayId : number
 
-
-    @ApiPropertyOptional({
-        description : 'List of module identifiers for the section schedule.',
-        example     : [ 1, 2, 3 ],
+    @ApiProperty({
+        description : 'Unique identifier of the module.',
+        example     : 1,
     })
-    moduleIds: number[];
+    moduleId : number;
 
-
-    @ApiPropertyOptional({
-        description : 'List of professor identifiers assigned to the section.',
-        example     : [ 'clx15746g000008l3f1z9h8y7' ],
+    @ApiProperty({
+        description : 'Unique identifier of the professor.',
+        example     : 'clx15746g000008l3f1z9h8y7',
     })
-    professorIds: string[];
-
+    professorId : string;
 }
+
 
 export class Module {
 
@@ -299,6 +295,6 @@ export class SectionDto {
         example     : { spaceIds: [ 'space1', 'space2' ], dayIds: [ 1, 2, 3 ], moduleIds: [ 1, 2 ], professorIds: [ 'prof1' ] },
         type        : () => SectionSession,
     })
-    sessions : SectionSession;
+    sessions : SectionSession[];
 
 }
