@@ -1,4 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    UseInterceptors,
+    UploadedFile,
+    BadRequestException
+}                               from '@nestjs/common';
+import { FileInterceptor }      from '@nestjs/platform-express';
+import { ApiBody, ApiConsumes } from '@nestjs/swagger';
+
+import * as XLSX from 'xlsx';
 
 import { SessionsService }          from '@sessions/sessions.service';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
@@ -7,6 +22,7 @@ import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.d
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
+import { ExcelSessionDto }          from '@sessions/interfaces/excelSession.dto';
 
 
 @Controller( 'sessions' )
@@ -103,6 +119,109 @@ export class SessionsController {
         @Param( 'ids' ) ids: string
     ) {
         return this.sessionsService.massiveRemove( ids.split( ',' ) );
+    }
+
+
+
+
+
+
+
+    /**
+     * Upload Excel file and create subjects in bulk
+     * @param file - Excel file containing subjects data
+     * @returns Result of bulk creation with success/error details
+     */
+    @Post( 'bulk-upload/:facultyId' )
+    @UseInterceptors( FileInterceptor( 'file' ) )
+    @ApiConsumes( 'multipart/form-data' )
+    // @ApiBody({
+    //     description : 'Excel file with subjects data',
+    //     schema      : {
+    //         type       : 'object',
+    //         properties : {
+    //             file : {
+    //                 type   : 'string',
+    //                 format : 'binary'
+    //             }
+    //         }
+    //     }
+    // })
+    async uploadExcel(
+        @Param( 'type' ) type: 'space' | 'professor',
+        @UploadedFile() file: Express.Multer.File
+    ) {
+        if ( !file ) {
+            throw new BadRequestException( 'No file uploaded' );
+        }
+
+        if ( !file.originalname.match( /\.(xlsx|xls)$/ ) ) {
+            throw new BadRequestException( 'Only Excel files are allowed' );
+        }
+
+        try {
+            // Read Excel file
+            const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Convert to JSON
+            const jsonData: ExcelSessionDto[] = XLSX.utils.sheet_to_json( worksheet );
+
+            if ( jsonData.length === 0 ) {
+                throw new BadRequestException( 'Excel file is empty or has no valid data' );
+            }
+
+            // Validate required columns
+            // const requiredColumns   = ['SSEC', 'sessionId', 'dayModuleId'];
+            const requiredColumns   = ['SSEC', 'sessionId'];
+            const firstRow          = jsonData[0];
+            const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
+
+            if ( missingColumns.length > 0 ) {
+                throw new BadRequestException( 
+                    `Missing required columns: ${missingColumns.join( ', ' )}` 
+                );
+            }
+
+            const data = jsonData.slice( 1 );
+
+            // // Process data and convert to proper format
+            // const processedData = jsonData.map(( row, index ) => {
+            //     try {
+            //         return {
+            //             facultyId,
+            //             id          : row.id.trim(),
+            //             name        : row.name.trim(),
+            //             spaceType   : row.spaceType,
+            //             spaceSizeId : row.spaceSize,
+            //             gradeId     : row.grade,
+            //             workshop,
+            //             lecture,
+            //             tutoringSession,
+            //             laboratory,
+            //         };
+            //     } catch ( error ) {
+            //         throw new BadRequestException(
+            //             `Error processing row ${index + 2}: ${error.message}` 
+            //         );
+            //     }
+            // });
+
+            // Create bulk DTO
+            // const bulkCreateDto: AvailableSessionDto | null = null;
+
+            // Process bulk creation
+            // return await this.subjectsService.createBulk( bulkCreateDto, facultyId );
+            return []
+        } catch ( error ) {
+            if ( error instanceof BadRequestException ) {
+                throw error;
+            }
+            throw new BadRequestException( 
+                `Error processing Excel file: ${error.message}` 
+            );
+        }
     }
 
 }
