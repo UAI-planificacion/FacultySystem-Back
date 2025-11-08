@@ -28,6 +28,7 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         createdAt       : true,
         updatedAt       : true,
         isActive        : true,
+        quota           : true,
         grade           :  {
             select : {
                 id              : true,
@@ -50,6 +51,7 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         createdAt       : subject.createdAt,
         updatedAt       : subject.updatedAt,
         isActive        : subject.isActive,
+        quota           : subject.quota,
         grade           : subject.grade,
     });
 
@@ -168,15 +170,17 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         const subjectsToCreate = newSubjects.map( subjectData => {
             return {
                 facultyId,
-                id              : subjectData.id,
-                name            : subjectData.name,
-                spaceType       : subjectData.spaceType,
-                spaceSizeId     : subjectData.spaceSizeId,
-                gradeId         : subjectData.gradeId,
-                workshop        : subjectData.workshop,
-                lecture         : subjectData.lecture,
-                tutoringSession : subjectData.tutoringSession,
-                laboratory      : subjectData.laboratory
+                ...subjectData,
+                // id              : subjectData.id,
+                // name            : subjectData.name,
+                // spaceType       : subjectData.spaceType,
+                // spaceSizeId     : subjectData.spaceSizeId,
+                // gradeId         : subjectData.gradeId,
+                // workshop        : subjectData.workshop,
+                // lecture         : subjectData.lecture,
+                // tutoringSession : subjectData.tutoringSession,
+                // laboratory      : subjectData.laboratory,
+                // quota           : subjectData.quota
             };
         });
 
