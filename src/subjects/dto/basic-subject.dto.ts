@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
-import { IsNotEmpty, IsOptional, IsString, Length, Max } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Length, Max, Min } from 'class-validator';
 
 import { SessionDto }       from '@sessions/dto/session.dto';
 import { SpaceSizeIdDto }   from '@commons/dtos/size.dto';
@@ -41,5 +41,16 @@ export class BasicSubjectDto extends IntersectionType(
     @IsOptional()
     @Length( 0, 28 )
     gradeId?: string;
+
+
+    @ApiPropertyOptional({
+        description : 'The quota of the subject',
+        example     : 10,
+    })
+    @IsNumber()
+    @IsOptional()
+    @Min( 0 )
+    @Max( 100 )
+    quota?: number;
 
 }
