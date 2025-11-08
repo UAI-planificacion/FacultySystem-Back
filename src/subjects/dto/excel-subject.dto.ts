@@ -3,12 +3,11 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
 	IsArray,
 	ValidateNested
-}                                       from 'class-validator';
-import { Type }                         from 'class-transformer';
-import { Building, Size, SizeValue, SpaceType }    from 'generated/prisma';
+}                               from 'class-validator';
+import { Type }                 from 'class-transformer';
+import { SizeValue, SpaceType } from 'generated/prisma';
 
 import { BasicSubjectDto } from '@subjects/dto/basic-subject.dto';
-
 
 /**
  * Interface representing the structure of Excel columns for subject import
@@ -25,7 +24,6 @@ export interface IExcelSubject {
     taller      : number;
     laboratorio : number;
 }
-
 
 /**
  * DTO for bulk subject creation from Excel import
