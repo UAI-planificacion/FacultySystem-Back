@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { $Enums, PrismaClient } from 'generated/prisma';
+import * as XLSX from 'xlsx';
 
 import {
     SessionAvailabilityResponse,
@@ -958,8 +959,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 
     async calculateSessionAvailabilitySpaceOrProfessor(
-        sectionId: string,
-        calculateAvailabilityDto: CalculateAvailabilityDto[]
+        type : 'space' | 'professor',
+        data : any[]
     ) {
         try {
 
@@ -970,6 +971,120 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to calculate session availability' );
         }
+    }
+
+
+    async exportSessionsWithoutAssignment( type: 'space' | 'professor' ) {
+        // 1. Buscar las secciones abiertas con sesiones sin asignación
+        // TODO: Agregar inscritos en section
+        const sections = await this.section.findMany({
+            select : {
+                id          : true,
+                code        : true,
+                building    : true,
+                spaceType   : true,
+                quota       : true,
+                subject     : {
+                    select: {
+                        id      : true,
+                        name    : true
+                    }
+                },
+                period      : {
+                    select: {
+                        id      : true,
+                        type    : true,
+                        name    : true
+                    }
+                },
+                spaceSize   : {
+                    select: {
+                        id      : true,
+                        detail  : true
+                    }
+                },
+                sessions    : {
+                    where:
+                        type === 'space'
+                            ? {spaceId: null}
+                            : { professorId: null },
+                    select: {
+                        id          : true,
+                        name        : true,
+                        spaceId     : true,
+                        professor : {
+                            select: {
+                                id      : true,
+                                name    : true
+                            }
+                        },
+                        dayModule   : {
+                            select: {
+                                dayId   : true,
+                                module  : {
+                                    select: {
+                                        code: true,
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+        });
+
+        const rows = sections.flatMap( section => section.sessions.map( session => ({
+            SSEC                : `${section.subject.id}-${section.code}`,
+            Numero              : section.code,
+            NombreAsignatura    : section.subject.name,
+            Dia                 : session.dayModule?.dayId ?? null,
+            Modulo              : session.dayModule?.module?.code ?? null,
+            Periodo             : `${section.period.id}-${section.period.name}`,
+            TipoPeriodo         : section.period.type,
+            Edificio            : section.building ?? null,
+            TipoEspacio         : section.spaceType ?? null,
+            TamanoEspacio       : section.spaceSize ? `${section.spaceSize.id}-${section.spaceSize.detail}` : null,
+            TipoSesion          : session.name,
+            Cupos               : section.quota,
+            ...( type === 'space' ? {
+                Profesor    : session.professor ? `${session.professor.id}-${session.professor.name}` : null,
+                Espacio     : null,
+            } : {
+                Espacio     : session.spaceId ?? null,
+                Profesor    : null,
+            }),
+        })));
+
+        // 3. Definir el orden y nombre de las columnas
+        const headers: string[] = [
+            'SSEC',
+            'Numero',
+            'NombreAsignatura',
+            'Dia',
+            'Modulo',
+            'Periodo',
+            'TipoPeriodo',
+            'Edificio',
+            'TipoEspacio',
+            'TamanoEspacio',
+            'TipoSesion',
+            'Cupos',
+            ...( type === 'space' ? ['Profesor', 'Espacio'] : ['Espacio', 'Profesor'] )
+        ];
+
+        // 4. Crear el Excel
+        const worksheet = XLSX.utils.json_to_sheet( rows, { header: headers });
+        const workbook  = XLSX.utils.book_new();
+
+        XLSX.utils.book_append_sheet( workbook, worksheet, 'Sessions' );
+
+        // 5. Generar el buffer del archivo
+        const excelBuffer = XLSX.write( workbook, {
+            type        : 'buffer',
+            bookType    : 'xlsx'
+        });
+
+        return excelBuffer;
     }
 
 }
