@@ -8,7 +8,10 @@ import {
     Delete,
     UseInterceptors,
     UploadedFile,
-    BadRequestException
+    BadRequestException,
+    Res,
+    Header,
+    StreamableFile
 }                               from '@nestjs/common';
 import { FileInterceptor }      from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
@@ -47,6 +50,24 @@ export class SessionsController {
         @Body() createMassiveSessionDto: CreateMassiveSessionDto[]
     ) {
         return this.sessionsService.createMassive( sectionId, createMassiveSessionDto );
+    }
+
+
+    @Get('without-reservation/:type')  
+    @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
+    async findSessionsWithoutReservation(  
+        @Param('type') type: 'space' | 'professor',  
+    ): Promise<StreamableFile> {  
+        if (!['space', 'professor'].includes(type)) {  
+            throw new BadRequestException('Invalid type parameter. Must be "space" or "professor"');  
+        }  
+
+        const buffer = await this.sessionsService.exportSessionsWithoutAssignment(type);  
+
+        return new StreamableFile(buffer, {  
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  
+            disposition: `attachment; filename="sessions-without-${type}.xlsx"`,  
+        });  
     }
 
 
@@ -120,11 +141,6 @@ export class SessionsController {
     ) {
         return this.sessionsService.massiveRemove( ids.split( ',' ) );
     }
-
-
-
-
-
 
 
     /**
