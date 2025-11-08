@@ -87,7 +87,6 @@ export class SubjectsController {
         return this.subjectsService.remove( id );
     }
 
-
     /**
      * Upload Excel file and create subjects in bulk
      * @param file - Excel file containing subjects data
