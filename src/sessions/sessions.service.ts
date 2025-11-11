@@ -14,7 +14,7 @@ import {
     AvailableProfessor,
     ScheduledDate
 }                                   from '@sessions/interfaces/session-availability.interface';
-import { SpacesService }            from '@commons/services/spaces.service';
+import { Space, SpacesService }            from '@commons/services/spaces.service';
 import { PrismaException }          from '@config/prisma-catch';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
@@ -23,6 +23,7 @@ import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.d
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
 import { SectionsService }          from '@sections/sections.service';
+import { SessionAvailabilityResult, SessionDataDto } from './interfaces/excelSession.dto';
 
 
 @Injectable()
@@ -958,20 +959,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 	}
 
 
-    async calculateSessionAvailabilitySpaceOrProfessor(
-        type : 'space' | 'professor',
-        data : any[]
-    ) {
-        try {
-
-            
-
-
-
-        } catch ( error ) {
-            throw PrismaException.catch( error, 'Failed to calculate session availability' );
-        }
-    }
+  
 
 
     async exportSessionsWithoutAssignment( type: 'space' | 'professor' ) {
@@ -1035,6 +1023,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         const rows = sections.flatMap( section => section.sessions.map( session => ({
             SSEC                : `${section.subject.id}-${section.code}`,
+            SesionId            : session.id,
             Numero              : section.code,
             NombreAsignatura    : section.subject.name,
             Dia                 : session.dayModule?.dayId ?? null,
@@ -1058,6 +1047,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         // 3. Definir el orden y nombre de las columnas
         const headers: string[] = [
             'SSEC',
+            'SesionId',
             'Numero',
             'NombreAsignatura',
             'Dia',
@@ -1086,5 +1076,287 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         return excelBuffer;
     }
+
+
+    async calculateSessionAvailabilitySpaceOrProfessor(
+    type            : 'space' | 'professor',
+    sessionDataList : SessionDataDto[]
+): Promise<SessionAvailabilityResult[]> {
+    try {
+        // 1. Extraer todos los sessionIds
+        const sessionIds = sessionDataList
+            .map(data => data.sessionId)
+            .filter(Boolean);
+
+        if (sessionIds.length === 0) {
+            throw new BadRequestException('No se encontraron sessionIds válidos');
+        }
+
+        // 2. Obtener todas las sesiones de una sola vez (optimización)
+        const sessions = await this.session.findMany({
+            where: {
+                id: { in: sessionIds }
+            },
+            include: {
+                section: {
+                    include: {
+                        subject: {
+                            select: {
+                                id: true
+                            }
+                        }
+                    }
+                },
+                dayModule: {
+                    include: {
+                        day: true,
+                        module: true
+                    }
+                }
+            }
+        });
+
+        // Crear un mapa para acceso rápido
+        const sessionMap = new Map(sessions.map(s => [s.id, s]));
+
+        // 3. Si es tipo 'space', obtener todos los espacios del servicio externo
+        let allSpaces: Space[] = [];
+        if (type === 'space') {
+            allSpaces = await this.spacesService.getSpaces();
+        }
+
+        // 4. Si es tipo 'professor', obtener todos los profesores mencionados
+        let professorMap = new Map<string, { id: string; name: string }>();
+        if (type === 'professor') {
+            const professorIds = sessionDataList
+                .map(data => data.professor?.id)
+                .filter(Boolean) as string[];
+
+            const uniqueProfessorIds = [...new Set(professorIds)];
+
+            if (uniqueProfessorIds.length > 0) {
+                const professors = await this.professor.findMany({
+                    where: {
+                        id: { in: uniqueProfessorIds }
+                    },
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                });
+
+                professorMap = new Map(professors.map(p => [p.id, { id: p.id, name: p.name }]));
+            }
+        }
+
+        // 5. Procesar cada SessionDataDto
+        const results: SessionAvailabilityResult[] = [];
+
+        for (const data of sessionDataList) {
+            const session = sessionMap.get(data.sessionId);
+
+            if (!session) {
+                results.push({
+                    SSEC        : 'UNKNOWN',
+                    session     : 'UNKNOWN',
+                    date        : new Date(),
+                    module      : 'UNKNOWN',
+                    status      : 'Unavailable',
+                    detalle     : `Sesión con ID ${data.sessionId} no encontrada en la base de datos`,
+                    sessionId   : data.sessionId,
+                    ...(type === 'space' ? { spaceId: data.spaceId || '' } : {}),
+                    ...(type === 'professor' ? { professor: data.professor || { id: '', name: '' } } : {})
+                });
+                continue;
+            }
+
+            // Construir el módulo con formato: startHour - endHour - difference (si existe)
+            const module = session.dayModule.module;
+            const moduleStr = module.difference
+                ? `${module.startHour} - ${module.endHour} - ${module.difference}`
+                : `${module.startHour} - ${module.endHour}`;
+
+            // Construir SSEC
+            const SSEC = `${session.section.subject.id}-${session.section.code}`;
+
+            // --- VALIDACIÓN PARA ESPACIOS ---
+            if (type === 'space') {
+                const spaceId = data.spaceId;
+
+                if (!spaceId) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        spaceId     : '',
+                        status      : 'Unavailable',
+                        detalle     : 'No se especificó un espacio',
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Buscar el espacio en la lista obtenida del servicio externo
+                const space = allSpaces.find(s => s.name === spaceId);
+
+                if (!space) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        spaceId,
+                        status      : 'Unavailable',
+                        detalle     : `Espacio "${spaceId}" no encontrado en el sistema`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                if (!space.active) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        spaceId,
+                        status      : 'Unavailable',
+                        detalle     : `Espacio "${spaceId}" está inactivo`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Verificar si el espacio ya está ocupado en esa fecha/módulo
+                const conflictingSession = await this.session.findFirst({
+                    where: {
+                        date        : session.date,
+                        dayModuleId : session.dayModuleId,
+                        spaceId     : spaceId,
+                        id          : { not: session.id }
+                    }
+                });
+
+                if (conflictingSession) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        spaceId,
+                        status      : 'Unavailable',
+                        detalle     : `Espacio "${spaceId}" ya está ocupado en esta fecha y horario`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Verificar capacidad del espacio vs cupo de la sección
+                const quota = session.section.quota || 0;
+                if (space.capacity < quota) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        spaceId,
+                        status      : 'Probable',
+                        detalle     : `Capacidad del espacio (${space.capacity}) es menor que el cupo de la sección (${quota})`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Todo OK
+                results.push({
+                    SSEC,
+                    session     : session.name,
+                    date        : session.date,
+                    module      : moduleStr,
+                    spaceId,
+                    status      : 'Available',
+                    detalle     : 'Espacio disponible para reserva',
+                    sessionId   : session.id
+                });
+            }
+
+            // --- VALIDACIÓN PARA PROFESORES ---
+            if (type === 'professor') {
+                const professorId = data.professor?.id;
+
+                if (!professorId) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        professor   : { id: '', name: '' },
+                        status      : 'Unavailable',
+                        detalle     : 'No se especificó un profesor',
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                const professor = professorMap.get(professorId);
+
+                if (!professor) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        professor   : { id: professorId, name: '' },
+                        status      : 'Unavailable',
+                        detalle     : `Profesor con ID "${professorId}" no encontrado en la base de datos`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Verificar si el profesor ya está ocupado en esa fecha/módulo
+                const conflictingSession = await this.session.findFirst({
+                    where: {
+                        date        : session.date,
+                        dayModuleId : session.dayModuleId,
+                        professorId : professorId,
+                        id          : { not: session.id }
+                    }
+                });
+
+                if (conflictingSession) {
+                    results.push({
+                        SSEC,
+                        session     : session.name,
+                        date        : session.date,
+                        module      : moduleStr,
+                        professor,
+                        status      : 'Unavailable',
+                        detalle     : `Profesor "${professor.name}" ya está ocupado en esta fecha y horario`,
+                        sessionId   : session.id
+                    });
+                    continue;
+                }
+
+                // Todo OK
+                results.push({
+                    SSEC,
+                    session     : session.name,
+                    date        : session.date,
+                    module      : moduleStr,
+                    professor,
+                    status      : 'Available',
+                    detalle     : 'Profesor disponible para asignación',
+                    sessionId   : session.id
+                });
+            }
+        }
+
+        return results;
+    } catch (error) {
+        throw PrismaException.catch(error, 'Error al calcular disponibilidad de sesiones');
+    }
+}
 
 }
