@@ -37,7 +37,7 @@ interface Lov {
 }
 
 
-interface Space {
+export interface Space {
     id          : number;
     name        : string;
     active      : boolean;
