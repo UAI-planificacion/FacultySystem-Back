@@ -25,7 +25,7 @@ import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.d
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
-import { ExcelSessionDto }          from '@sessions/interfaces/excelSession.dto';
+import { ExcelSessionDto, SessionDataDto }          from '@sessions/interfaces/excelSession.dto';
 
 
 @Controller( 'sessions' )
@@ -148,7 +148,7 @@ export class SessionsController {
      * @param file - Excel file containing subjects data
      * @returns Result of bulk creation with success/error details
      */
-    @Post( 'bulk-upload/:facultyId' )
+    @Post( 'bulk-upload/:type' )
     @UseInterceptors( FileInterceptor( 'file' ) )
     @ApiConsumes( 'multipart/form-data' )
     // @ApiBody({
@@ -189,7 +189,6 @@ export class SessionsController {
             }
 
             // Validate required columns
-            // const requiredColumns   = ['SSEC', 'sessionId', 'dayModuleId'];
             const requiredColumns   = ['SSEC', 'sessionId'];
             const firstRow          = jsonData[0];
             const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
@@ -200,36 +199,21 @@ export class SessionsController {
                 );
             }
 
-            const data = jsonData.slice( 1 );
+            const sessionDataList: SessionDataDto[] = jsonData.map(row => ({
+                sessionId : row.SesionId    || row['sessionId'],
+                ...( type === 'space' 
+                    ? { spaceId: row.Espacio || row['sessionId'] }
+                    : { professor: row.Profesor
+                        ? { id: row.Profesor, name: '' }
+                        : undefined 
+                    }
+                )
+            }));
 
-            // // Process data and convert to proper format
-            // const processedData = jsonData.map(( row, index ) => {
-            //     try {
-            //         return {
-            //             facultyId,
-            //             id          : row.id.trim(),
-            //             name        : row.name.trim(),
-            //             spaceType   : row.spaceType,
-            //             spaceSizeId : row.spaceSize,
-            //             gradeId     : row.grade,
-            //             workshop,
-            //             lecture,
-            //             tutoringSession,
-            //             laboratory,
-            //         };
-            //     } catch ( error ) {
-            //         throw new BadRequestException(
-            //             `Error processing row ${index + 2}: ${error.message}` 
-            //         );
-            //     }
-            // });
-
-            // Create bulk DTO
-            // const bulkCreateDto: AvailableSessionDto | null = null;
-
-            // Process bulk creation
-            // return await this.subjectsService.createBulk( bulkCreateDto, facultyId );
-            return []
+            return await this.sessionsService.calculateSessionAvailabilitySpaceOrProfessor(  
+                type,  
+                sessionDataList  
+            );
         } catch ( error ) {
             if ( error instanceof BadRequestException ) {
                 throw error;
