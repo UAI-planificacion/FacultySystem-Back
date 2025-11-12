@@ -9,7 +9,6 @@ import {
     UseInterceptors,
     UploadedFile,
     BadRequestException,
-    Res,
     Header,
     StreamableFile
 }                               from '@nestjs/common';
@@ -18,14 +17,15 @@ import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 
 import * as XLSX from 'xlsx';
 
-import { SessionsService }          from '@sessions/sessions.service';
-import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
-import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
-import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
-import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
-import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
-import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
-import { ExcelSessionDto, SessionDataDto }          from '@sessions/interfaces/excelSession.dto';
+import { SessionsService }                      from '@sessions/sessions.service';
+import { CreateSessionDto }                     from '@sessions/dto/create-session.dto';
+import { UpdateSessionDto }                     from '@sessions/dto/update-session.dto';
+import { CreateMassiveSessionDto }              from '@sessions/dto/create-massive-session.dto';
+import { MassiveUpdateSessionDto }              from '@sessions/dto/massive-update-session.dto';
+import { CalculateAvailabilityDto }             from '@sessions/dto/calculate-availability.dto';
+import { AvailableSessionDto }                  from '@sessions/dto/available-session.dto';
+import { AssignSessionAvailabilityRequestDto }  from '@sessions/dto/assign-session-availability.dto';
+import { ExcelSessionDto, SessionDataDto }      from '@sessions/interfaces/excelSession.dto';
 
 
 @Controller( 'sessions' )
@@ -148,7 +148,8 @@ export class SessionsController {
      * @param file - Excel file containing subjects data
      * @returns Result of bulk creation with success/error details
      */
-    @Post( 'bulk-upload/:type' )
+    // @Post( 'bulk-upload/:type' )
+    @Post( 'bulk-upload' )
     @UseInterceptors( FileInterceptor( 'file' ) )
     @ApiConsumes( 'multipart/form-data' )
     // @ApiBody({
@@ -164,21 +165,50 @@ export class SessionsController {
     //     }
     // })
     async uploadExcel(
-        @Param( 'type' ) type: 'space' | 'professor',
         @UploadedFile() file: Express.Multer.File
     ) {
         if ( !file ) {
             throw new BadRequestException( 'No file uploaded' );
         }
 
-        if ( !file.originalname.match( /\.(xlsx|xls)$/ ) ) {
+        if ( !file.originalname.match( /\.(xlsx|xls)$/ )) {
             throw new BadRequestException( 'Only Excel files are allowed' );
         }
 
         try {
+            // 1. Leer el archivo Excel
+            const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+
+            // 2. ✅ Extraer el tipo desde la hoja _meta
+            const metaSheet = workbook.Sheets['_meta'];
+
+            if ( !metaSheet ) {
+                throw new BadRequestException(
+                    'Archivo inválido. No contiene metadata (_meta). ' +
+                    'Asegúrate de usar el archivo generado por el sistema.'
+                );
+            }
+
             // Read Excel file
-            const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
+            // const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
+            const metaData = XLSX.utils.sheet_to_json(metaSheet, { header: 1 }) as any[][];
+            const typeRow = metaData.find(row => row[0] === 'type');
+            const type: 'space' | 'professor' = typeRow ? typeRow[1] : null;
+
+            if ( !type || !['space', 'professor'].includes( type )) {
+                throw new BadRequestException(
+                    'No se pudo determinar el tipo del archivo desde metadata. ' +
+                    'Tipo detectado: ' + ( type || 'ninguno' )
+                );
+            }
+
+            // 3. Leer la hoja principal (Sessions)
             const sheetName = workbook.SheetNames[0];
+
+            if ( !sheetName ) {
+                throw new BadRequestException( 'El archivo no contiene la hoja "Sessions"' );
+            }
+
             const worksheet = workbook.Sheets[sheetName];
 
             // Convert to JSON
@@ -189,23 +219,24 @@ export class SessionsController {
             }
 
             // Validate required columns
-            const requiredColumns   = ['SSEC', 'sessionId'];
+            // const requiredColumns   = ['SSEC', 'SesionId',  type === 'space' ? 'Espacio' : 'Profesor'];
+            const requiredColumns   = ['SSEC', 'SesionId'];
             const firstRow          = jsonData[0];
             const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
 
             if ( missingColumns.length > 0 ) {
-                throw new BadRequestException( 
-                    `Missing required columns: ${missingColumns.join( ', ' )}` 
+                throw new BadRequestException(
+                    `Missing required columns: ${missingColumns.join( ', ' )}`
                 );
             }
 
             const sessionDataList: SessionDataDto[] = jsonData.map(row => ({
-                sessionId : row.SesionId    || row['sessionId'],
-                ...( type === 'space' 
-                    ? { spaceId: row.Espacio || row['sessionId'] }
+                sessionId : row.SesionId || row['sessionId'],
+                ...( type === 'space'
+                    ? { spaceId: row.Espacio || row['sessionId']}
                     : { professor: row.Profesor
                         ? { id: row.Profesor, name: '' }
-                        : undefined 
+                        : undefined
                     }
                 )
             }));
@@ -222,6 +253,16 @@ export class SessionsController {
                 `Error processing Excel file: ${error.message}` 
             );
         }
+    }
+
+
+    @Post( 'availability/assign' )
+    assignAvailability(
+        @Body() assignSessionAvailabilityRequestDto: AssignSessionAvailabilityRequestDto
+    ) {
+        return this.sessionsService.assignSessionAvailability(
+            assignSessionAvailabilityRequestDto
+        );
     }
 
 }
