@@ -10,7 +10,8 @@ import {
     UploadedFile,
     BadRequestException,
     Header,
-    StreamableFile
+    StreamableFile,
+    Query
 }                               from '@nestjs/common';
 import { FileInterceptor }      from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
@@ -24,7 +25,7 @@ import { CreateMassiveSessionDto }              from '@sessions/dto/create-massi
 import { MassiveUpdateSessionDto }              from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto }             from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }                  from '@sessions/dto/available-session.dto';
-import { AssignSessionAvailabilityRequestDto }  from '@sessions/dto/assign-session-availability.dto';
+import { AssignSessionAvailabilityDto }         from '@sessions/dto/assign-session-availability.dto';
 import { ExcelSessionDto, SessionDataDto }      from '@sessions/interfaces/excelSession.dto';
 
 
@@ -256,12 +257,19 @@ export class SessionsController {
     }
 
 
-    @Post( 'availability/assign' )
+    @Patch( 'availability/assign' )
+    @ApiBody({
+        description : 'Listado de sesiones con la disponibilidad a asignar',
+        type        : AssignSessionAvailabilityDto,
+        isArray     : true
+    })
     assignAvailability(
-        @Body() assignSessionAvailabilityRequestDto: AssignSessionAvailabilityRequestDto
+        @Query( 'seamlessly' ) seamlessly: boolean = true,
+        @Body() assignments: AssignSessionAvailabilityDto[]
     ) {
         return this.sessionsService.assignSessionAvailability(
-            assignSessionAvailabilityRequestDto
+            seamlessly,
+            assignments
         );
     }
 
