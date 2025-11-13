@@ -16,7 +16,7 @@ import {
 }                                   from '@sessions/interfaces/session-availability.interface';
 import {
 	AssignAvailabilityType,
-	AssignSessionAvailabilityRequestDto
+	AssignSessionAvailabilityDto
 }                                   from '@sessions/dto/assign-session-availability.dto';
 import {
     SessionAvailabilityResult,
@@ -644,21 +644,21 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 	/**
 	 * Assign spaces or professors to sessions validating availability and capacities.
-	 * @param assignSessionAvailabilityRequestDto - Request payload with assignments to process.
+	 * @param assignments - Listado de sesiones con la asignación a aplicar.
 	 * @returns Updated sessions converted to DTO format.
 	 */
 	async assignSessionAvailability(
-		assignSessionAvailabilityRequestDto: AssignSessionAvailabilityRequestDto
+		seamlessly: boolean,
+		assignments: AssignSessionAvailabilityDto[]
 	) {
 		try {
-			const { type, assignments } = assignSessionAvailabilityRequestDto;
-
 			if ( assignments.length === 0 ) {
 				throw new BadRequestException( 'No se recibieron asignaciones para procesar' );
 			}
 
 			const sessionIds       : string[]      = [];
 			const sessionIdTracker : Set<string>   = new Set();
+			let type              : AssignAvailabilityType | null = null;
 
 			for ( const assignment of assignments ) {
 				if ( sessionIdTracker.has( assignment.sessionId )) {
@@ -667,6 +667,27 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 				sessionIdTracker.add( assignment.sessionId );
 				sessionIds.push( assignment.sessionId );
+
+				const hasSpace       = Boolean( assignment.spaceId );
+				const hasProfessor   = Boolean( assignment.professorId );
+
+				if ( hasSpace === hasProfessor ) {
+					throw new BadRequestException( 'Cada asignación debe incluir únicamente spaceId o professorId' );
+				}
+
+				const currentType = hasSpace
+					? AssignAvailabilityType.space
+					: AssignAvailabilityType.professor;
+
+				if ( type === null ) {
+					type = currentType;
+				} else if ( type !== currentType ) {
+					throw new BadRequestException( 'Todas las asignaciones deben pertenecer al mismo tipo' );
+				}
+			}
+
+			if ( type === null ) {
+				throw new BadRequestException( 'No se pudo determinar el tipo de asignación a partir de los datos enviados' );
 			}
 
 			const sessions = await this.session.findMany({
@@ -784,6 +805,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 					const quota           = session.section?.quota || 0;
 					const chairsAvailable = space.capacity - quota;
+
+                    // Si seamlessly es true no se puede asignar negativos
+                    // Si seamlessly es false se pueden asignar negativos
+                    if ( chairsAvailable < 0 && seamlessly ) {
+                        continue;
+                    }
 
 					sessionUpdates.push({
 						id      : session.id,
