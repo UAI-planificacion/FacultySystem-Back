@@ -1,14 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 import {
-	ArrayNotEmpty,
-	IsArray,
-	IsEnum,
 	IsOptional,
-	IsString,
-	ValidateNested
+	IsString
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 
 export class AssignSessionAvailabilityDto {
@@ -44,28 +39,4 @@ export class AssignSessionAvailabilityDto {
 export enum AssignAvailabilityType {
 	space       = 'space',
 	professor   = 'professor'
-}
-
-
-export class AssignSessionAvailabilityRequestDto {
-
-	@ApiProperty({
-		description : 'Tipo de asignación a ejecutar',
-		enum        : AssignAvailabilityType,
-		example     : AssignAvailabilityType.space
-	})
-	@IsEnum( AssignAvailabilityType )
-	type        : AssignAvailabilityType;
-
-
-	@ApiProperty({
-		description : 'Listado de sesiones a actualizar con su disponibilidad seleccionada',
-		type        : [AssignSessionAvailabilityDto]
-	})
-	@IsArray()
-	@ArrayNotEmpty()
-	@ValidateNested({ each: true })
-	@Type( () => AssignSessionAvailabilityDto )
-	assignments : AssignSessionAvailabilityDto[];
-
 }
