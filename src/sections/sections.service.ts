@@ -307,6 +307,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     workshop        : true,
                     lecture         : true,
                     tutoringSession : true,
+                    quota           : true,
                 }
             });
 
@@ -377,6 +378,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 ...sectionBaseData,
                 startDate   : createSectionDto.startDate    || period.startDate,
                 endDate     : createSectionDto.endDate      || period.endDate,
+                quota       : createSectionDto.quota        || subject.quota || 0,
                 lecture,
                 workshop,
                 tutoringSession,

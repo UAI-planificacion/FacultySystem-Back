@@ -26,6 +26,7 @@ export interface IExcelSection {
 	ayudantia           : number;
 	taller		        : number;
 	numberOfSections	: number;
+    quota               : number;
 }
 
 /**

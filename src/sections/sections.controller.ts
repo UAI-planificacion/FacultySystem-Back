@@ -141,6 +141,7 @@ export class SectionsController {
             // Process data and convert to proper format
             const processedData: CreateSectionDto[] = jsonData.map(( row, index ) => {
                 try {
+                    const quota             = Number( row.quota )               || 0;
                     const workshop          = Number( row.taller )              || 0;
                     const lecture           = Number( row.catedra )             || 0;
                     const tutoringSession   = Number( row.ayudantia )           || 0;
@@ -157,6 +158,7 @@ export class SectionsController {
                         periodId        : row.periodId?.toString().trim(),
                         subjectId       : row.subjectId?.toString().trim(),
                         professorId     : row.professorId?.toString().trim() || undefined,
+                        quota           : quota,
                         spaceSizeId     : row.spaceSizeId   || undefined,
                         spaceType       : row.spaceType     || undefined,
                         startDate       : row.startDate     ? new Date( row.startDate ) : undefined,
