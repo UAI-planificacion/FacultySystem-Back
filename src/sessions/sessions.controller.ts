@@ -57,10 +57,10 @@ export class SessionsController {
     @Get('without-reservation/:type')  
     @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
     async findSessionsWithoutReservation(  
-        @Param('type') type: 'space' | 'professor',  
+        @Param('type') type: 'space' | 'professor' | 'registered',  
     ): Promise<StreamableFile> {  
-        if (!['space', 'professor'].includes(type)) {  
-            throw new BadRequestException('Invalid type parameter. Must be "space" or "professor"');  
+        if (!['space', 'professor', 'registered'].includes(type)) {  
+            throw new BadRequestException('Invalid type parameter. Must be "space", "professor" or "registered"');  
         }  
 
         const buffer = await this.sessionsService.exportSessionsWithoutAssignment(type);  
