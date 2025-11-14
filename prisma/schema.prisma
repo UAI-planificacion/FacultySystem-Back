@@ -114,7 +114,8 @@ model Section {
     endDate         DateTime
     spaceType       SpaceType?
     building        Building?
-    quota           Int? @default( 0 )
+    quota           Int
+    registered      Int? @default( 0 )
 
     periodId        String
     period          Period @relation(fields: [periodId], references: [id], onDelete: Cascade)
@@ -146,9 +147,6 @@ model Session {
     id                      String @id @default(ulid())
     name                    SessionName
     spaceId                 String?
-    correctedRegistrants    Int?
-    realRegistrants         Int?
-    plannedBuilding         String?
     chairsAvailable         Int?
     isEnglish               Boolean @default( false )
     date                    DateTime
