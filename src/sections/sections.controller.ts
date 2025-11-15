@@ -10,7 +10,6 @@ import {
     Delete,
     UseInterceptors,
     UploadedFile,
-    ParseUUIDPipe,
     BadRequestException
 }                           from '@nestjs/common';
 import {
@@ -72,7 +71,6 @@ export class SectionsController {
     ){
         return this.sectionsService.createMassiveOfferSections( createSectionDto );
     }
-
 
     /**
      * Upload Excel file and create section offers in bulk
@@ -245,30 +243,6 @@ export class SectionsController {
     }
 
 
-    // @Patch( 'massive/:ids' )
-    // @ApiOperation({ summary: 'Update a section' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // massiveUpdate(
-    //     @Param( 'ids' ) ids: string,
-    //     @Body() updateSectionDto: UpdateSectionDto
-    // ) {
-    //     return this.sectionsService.massiveUpdate( ids.split(','), updateSectionDto );
-    // }
-
-
-    // @Patch( 'groupId/:id' )
-    // @ApiOperation({ summary: 'Update a section' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // updateByGroup(
-    //     @Param( 'id', ParseUUIDPipe ) id: string,
-    //     @Body() updateGroupDto: UpdateGroupDto
-    // ) {
-    //     return this.sectionsService.updateByGroup( id, updateGroupDto );
-    // }
-
-
     @Patch( 'changeStatus/:id' )
     @ApiOperation({ summary: 'Update a section' })
     @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
@@ -289,32 +263,5 @@ export class SectionsController {
     ) {
         return this.sectionsService.remove( id );
     }
-
-
-    // @Delete( 'groupId/:id' )
-    // @ApiOperation({ summary: 'Delete a section by group id' })
-    // @ApiResponse({ status: 200, description: 'The section has been successfully deleted.' })
-    // @ApiResponse({ status: 404, description: 'Section not found' })
-    // removeByGroupId(
-    //     @Param( 'id' ) id: string
-    // ) {
-    //     return this.sectionsService.removeByGroupId( id );
-    // }
-
-
-    // @Post( 'create-massive-by-subject/:id' )
-    // @ApiOperation({ summary: 'Create multiple sections for a specific subject' })
-    // @ApiResponse({ 
-    //     status: 201, 
-    //     description: 'The sections have been successfully created.',
-    //     type: [SectionDto]
-    // })
-    // @ApiResponse({ status: 400, description: 'Bad Request or validation error.' })
-    // createMassive(
-    //     @Param( 'id' ) subjectId            : string,
-    //     @Body() createInitialSectionDtos    : CreateInitialSectionDto[]
-    // ) {
-    //     return this.sectionsService.createBasic( subjectId, createInitialSectionDtos );
-    // }
 
 }
