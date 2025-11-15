@@ -4,6 +4,9 @@ import {
     IsDate,
     IsOptional,
     IsEnum,
+    Max,
+    Min,
+    IsNumber,
 }                   from 'class-validator';
 import { Type }     from 'class-transformer';
 import { $Enums }   from 'generated/prisma';
@@ -46,5 +49,16 @@ export class BasicSectionDto extends IntersectionType(
     @IsOptional()
     @IsEnum($Enums.Building, { message: 'Section building must be a valid building.' })
     building?: $Enums.Building;
+
+
+    @ApiPropertyOptional({
+        description: 'The registered of the section.',
+        example: 10,
+    })
+    @IsNumber()
+    @Min( 1 )
+    @Max( 1000 )
+    @IsOptional()
+    registered?: number;
 
 }
