@@ -11,22 +11,28 @@ import {
     BadRequestException,
     Header,
     StreamableFile,
-    Query
+    Query,
 }                               from '@nestjs/common';
 import { FileInterceptor }      from '@nestjs/platform-express';
 import { ApiBody, ApiConsumes } from '@nestjs/swagger';
 
 import * as XLSX from 'xlsx';
 
-import { SessionsService }                      from '@sessions/sessions.service';
-import { CreateSessionDto }                     from '@sessions/dto/create-session.dto';
-import { UpdateSessionDto }                     from '@sessions/dto/update-session.dto';
-import { CreateMassiveSessionDto }              from '@sessions/dto/create-massive-session.dto';
-import { MassiveUpdateSessionDto }              from '@sessions/dto/massive-update-session.dto';
-import { CalculateAvailabilityDto }             from '@sessions/dto/calculate-availability.dto';
-import { AvailableSessionDto }                  from '@sessions/dto/available-session.dto';
-import { AssignSessionAvailabilityDto }         from '@sessions/dto/assign-session-availability.dto';
-import { ExcelSessionDto, SessionDataDto }      from '@sessions/interfaces/excelSession.dto';
+import {
+    ExcelSectionDto,
+    ExcelSessionDto,
+    SectionDataDto,
+    SessionDataDto,
+    Type
+}                                       from '@sessions/interfaces/excelSession.dto';
+import { SessionsService }              from '@sessions/sessions.service';
+import { CreateSessionDto }             from '@sessions/dto/create-session.dto';
+import { UpdateSessionDto }             from '@sessions/dto/update-session.dto';
+import { CreateMassiveSessionDto }      from '@sessions/dto/create-massive-session.dto';
+import { MassiveUpdateSessionDto }      from '@sessions/dto/massive-update-session.dto';
+import { CalculateAvailabilityDto }     from '@sessions/dto/calculate-availability.dto';
+import { AvailableSessionDto }          from '@sessions/dto/available-session.dto';
+import { AssignSessionAvailabilityDto } from '@sessions/dto/assign-session-availability.dto';
 
 
 @Controller( 'sessions' )
@@ -54,21 +60,21 @@ export class SessionsController {
     }
 
 
-    @Get('without-reservation/:type')  
-    @Header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  
-    async findSessionsWithoutReservation(  
-        @Param('type') type: 'space' | 'professor' | 'registered',  
-    ): Promise<StreamableFile> {  
-        if (!['space', 'professor', 'registered'].includes(type)) {  
-            throw new BadRequestException('Invalid type parameter. Must be "space", "professor" or "registered"');  
-        }  
+    @Get( 'without-reservation/:type' )
+    @Header( 'Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' )
+    async findSessionsWithoutReservation(
+        @Param( 'type' ) type: Type,
+    ): Promise<StreamableFile> {
+        if ( ![ Type.SPACE, Type.PROFESSOR, Type.REGISTERED ].includes( type )) {
+            throw new BadRequestException( 'Invalid type parameter. Must be "space", "professor" or "registered"' );
+        }
 
-        const buffer = await this.sessionsService.exportSessionsWithoutAssignment(type);  
+        const buffer = await this.sessionsService.exportSessionsWithoutAssignment( type );
 
-        return new StreamableFile(buffer, {  
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  
-            disposition: `attachment; filename="sessions-without-${type}.xlsx"`,  
-        });  
+        return new StreamableFile( buffer, {
+            type        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            disposition : `attachment; filename="sessions-without-${type}.xlsx"`,
+        });
     }
 
 
@@ -143,7 +149,6 @@ export class SessionsController {
         return this.sessionsService.massiveRemove( ids.split( ',' ) );
     }
 
-
     /**
      * Upload Excel file and create subjects in bulk
      * @param file - Excel file containing subjects data
@@ -181,7 +186,7 @@ export class SessionsController {
             const workbook = XLSX.read(file.buffer, { type: 'buffer' });
 
             // 2. ✅ Extraer el tipo desde la hoja _meta
-            const metaSheet = workbook.Sheets['_meta'];
+            const metaSheet = workbook.Sheets[ '_meta' ];
 
             if ( !metaSheet ) {
                 throw new BadRequestException(
@@ -192,11 +197,11 @@ export class SessionsController {
 
             // Read Excel file
             // const workbook  = XLSX.read( file.buffer, { type: 'buffer' });
-            const metaData = XLSX.utils.sheet_to_json(metaSheet, { header: 1 }) as any[][];
-            const typeRow = metaData.find(row => row[0] === 'type');
-            const type: 'space' | 'professor' = typeRow ? typeRow[1] : null;
+            const metaData  = XLSX.utils.sheet_to_json(metaSheet, { header: 1 }) as any[][];
+            const typeRow   = metaData.find( row => row[0] === 'type' );
+            const type      : Type = typeRow ? typeRow[1] : null;
 
-            if ( !type || !['space', 'professor'].includes( type )) {
+            if ( !type || ![ Type.SPACE, Type.PROFESSOR, Type.REGISTERED ].includes( type )) {
                 throw new BadRequestException(
                     'No se pudo determinar el tipo del archivo desde metadata. ' +
                     'Tipo detectado: ' + ( type || 'ninguno' )
@@ -204,16 +209,16 @@ export class SessionsController {
             }
 
             // 3. Leer la hoja principal (Sessions)
-            const sheetName = workbook.SheetNames[0];
+            const sheetName = workbook.SheetNames[ 0 ];
 
             if ( !sheetName ) {
                 throw new BadRequestException( 'El archivo no contiene la hoja "Sessions"' );
             }
 
-            const worksheet = workbook.Sheets[sheetName];
+            const worksheet = workbook.Sheets[ sheetName ];
 
             // Convert to JSON
-            const jsonData: ExcelSessionDto[] = XLSX.utils.sheet_to_json( worksheet );
+            const jsonData: ExcelSessionDto[] | ExcelSectionDto[] = XLSX.utils.sheet_to_json( worksheet ) as any;
 
             if ( jsonData.length === 0 ) {
                 throw new BadRequestException( 'Excel file is empty or has no valid data' );
@@ -221,37 +226,49 @@ export class SessionsController {
 
             // Validate required columns
             // const requiredColumns   = ['SSEC', 'SesionId',  type === 'space' ? 'Espacio' : 'Profesor'];
-            const requiredColumns   = ['SSEC', 'SesionId'];
-            const firstRow          = jsonData[0];
+            const requiredColumnsRegisted = [ 'SectionId', 'Inscritos' ];
+            const requiredColumns   = type === Type.REGISTERED ? requiredColumnsRegisted : [ 'SSEC', 'SesionId' ];
+            const firstRow          = jsonData[ 0 ];
             const missingColumns    = requiredColumns.filter( col => !( col in firstRow ));
 
             if ( missingColumns.length > 0 ) {
                 throw new BadRequestException(
-                    `Missing required columns: ${missingColumns.join( ', ' )}`
+                    `Missing required columns: ${ missingColumns.join( ', ' )}`
                 );
             }
 
-            const sessionDataList: SessionDataDto[] = jsonData.map(row => ({
-                sessionId : row.SesionId || row['sessionId'],
-                ...( type === 'space'
-                    ? { spaceId: row.Espacio || row['sessionId']}
-                    : { professor: row.Profesor
-                        ? { id: row.Profesor, name: '' }
-                        : undefined
-                    }
-                )
-            }));
+            let dataList : SessionDataDto[] | SectionDataDto[] = [];
 
-            return await this.sessionsService.calculateSessionAvailabilitySpaceOrProfessor(  
+            if (  type === Type.REGISTERED ) {
+                dataList = jsonData.map(row => ({
+                    sectionId   : row.SectionId || row[ 'sectionId' ],
+                    registered  : row.Inscritos || row[ 'registered' ],
+                }));
+            }
+            else {
+                dataList = jsonData.map(row => ({
+                    sessionId : row.SesionId || row[ 'sessionId' ],
+                    ...( type === Type.SPACE
+                        ? { spaceId: row.Espacio || row[ 'sessionId' ]}
+                        : { professor: row.Profesor
+                            ? { id: row.Profesor, name: '' }
+                            : undefined
+                        }
+                    )
+                }));
+            }
+
+            return await this.sessionsService.calculateSessionAvailabilitySpaceOrProfessorOrRegister(  
                 type,  
-                sessionDataList  
+                dataList  
             );
         } catch ( error ) {
             if ( error instanceof BadRequestException ) {
                 throw error;
             }
+
             throw new BadRequestException( 
-                `Error processing Excel file: ${error.message}` 
+                `Error processing Excel file: ${ error.message }` 
             );
         }
     }
