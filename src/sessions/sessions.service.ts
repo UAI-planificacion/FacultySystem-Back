@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { $Enums, PrismaClient } from 'generated/prisma';
-import * as XLSX from 'xlsx';
+import * as XLSX                from 'xlsx';
 
 import {
     SessionAvailabilityResponse,
@@ -15,12 +15,13 @@ import {
     ScheduledDate
 }                                   from '@sessions/interfaces/session-availability.interface';
 import {
-	AssignAvailabilityType,
 	AssignSessionAvailabilityDto
 }                                   from '@sessions/dto/assign-session-availability.dto';
 import {
+    SectionDataDto,
     SessionAvailabilityResult,
-    SessionDataDto
+    SessionDataDto,
+    Type
 }                                   from '@sessions/interfaces/excelSession.dto';
 import { Space, SpacesService }     from '@commons/services/spaces.service';
 import { PrismaException }          from '@config/prisma-catch';
@@ -31,6 +32,7 @@ import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.d
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
 import { SectionsService }          from '@sections/sections.service';
+import { SectionDto }               from '@sections/dto/section.dto';
 
 
 @Injectable()
@@ -50,16 +52,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 
     #selectSession = {
-        id                      : true,
-        name                    : true,
-        spaceId                 : true,
-        isEnglish               : true,
-        chairsAvailable         : true,
-        correctedRegistrants    : true,
-        realRegistrants         : true,
-        plannedBuilding         : true,
-        date                    : true,
-        dayModule               : {
+        id              : true,
+        name            : true,
+        spaceId         : true,
+        isEnglish       : true,
+        chairsAvailable : true,
+        date            : true,
+        dayModule       : {
             select: {
                 id      : true,
                 dayId   : true,
@@ -87,14 +86,14 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         },
         section : {
             select : {
-                id : true,
-                code : true,
-                startDate : true,
-                endDate: true,
-                subject: {
+                id          : true,
+                code        : true,
+                startDate   : true,
+                endDate     : true,
+                subject     : {
                     select: {
-                        id: true,
-                        name: true,
+                        id      : true,
+                        name    : true,
                     }
                 }
             }
@@ -103,27 +102,24 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 
     #convertToSessionDto = ( session: any ) => ({
-        id                      : session.id,
-        name                    : session.name,
-        spaceId                 : session.spaceId,
-        isEnglish               : session.isEnglish,
-        chairsAvailable         : session.chairsAvailable,
-        correctedRegistrants    : session.correctedRegistrants,
-        realRegistrants         : session.realRegistrants,
-        plannedBuilding         : session.plannedBuilding,
-        professor               : session.professor,
-        dayId                   : session.dayModule?.dayId || null,
-        dayModuleId             : session.dayModule?.id || null,
-        date                    : session.date,
-        planningChangeId        : session.planningChange?.id || null,
-        section                 : {
-            id          : session.section?.id || null,
-            code        : session.section?.code || null,
-            startDate   : session.section?.startDate || null,
-            endDate     : session.section?.endDate || null,
-            subject     : {
-                id          : session.section?.subject?.id || null,
-                name        : session.section?.subject?.name || null,
+        id                  : session.id,
+        name                : session.name,
+        spaceId             : session.spaceId,
+        isEnglish           : session.isEnglish,
+        chairsAvailable     : session.chairsAvailable,
+        professor           : session.professor,
+        dayId               : session.dayModule?.dayId || null,
+        dayModuleId         : session.dayModule?.id || null,
+        date                : session.date,
+        planningChangeId    : session.planningChange?.id || null,
+        section             : {
+            id                  : session.section?.id || null,
+            code                : session.section?.code || null,
+            startDate           : session.section?.startDate || null,
+            endDate             : session.section?.endDate || null,
+            subject             : {
+                id                  : session.section?.subject?.id || null,
+                name                : session.section?.subject?.name || null,
             }
         },
         module: session.dayModule?.module ? {
@@ -134,6 +130,115 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             endHour     : session.dayModule.module.endHour,
             difference  : session.dayModule.module.difference,
         } : null,
+    });
+
+
+    #selectSection = {
+        id              : true,
+        code            : true,
+        isClosed        : true,
+        groupId         : true,
+        startDate       : true,
+        endDate         : true,
+        spaceSizeId     : true,
+        spaceType       : true,
+        workshop        : true,
+        lecture         : true,
+        tutoringSession : true,
+        laboratory      : true,
+        building        : true,
+        professor: {
+            select : {
+                id      : true,
+                name    : true,
+            }
+        },
+        subject: {
+            select: {
+                id      : true,
+                name    : true,
+            }
+        },
+        period      : {
+            select: {
+                id          : true,
+                name        : true,
+                startDate   : true,
+                endDate     : true,
+                openingDate : true,
+                closingDate : true,
+            }
+        },
+        sessions: {
+            select: {
+                id          : true,
+                spaceId     : true,
+                dayModule   : {
+                    select      : {
+                        dayId       : true,
+                        moduleId    : true,
+                    }
+                },
+                professor: {
+                    select: {
+                        id      : true,
+                        name    : true,
+                    }
+                },
+            }
+        },
+        request : {
+            select: {
+                id: true,
+            }
+        },
+        _count: {
+            select: {
+                sessions: true
+            }
+        },
+    }
+
+
+    #convertToSectionDto = ( section: any ): SectionDto => ({
+        id              : section.id,
+        code            : section.code,
+        isClosed        : section.isClosed,
+        groupId         : section.groupId,
+        startDate       : section.startDate,
+        endDate         : section.endDate,
+        spaceSizeId     : section.spaceSizeId,
+        spaceType       : section.spaceType,
+        workshop        : section.workshop,
+        lecture         : section.lecture,
+        tutoringSession : section.tutoringSession,
+        laboratory      : section.laboratory,
+        building        : section.building,
+        professor       : section.professor?.id ? {
+            id      : section.professor?.id,
+            name    : section.professor?.name,
+        } : null,
+        subject: {
+            id      : section.subject.id,
+            name    : section.subject.name,
+        },
+        period: {
+            id          : section.period.id,
+            name        : section.period.name,
+            startDate   : section.period.startDate,
+            endDate     : section.period.endDate,
+            openingDate : section.period.openingDate,
+            closingDate : section.period.closingDate,
+        },
+        sessionsCount   : section._count.sessions,
+        sessions        : section.sessions.map(( session : any ) => ({
+            id              : session.id,
+            spaceId         : session.spaceId,
+            dayId           : session.dayModule?.dayId,
+            moduleId        : session.dayModule?.moduleId,
+            professorId     : session.professor?.id,
+        })),
+        haveRequest: !!section.request?.id
     });
 
 
@@ -427,7 +532,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     id          : true,
                     professorId : true,
                     quota       : true,
-                    period: {
+                    period      : {
                         select : {
                             startDate   : true,
                             endDate     : true,
@@ -675,9 +780,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 				throw new BadRequestException( 'No se recibieron asignaciones para procesar' );
 			}
 
-			const sessionIds       : string[]      = [];
-			const sessionIdTracker : Set<string>   = new Set();
-			let type              : AssignAvailabilityType | null = null;
+			const sessionIds        : string[]      = [];
+			const sessionIdTracker  : Set<string>   = new Set();
+			let type                : Type | null = null;
 
 			for ( const assignment of assignments ) {
 				if ( sessionIdTracker.has( assignment.sessionId )) {
@@ -695,8 +800,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 				}
 
 				const currentType = hasSpace
-					? AssignAvailabilityType.space
-					: AssignAvailabilityType.professor;
+					? Type.SPACE
+					: Type.PROFESSOR;
 
 				if ( type === null ) {
 					type = currentType;
@@ -728,13 +833,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 			let spacesMap       : Map<string, Space> = new Map();
 			let professorMap    : Map<string, { id: string; name: string }> = new Map();
 
-			if ( type === AssignAvailabilityType.space ) {
+			if ( type === Type.SPACE ) {
 				const allSpaces = await this.spacesService.getSpaces();
 
 				spacesMap = new Map( allSpaces.map( space => [space.name, space] ));
 			}
 
-			if ( type === AssignAvailabilityType.professor ) {
+			if ( type === Type.PROFESSOR ) {
 				const professorIds = Array.from(
 					new Set(
 						assignments
@@ -779,7 +884,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 				// 	throw new BadRequestException( `La sesión ${assignment.sessionId} no tiene dayModule configurado` );
 				// }
 
-				if ( type === AssignAvailabilityType.space ) {
+				if ( type === Type.SPACE ) {
 					const { spaceId, professorId } = assignment;
 
 					if ( !spaceId ) {
@@ -840,7 +945,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 					});
 				}
 
-				if ( type === AssignAvailabilityType.professor ) {
+				if ( type === Type.PROFESSOR ) {
 					const { professorId, spaceId } = assignment;
 
 					if ( !professorId ) {
@@ -1364,68 +1469,33 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         detail  : true
                     }
                 },
-                sessions    : {
-                    select: {
-                        id          : true,
-                        name        : true,
-                        spaceId     : true,
-                        professor : {
-                            select: {
-                                id      : true,
-                                name    : true
-                            }
-                        },
-                        dayModule   : {
-                            select: {
-                                dayId   : true,
-                                module  : {
-                                    select: {
-                                        code: true,
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             },
         });
 
-        const rows = sections.flatMap( section => section.sessions.map( session => ({
+        const rows = sections.map( section => ({
+            SectionId           : section.id,
             SSEC                : `${section.subject.id}-${section.code}`,
-            SesionId            : session.id,
-            Numero              : section.code,
             NombreAsignatura    : section.subject.name,
-            Dia                 : session.dayModule?.dayId ?? null,
-            Modulo              : session.dayModule?.module?.code ?? null,
             Periodo             : `${section.period.id}-${section.period.name}`,
             TipoPeriodo         : section.period.type,
             Edificio            : section.building ?? null,
             TipoEspacio         : section.spaceType ?? null,
             TamanoEspacio       : section.spaceSize ? `${section.spaceSize.id}-${section.spaceSize.detail}` : null,
-            TipoSesion          : session.name,
             Cupos               : section.quota,
-            Espacio             : session.spaceId ?? null,
-            Profesor            : session.professor ? `${session.professor.id}-${session.professor.name}` : null,
             Inscritos           : '',
-        })));
+        }));
 
         // 3. Definir el orden y nombre de las columnas
         const headers: string[] = [
+            'SectionId',
             'SSEC',
-            'SesionId',
-            'Numero',
             'NombreAsignatura',
-            'Dia',
-            'Modulo',
             'Periodo',
             'TipoPeriodo',
             'Edificio',
             'TipoEspacio',
             'TamanoEspacio',
-            'TipoSesion',
             'Cupos',
-            'Espacio',
-            'Profesor',
             'Inscritos',
         ];
 
@@ -1452,14 +1522,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async exportSessionsWithoutAssignment( type: 'space' | 'professor' | 'registered' ) {
-
-        if ( type === 'registered' ) {
+    async exportSessionsWithoutAssignment( type: Type ) {
+        if ( type === Type.REGISTERED ) {
             return this.generateReportSectionSessionRegistered();
         }
 
         // 1. Buscar las secciones abiertas con sesiones sin asignación
-        // TODO: Agregar inscritos en section
         const sections = await this.section.findMany({
             select : {
                 id          : true,
@@ -1488,7 +1556,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 },
                 sessions    : {
                     where:
-                        type === 'space'
+                        type === Type.SPACE
                             ? {spaceId: null}
                             : { professorId: null },
                     select: {
@@ -1525,12 +1593,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             Modulo              : session.dayModule?.module?.code ?? null,
             Periodo             : `${section.period.id}-${section.period.name}`,
             TipoPeriodo         : section.period.type,
-            Edificio            : section.building ?? null,
+            Edificio            : section.building  ?? null,
             TipoEspacio         : section.spaceType ?? null,
             TamanoEspacio       : section.spaceSize ? `${section.spaceSize.id}-${section.spaceSize.detail}` : null,
             TipoSesion          : session.name,
             Cupos               : section.quota,
-            ...( type === 'space' ? {
+            ...( type === Type.SPACE ? {
                 Profesor    : session.professor ? `${session.professor.id}-${session.professor.name}` : null,
                 Espacio     : null,
             } : {
@@ -1554,7 +1622,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             'TamanoEspacio',
             'TipoSesion',
             'Cupos',
-            ...( type === 'space' ? ['Profesor', 'Espacio'] : ['Espacio', 'Profesor'] )
+            ...( type === Type.SPACE ? ['Profesor', 'Espacio'] : ['Espacio', 'Profesor'] )
         ];
 
         // 4. Crear el Excel
@@ -1580,11 +1648,105 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async calculateSessionAvailabilitySpaceOrProfessor(
-        type            : 'space' | 'professor',
-        sessionDataList : SessionDataDto[]
-    ): Promise<SessionAvailabilityResult[]> {
+    #calculateRegistered(
+        sectionDataList : SectionDataDto[]
+    ) {
+        return this.$transaction( async prisma => {
+            const uniqueSectionsMap = new Map<string, SectionDataDto>();
+
+            for ( const item of sectionDataList ) {
+                if ( !uniqueSectionsMap.has( item.sectionId )) {
+                    uniqueSectionsMap.set( item.sectionId, item );
+                }
+            }
+
+            const sectionIds = Array.from( uniqueSectionsMap.keys() );
+
+            const sections = await prisma.section.findMany({
+                where   : { id: { in: sectionIds }},
+                select  : { id: true }
+            });
+
+            if ( sections.length === 0 ) {
+                return [];
+            }
+
+            for ( const section of sections ) {
+                const inputData = uniqueSectionsMap.get( section.id );
+
+                if ( !inputData ) {
+                    continue;
+                }
+
+                await prisma.section.update({
+                    where   : { id: section.id },
+                    data    : {
+                        registered  : inputData.registered,
+                    }
+                });
+            }
+
+            const sessions = await prisma.session.findMany({
+                where   : { sectionId: { in: sectionIds }},
+                select  : {
+                    id          : true,
+                    sectionId   : true,
+                    spaceId     : true,
+                }
+            });
+
+            const allSpaces      = await this.spacesService.getSpaces();
+            const spacesMap      = new Map( allSpaces.map( space => [space.name, space] ));
+            const registeredMap  = new Map<string, number>();
+
+            for ( const section of sections ) {
+                const inputData = uniqueSectionsMap.get( section.id );
+
+                if ( inputData ) {
+                    registeredMap.set( section.id, inputData.registered );
+                }
+            }
+
+            for ( const session of sessions ) {
+                const registered = registeredMap.get( session.sectionId );
+
+                if ( registered === undefined ) {
+                    continue;
+                }
+
+                if ( !session.spaceId ) {
+                    continue;
+                }
+
+                const space        = spacesMap.get( session.spaceId );
+                const capacity     = space ? space.capacity : -1;
+                const chairsAvail  = capacity - registered;
+
+                await prisma.session.updateMany({
+                    where   : { id: session.id },
+                    data    : { chairsAvailable: chairsAvail }
+                });
+            }
+
+            const updatedSections = await prisma.section.findMany({
+                where   : { id: { in: sectionIds }},
+                select  : this.#selectSection,
+            });
+
+            return updatedSections.map( section => this.#convertToSectionDto( section ));
+        });
+    }
+
+
+    async calculateSessionAvailabilitySpaceOrProfessorOrRegister(
+        type            : Type,
+        sessionDataList : SessionDataDto[] | SectionDataDto[]
+    ): Promise<SessionAvailabilityResult[] | any[]> {
         try {
+            if ( type === Type.REGISTERED ) {
+                return this.#calculateRegistered( sessionDataList as SectionDataDto[] );
+            }
+
             // 1. Extraer todos los sessionIds
             const sessionIds = sessionDataList
                 .map(data => data.sessionId)
@@ -1619,22 +1781,22 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
 
             // Crear un mapa para acceso rápido
-            const sessionMap = new Map(sessions.map(s => [s.id, s]));
+            const sessionMap = new Map( sessions.map(s => [ s.id, s ]));
 
             // 3. Si es tipo 'space', obtener todos los espacios del servicio externo
             let allSpaces: Space[] = [];
 
-            if ( type === 'space' ) {
+            if ( type === Type.SPACE ) {
                 allSpaces = await this.spacesService.getSpaces();
             }
 
             // 4. Si es tipo 'professor', obtener todos los profesores mencionados
             let professorMap = new Map<string, { id: string; name: string }>();
 
-            if ( type === 'professor' ) {
+            if ( type === Type.PROFESSOR ) {
                 const professorIds = sessionDataList
-                    .map(data => data.professor?.id)
-                    .filter(Boolean) as string[];
+                    .map( data => data.professor?.id )
+                    .filter( Boolean ) as string[];
 
                 const uniqueProfessorIds = [...new Set(professorIds)];
 
@@ -1656,7 +1818,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             // 5. Procesar cada SessionDataDto
             const results: SessionAvailabilityResult[] = [];
 
-            for ( const data of sessionDataList ) {
+            for ( const data of sessionDataList as SessionDataDto[] ) {
                 const session = sessionMap.get( data.sessionId );
 
                 if ( !session ) {
@@ -1668,9 +1830,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         status      : 'Unavailable',
                         detalle     : `Sesión con ID ${data.sessionId} no encontrada en la base de datos`,
                         sessionId   : data.sessionId,
-                        ...(type === 'space' ? { spaceId: data.spaceId || '' } : {}),
-                        ...(type === 'professor' ? { professor: data.professor || { id: '', name: '' } } : {})
+                        ...(type === Type.SPACE ? { spaceId: data.spaceId || '' } : {}),
+                        ...(type === Type.PROFESSOR ? { professor: data.professor || { id: '', name: '' } } : {})
                     });
+
                     continue;
                 }
 
@@ -1684,7 +1847,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 const SSEC = `${session.section.subject.id}-${session.section.code}`;
 
                 // --- VALIDACIÓN PARA ESPACIOS ---
-                if ( type === 'space' ) {
+                if ( type === Type.SPACE ) {
                     const spaceId = data.spaceId;
 
                     if ( !spaceId ) {
@@ -1698,6 +1861,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             detalle     : 'No se especificó un espacio',
                             sessionId   : session.id
                         });
+
                         continue;
                     }
 
@@ -1790,7 +1954,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 }
 
                 // --- VALIDACIÓN PARA PROFESORES ---
-                if ( type === 'professor' ) {
+                if ( type === Type.PROFESSOR ) {
                     const professorId = data.professor?.id;
 
                     if ( !professorId ) {
