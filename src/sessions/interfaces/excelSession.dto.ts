@@ -1,19 +1,33 @@
 export class ExcelSessionDto {
-    SSEC            : string;
-    SesionId        : string;
-    Numero          : number;
-    NombreAsignatura: string;
-    Dia             : number;
-    Modulo          : string;
-    Periodo         : string;
-    TipoPeriodo     : string;
-    Edificio        : string | null;
-    TipoEspacio     : string | null;
-    TamanoEspacio   : string | null;
-    TipoSesion      : string;
-    Cupos           : number;
-    Profesor        : string | null;
-    Espacio         : string | null;
+    SSEC                : string;
+    SesionId            : string;
+    Numero              : number;
+    NombreAsignatura    : string;
+    Dia                 : number;
+    Modulo              : string;
+    Periodo             : string;
+    TipoPeriodo         : string;
+    Edificio            : string | null;
+    TipoEspacio         : string | null;
+    TamanoEspacio       : string | null;
+    TipoSesion          : string;
+    Cupos               : number;
+    Profesor            : string | null;
+    Espacio             : string | null;
+}
+
+
+export interface ExcelSectionDto {
+    SectionId           : string;
+    SSEC                : string;
+    NombreAsignatura    : string;
+    Periodo             : string;
+    TipoPeriodo         : string;
+    Edificio            : string;
+    TipoEspacio         : string;
+    TamanoEspacio       : string;
+    Cupos               : string;
+    Inscritos           : string;
 }
 
 
@@ -22,10 +36,24 @@ export interface Professor {
     name    : string;
 }
 
+
 export class SessionDataDto {
     sessionId   : string;
     spaceId?    : string;       // Solo si type === 'space'
     professor?  : Professor;    // Solo si type === 'professor'
+}
+
+
+export class SectionDataDto {
+    sectionId   : string;
+    registered  : number;
+}
+
+
+export enum Type {
+    SPACE       = 'space',
+    PROFESSOR   = 'professor',
+    REGISTERED  = 'registered'
 }
 
 
