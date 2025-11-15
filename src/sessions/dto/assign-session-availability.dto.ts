@@ -34,9 +34,3 @@ export class AssignSessionAvailabilityDto {
 	professorId ?: string;
 
 }
-
-
-export enum AssignAvailabilityType {
-	space       = 'space',
-	professor   = 'professor'
-}
