@@ -29,12 +29,17 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         updatedAt       : true,
         isActive        : true,
         quota           : true,
-        registered      : true,
         grade           :  {
             select : {
                 id              : true,
                 name            : true,
                 headquartersId  : true,
+            }
+        },
+        faculty: {
+            select : {
+                id      : true,
+                name    : true,
             }
         }
     }
@@ -53,8 +58,8 @@ export class SubjectsService extends PrismaClient implements OnModuleInit {
         updatedAt       : subject.updatedAt,
         isActive        : subject.isActive,
         quota           : subject.quota,
-        registered      : subject.registered,
         grade           : subject.grade,
+        faculty         : subject.faculty,
     });
 
 
