@@ -1,11 +1,18 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger';
 
+import {
+    IsString,
+    Length,
+    IsArray,
+    ValidateNested,
+    ArrayMaxSize,
+    ArrayMinSize
+}               from 'class-validator';
 import { Type } from 'class-transformer';
-import { IsString, Length, IsArray, ValidateNested, ArrayMaxSize, ArrayMinSize } from 'class-validator';
 
-import { BasicRequestDto }              from '@requests/dto/basic-request.dto';
-import { StaffCreateIdDTO }             from '@requests/dto/staff-create-id.dto';
-import { CreateRequestSessionDto }      from '@request-sessions/dto/create-request-session.dto';
+import { BasicRequestDto }          from '@requests/dto/basic-request.dto';
+import { StaffCreateIdDTO }         from '@requests/dto/staff-create-id.dto';
+import { CreateRequestSessionDto }  from '@request-sessions/dto/create-request-session.dto';
 
 
 export class CreateRequestDto extends IntersectionType(
