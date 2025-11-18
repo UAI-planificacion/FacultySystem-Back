@@ -1,15 +1,26 @@
-import { Injectable, NotFoundException, OnModuleInit, UnprocessableEntityException } from '@nestjs/common';
+import {
+    Injectable,
+    NotFoundException,
+    OnModuleInit,
+} from '@nestjs/common';
 
 import { PrismaClient } from 'generated/prisma';
 
-import { PrismaException }          from '@config/prisma-catch';
-import { CreateRequestSessionDto }  from '@request-sessions/dto/create-request-session.dto';
-import { UpdateRequestSessionDto }  from '@request-sessions/dto/update-request-session.dto';
-import { UpdateSessionDayModulesDto } from './dto/update-session-day-modules.dto';
+import { PrismaException }              from '@config/prisma-catch';
+import { UpdateRequestSessionDto }      from '@request-sessions/dto/update-request-session.dto';
+import { UpdateSessionDayModulesDto }   from '@request-sessions/dto/update-session-day-modules.dto';
+import { SseService }                   from '@sse/sse.service';
+import { EnumAction, Type }             from '@sse/sse.model';
 
 
 @Injectable()
 export class RequestSessionsService extends PrismaClient implements OnModuleInit {
+
+    constructor(
+		private readonly sseService: SseService,
+    ) {
+        super();
+    }
 
 	onModuleInit() {
 		this.$connect();
@@ -25,7 +36,6 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
         description     : true,
         spaceType       : true,
         building        : true,
-        // requestId       : true,
         professor       : {
             select : {
                 id: true,
@@ -46,41 +56,6 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
             }
         }
     }
-
-
-	// async create( requestId: string, createRequestSessionDto: CreateRequestSessionDto ) {
-	// 	try {
-	// 		const { dayModulesId, ...data } = createRequestSessionDto;
-
-	// 		const requestSession = await this.requestSession.create({
-	// 			data : {
-	// 				...data,
-	// 				requestId
-	// 			},
-	// 		});
-
-	// 		await this.sessionDayModule.createMany({
-	// 			data : dayModulesId.map(( dayModuleId ) => ({
-	// 				dayModuleId,
-	// 				requestSessionId : requestSession.id
-	// 			})),
-	// 		});
-
-	// 		// const requestSessionData = this.#requestSessionMap( requestSession );
-
-	// 		// this.sseService.emitEvent({
-	// 		//     message : requestSessionData,
-	// 		//     action  : EnumAction.CREATE,
-	// 		//     type    : Type.REQUEST_SESSION,
-	// 		//     origin
-	// 		// });
-
-	// 		// return requestSessionData;
-	// 		return requestSession;
-	// 	} catch ( error ) {
-	// 		throw PrismaException.catch( error, 'Failed to create request session' );
-	// 	}
-	// }
 
 
     #requestSessionMap = ( requestSession ) => ({
@@ -131,13 +106,16 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
                 data    : updateRequestSessionDto,
 			});
 
+            const requestSessionData = this.#requestSessionMap( requestSession );
 
-            // await this.request.update({
-            //     where : { id: requestSession.requestId },
-            //     data  : { status: 'APPROVED' },
-            // });
+            this.sseService.emitEvent({
+                message : requestSessionData,
+                action  : EnumAction.UPDATE,
+                type    : Type.REQUEST_SESSION,
+                origin
+            });
 
-            return this.#requestSessionMap( requestSession )
+            return requestSessionData;
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to update request session' );
 		}
@@ -190,7 +168,16 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
                 select: this.#selectRequestSession
             });
 
-            return updatesRequestSessions.map(( requestSession ) => this.#requestSessionMap( requestSession ));
+            const updatesRequestSessionsData = updatesRequestSessions.map(( requestSession ) => this.#requestSessionMap( requestSession ));
+
+            this.sseService.emitEvent({
+                message : updatesRequestSessionsData,
+                action  : EnumAction.UPDATE,
+                type    : Type.REQUEST_SESSION,
+                origin
+            });
+
+            return updatesRequestSessionsData;
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to update session day modules' );
 		}
@@ -201,9 +188,16 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
 		try {
 			const requestSession = await this.requestSession.delete({
 				where : { id },
+                select : { id: true }
 			});
 
-			// const requestSessionData = this.#requestSessionMap( requestSession );
+            this.sseService.emitEvent({
+                message : requestSession,
+                action  : EnumAction.DELETE,
+                type    : Type.REQUEST_SESSION,
+                origin
+            });
+
 			return requestSession;
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to delete request session' );
