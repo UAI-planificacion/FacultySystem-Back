@@ -60,7 +60,7 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 name    : request.section.subject.name
             },
             countSessions: {
-                sessions    : request.section._count.sessions
+                sessions: request.section._count.sessions
             }
         },
     });
@@ -68,9 +68,9 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
 
     #requestSectionMap = ( request ) => ({
         ...request,
-        requestSessions : request.requestSessions.map(( requestSession ) => ({
+        requestSessions: request.requestSessions.map(( requestSession ) => ({
             ...requestSession,
-            sessionDayModules   : requestSession.sessionDayModules.map(( sessionDayModule ) => ({
+            sessionDayModules: requestSession.sessionDayModules.map(( sessionDayModule ) => ({
                 id      : sessionDayModule.id,
                 dayId   : sessionDayModule.dayModule.dayId,
                 module  : sessionDayModule.dayModule.module,
@@ -203,12 +203,12 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 select: this.#selectRequest
             });
 
-            // this.sseService.emitEvent({
-            //     message : requestMapped,
-            //     action  : EnumAction.CREATE,
-            //     type    : Type.REQUEST,
-            //     origin
-            // });
+            this.sseService.emitEvent({
+                message : requestMapped,
+                action  : EnumAction.CREATE,
+                type    : Type.REQUEST,
+                origin
+            });
 
             return requestMapped;
         } catch ( error ) {
