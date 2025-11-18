@@ -4,35 +4,37 @@ import { $Enums } from "generated/prisma";
 
 
 export class SectionSession {
+
     @ApiProperty({
         description : 'Unique identifier of the session.',
-        example     : 'clx15746g000008l3f1z9h8y7',
+        example     : ['clx15746g000008l3f1z9h8y7'],
     })
-    id : string;
+    ids : string[];
 
     @ApiProperty({
         description : 'Unique identifier of the space.',
-        example     : 'clx15746g000008l3f1z9h8y7',
+        example     : ['clx15746g000008l3f1z9h8y7'],
     })
-    spaceId : string;
+    spaceIds: string[];
 
     @ApiProperty({
         description : 'Unique identifier of the day.',
-        example     : 1,
+        example     : [1],
     })
-    dayId : number
+    dayIds: number[];
 
     @ApiProperty({
         description : 'Unique identifier of the module.',
-        example     : 1,
+        example     : [1],
     })
-    moduleId : number;
+    moduleIds: number[];
 
     @ApiProperty({
         description : 'Unique identifier of the professor.',
-        example     : 'clx15746g000008l3f1z9h8y7',
+        example     : ['clx15746g000008l3f1z9h8y7'],
     })
-    professorId : string;
+    professorIds: string[];
+
 }
 
 
@@ -292,9 +294,15 @@ export class SectionDto {
 
     @ApiPropertyOptional({
         description : 'Session details including spaces, days, modules and professors.',
-        example     : { spaceIds: [ 'space1', 'space2' ], dayIds: [ 1, 2, 3 ], moduleIds: [ 1, 2 ], professorIds: [ 'prof1' ] },
+        example     : {
+            ids         : [ 'clx15746g000008l3f1z9h8y7' ],
+            spaceIds    : [ 'clx15746g000008l3f1z9h8y7' ],
+            dayIds      : [ 1 ],
+            moduleIds   : [ 1 ],
+            professorIds: [ 'clx15746g000008l3f1z9h8y7' ],
+        },
         type        : () => SectionSession,
     })
-    sessions : SectionSession[];
+    sessions : SectionSession;
 
 }
