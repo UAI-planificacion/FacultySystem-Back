@@ -1,4 +1,6 @@
-import { Controller, Get, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Request } from 'express';
+
+import { Controller, Get, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 
 import { RequestSessionsService }       from '@request-sessions/request-sessions.service';
 import { UpdateRequestSessionDto }      from '@request-sessions/dto/update-request-session.dto';
@@ -40,17 +42,21 @@ export class RequestSessionsController {
     @Patch( ':id' )
     update(
         @Param( 'id' ) id: string,
-        @Body() updateRequestSessionDto: UpdateRequestSessionDto
+        @Body() updateRequestSessionDto: UpdateRequestSessionDto,
+		@Req() request: Request,
     ) {
-        return this.requestSessionsService.update( id, updateRequestSessionDto );
+		const origin = request.headers['origin'];
+        return this.requestSessionsService.update( id, updateRequestSessionDto, origin );
     }
 
 
     @Delete( ':id' )
     remove(
-        @Param( 'id' ) id: string
+        @Param( 'id' ) id: string,
+		@Req() request: Request,
     ) {
-        return this.requestSessionsService.remove( id );
+		const origin = request.headers['origin'];
+        return this.requestSessionsService.remove( id, origin );
     }
 
 }
