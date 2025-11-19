@@ -36,6 +36,7 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
         description     : true,
         spaceType       : true,
         building        : true,
+        requestId       : true,
         professor       : {
             select : {
                 id: true,
@@ -98,7 +99,11 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
 	}
 
 
-	async update( id: string, updateRequestSessionDto: UpdateRequestSessionDto ) {
+	async update(
+        id                      : string,
+        updateRequestSessionDto : UpdateRequestSessionDto,
+        origin                  : string | undefined
+    ) {
 		try {
 			const requestSession = await this.requestSession.update({
                 select  : this.#selectRequestSession,
@@ -168,23 +173,14 @@ export class RequestSessionsService extends PrismaClient implements OnModuleInit
                 select: this.#selectRequestSession
             });
 
-            const updatesRequestSessionsData = updatesRequestSessions.map(( requestSession ) => this.#requestSessionMap( requestSession ));
-
-            this.sseService.emitEvent({
-                message : updatesRequestSessionsData,
-                action  : EnumAction.UPDATE,
-                type    : Type.REQUEST_SESSION,
-                origin
-            });
-
-            return updatesRequestSessionsData;
+            return updatesRequestSessions.map(( requestSession ) => this.#requestSessionMap( requestSession ));
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to update session day modules' );
 		}
 	}
 
 
-	async remove( id: string ) {
+	async remove( id: string, origin: string | undefined ) {
 		try {
 			const requestSession = await this.requestSession.delete({
 				where : { id },
