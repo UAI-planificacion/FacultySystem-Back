@@ -207,7 +207,7 @@ export class ModulesService extends PrismaClient implements OnModuleInit {
             return dayModules.map( dayModule => ({
                 ...rest,
                 id          : `${rest.id}${rest.difference? `-${rest.difference}` : ''}`,
-                name        : `M${rest.code}:${dayModule.dayId}${rest.difference? `-${rest.difference}` : ''}`,
+                name        : `M${rest.code}:${dayModule.dayId}`,
                 dayId       : dayModule.dayId,
                 dayModuleId : dayModule.id,
                 order       : dayModule.order
