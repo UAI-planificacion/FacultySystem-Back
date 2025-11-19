@@ -5,9 +5,17 @@ import { PrismaClient } from 'generated/prisma';
 import { CreatePlanningChangeDto }  from '@planning-change/dto/create-planning-change.dto';
 import { UpdatePlanningChangeDto }  from '@planning-change/dto/update-planning-change.dto';
 import { PrismaException }          from '@config/prisma-catch';
+import { SseService }               from '@sse/sse.service';
+import { EnumAction, Type }         from '@sse/sse.model';
 
 @Injectable()
 export class PlanningChangeService extends PrismaClient implements OnModuleInit {
+
+    constructor(
+		private readonly sseService: SseService,
+    ) {
+        super();
+    }
 
     onModuleInit() {
         this.$connect();
@@ -147,7 +155,10 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
     });
 
 
-    async create( createPlanningChangeDto: CreatePlanningChangeDto ) {
+    async create(
+        createPlanningChangeDto : CreatePlanningChangeDto,
+		origin                  : string | undefined
+    ) {
         try {
             const { dayModulesId, ...data } = createPlanningChangeDto;
 
@@ -169,7 +180,16 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
                 });
             }
 
-            return await this.findOne( planningChangeCreated.id );
+            const planningChange = await this.findOne( planningChangeCreated.id );
+
+            this.sseService.emitEvent({
+                message : planningChange,
+                action  : EnumAction.CREATE,
+                type    : Type.PLANNING_CHANGE,
+                origin
+            });
+
+            return planningChange
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create planning change' );
         }
@@ -225,7 +245,11 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
     }
 
 
-    async update( id: string, updatePlanningChangeDto: UpdatePlanningChangeDto ) {
+    async update(
+        id: string,
+        updatePlanningChangeDto: UpdatePlanningChangeDto,
+        origin              : string | undefined
+    ) {
         try {
             const { dayModulesId, ...data } = updatePlanningChangeDto;
 
@@ -259,17 +283,32 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
                 }
             }
 
-            // return planningChange;
-            return this.findOne( planningChange.id );
+            const planningChangeUpdated = await this.findOne( planningChange.id );
+
+            this.sseService.emitEvent({
+                message : planningChangeUpdated,
+                action  : EnumAction.UPDATE,
+                type    : Type.PLANNING_CHANGE,
+                origin
+            });
+
+            return planningChangeUpdated;
         } catch (error) {
 			throw PrismaException.catch( error, 'Failed to update request session' );
         }
     }
 
-    async remove(id: string) {
+    async remove(id: string, origin: string | undefined) {
         try {
             const planningChange = await this.planningChange.delete({
                 where : { id },
+            });
+
+            this.sseService.emitEvent({
+                message : planningChange,
+                action  : EnumAction.DELETE,
+                type    : Type.PLANNING_CHANGE,
+                origin
             });
 
             return planningChange;
