@@ -17,7 +17,7 @@ export class PlanningChangeController {
 
     @Post()
     create(
-        @Body() createPlanningChangeDto: CreatePlanningChangeDto,
+        @Body() createPlanningChangeDto : CreatePlanningChangeDto,
 		@Req() request                  : Request,
     ) {
 		const origin = request.headers['origin'];
@@ -27,7 +27,7 @@ export class PlanningChangeController {
 
     @Get( ':id' )
     findOne(
-        @Param( 'id' ) id               : string,
+        @Param( 'id' ) id: string,
     ) {
         return this.planningChangeService.findOne( id );
     }
@@ -50,7 +50,7 @@ export class PlanningChangeController {
     @Patch( ':id' )
     update(
         @Param( 'id' ) id               : string,
-        @Body() updatePlanningChangeDto: UpdatePlanningChangeDto,
+        @Body() updatePlanningChangeDto : UpdatePlanningChangeDto,
 		@Req() request                  : Request,
     ) {
 		const origin = request.headers['origin'];
@@ -60,8 +60,8 @@ export class PlanningChangeController {
 
     @Delete( ':id' )
     remove(
-        @Param( 'id' ) id               : string,
-		@Req() request                  : Request,
+        @Param( 'id' ) id   : string,
+		@Req() request      : Request,
     ) {
 		const origin = request.headers['origin'];
         return this.planningChangeService.remove( id, origin );
