@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes } from '@nestjs/common';
+import { Request } from 'express';
+
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, Req } from '@nestjs/common';
 
 import { CommentsService }          from '@comments/comments.service';
 import { CreateCommentDto }         from '@comments/dto/create-comment.dto';
@@ -17,9 +19,11 @@ export class CommentsController {
     @Post()
     @UsePipes( CommentValidationPipe )
     create(
-        @Body() createCommentDto: CreateCommentDto
+        @Body() createCommentDto: CreateCommentDto,
+		@Req() request                  : Request,
     ) {
-        return this.commentService.create( createCommentDto );
+		const origin = request.headers['origin'];
+        return this.commentService.create( createCommentDto, origin );
     }
 
 
@@ -42,17 +46,21 @@ export class CommentsController {
     @Patch( ':id' )
     update(
         @Param( 'id' ) id: string,
-        @Body() updateCommentDto: UpdateCommentDto
+        @Body() updateCommentDto: UpdateCommentDto,
+		@Req() request                  : Request,
     ) {
-        return this.commentService.update( id, updateCommentDto );
+		const origin = request.headers['origin'];
+        return this.commentService.update( id, updateCommentDto, origin );
     }
 
 
     @Delete( ':id' )
     remove(
-        @Param( 'id' ) id: string
+        @Param( 'id' ) id: string,
+		@Req() request                  : Request,
     ) {
-        return this.commentService.remove( id );
+		const origin = request.headers['origin'];
+        return this.commentService.remove( id, origin );
     }
 
 }

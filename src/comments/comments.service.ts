@@ -40,7 +40,7 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async create( createCommentDto: CreateCommentDto ) {
+    async create( createCommentDto: CreateCommentDto, origin: string | undefined ) {
         try {
             const comment = await this.comment.create({
                 data: createCommentDto,
@@ -87,7 +87,11 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async update( id: string, updateCommentDto: UpdateCommentDto ) {
+    async update(
+        id: string,
+        updateCommentDto: UpdateCommentDto,
+        origin: string | undefined
+    ) {
         try {
             const comment = await this.comment.update({
                 where   : { id },
@@ -104,12 +108,13 @@ export class CommentsService extends PrismaClient implements OnModuleInit {
 
             return comment;
         } catch ( error ) {
+            console.log('🚀 ~ file: comments.service.ts:107 ~ error:', error)
             throw PrismaException.catch( error, 'Failed to update comment' );
         }
     }
 
 
-    async remove( id: string ) {
+    async remove( id: string, origin: string | undefined ) {
         try {
             const comment = await this.comment.delete({
                 where: { id }
