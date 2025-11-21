@@ -1,8 +1,12 @@
+
+type Status = 'Available' | 'Unavailable' | 'Probable';
+
 export class ExcelSessionDto {
     SSEC                : string;
     SesionId            : string;
     Numero              : number;
     NombreAsignatura    : string;
+    Fecha               : Date;
     Dia                 : number;
     Modulo              : string;
     Periodo             : string;
@@ -14,6 +18,8 @@ export class ExcelSessionDto {
     Cupos               : number;
     Profesor            : string | null;
     Espacio             : string | null;
+    Estado?             : Status;
+    Detalle?            : string;
 }
 
 
@@ -57,7 +63,6 @@ export enum Type {
 }
 
 
-type Status = 'Available' | 'Unavailable' | 'Probable';
 
 
 export interface SessionAvailabilityResult {
