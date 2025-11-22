@@ -783,7 +783,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 			const sessionIds        : string[]      = [];
 			const sessionIdTracker  : Set<string>   = new Set();
-			let type                : Type | null = null;
+
+            let type: Type | null = null;
 
 			for ( const assignment of assignments ) {
 				if ( sessionIdTracker.has( assignment.sessionId )) {
@@ -1657,10 +1658,190 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    /**
+     * Calculate registered preview without updating database
+     * Returns ExcelSessionDto[] with Estado and Detalle for user review
+     */
+    async #calculateRegisteredPreview(
+        sectionDataList : SectionDataDto[]
+    ): Promise<ExcelSessionDto[]> {
+        // 1. Create map of unique sections
+        const uniqueSectionsMap = new Map<string, SectionDataDto>();
+
+        for ( const item of sectionDataList ) {
+            if ( !uniqueSectionsMap.has( item.sectionId )) {
+                uniqueSectionsMap.set( item.sectionId, item );
+            }
+        }
+
+        const sectionIds = Array.from( uniqueSectionsMap.keys() );
+
+        if ( sectionIds.length === 0 ) {
+            return [];
+        }
+
+        // 2. Get all sessions for these sections
+        const sessions = await this.session.findMany({
+            where   : { sectionId: { in: sectionIds }},
+            select  : {
+                id          : true,
+                name        : true,
+                date        : true,
+                spaceId     : true,
+                sectionId   : true,
+                section     : {
+                    select: {
+                        id          : true,
+                        code        : true,
+                        quota       : true,
+                        building    : true,
+                        spaceType   : true,
+                        subject     : {
+                            select: {
+                                id      : true,
+                                name    : true
+                            }
+                        },
+                        period      : {
+                            select: {
+                                id      : true,
+                                name    : true,
+                                type    : true
+                            }
+                        },
+                        spaceSize   : {
+                            select: {
+                                id      : true,
+                                detail  : true
+                            }
+                        }
+                    }
+                },
+                professor   : {
+                    select: {
+                        id      : true,
+                        name    : true
+                    }
+                },
+                dayModule   : {
+                    select: {
+                        dayId   : true,
+                        module  : {
+                            select: {
+                                code        : true,
+                                startHour   : true,
+                                endHour     : true,
+                                difference  : true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // 3. Get all spaces from service
+        const allSpaces  = await this.spacesService.getSpaces();
+        const spacesMap  = new Map( allSpaces.map( space => [space.name, space] ));
+
+        // 4. Create registered map
+        const registeredMap = new Map<string, number>();
+
+        for ( const sectionId of sectionIds ) {
+            const inputData = uniqueSectionsMap.get( sectionId );
+
+            if ( inputData ) {
+                registeredMap.set( sectionId, inputData.registered );
+            }
+        }
+
+        // 5. Process each session and calculate Estado and Detalle
+        const results: ExcelSessionDto[] = [];
+
+        for ( const session of sessions ) {
+            const registered = registeredMap.get( session.sectionId );
+
+            if ( registered === undefined ) {
+                continue;
+            }
+
+            // Build common fields
+            const module        = session.dayModule.module;
+            const moduleStr     = `${ module.code } - ${ module.startHour } - ${ module.endHour }`;
+            const SSEC          = `${ session.section.subject.id }-${ session.section.code }`;
+            const periodo       = `${ session.section.period.id }-${ session.section.period.name }`;
+            const tamanoEspacio = session.section.spaceSize
+                ? `${ session.section.spaceSize.id }-${ session.section.spaceSize.detail }`
+                : null;
+            const profesorStr   = session.professor
+                ? `${ session.professor.id }-${ session.professor.name }`
+                : null;
+
+            // Calculate Estado and Detalle based on space capacity
+            let estado  : 'Available' | 'Unavailable' | 'Probable';
+            let detalle : string;
+
+            if ( !session.spaceId ) {
+                estado  = 'Unavailable';
+                detalle = 'Esta sesión no tiene un espacio asignado.';
+            } else {
+                const space = spacesMap.get( session.spaceId );
+
+                if ( !space ) {
+                    estado  = 'Unavailable';
+                    detalle = `Espacio "${ session.spaceId }" no encontrado en el sistema.`;
+                } else {
+                    const availableCapacity = space.capacity - registered;
+
+                    if ( availableCapacity >= 0 ) {
+                        estado  = 'Available';
+                        detalle = 'Se puede realizar el registro';
+                    } else {
+                        estado  = 'Unavailable';
+                        detalle = 'La capacidad del espacio no es suficiente.';
+                    }
+                }
+            }
+
+            results.push({
+                SSEC,
+                SesionId            : session.id,
+                Numero              : session.section.code,
+                NombreAsignatura    : session.section.subject.name,
+                Fecha               : session.date,
+                Dia                 : session.dayModule.dayId,
+                Modulo              : moduleStr,
+                Periodo             : periodo,
+                TipoPeriodo         : session.section.period.type,
+                Edificio            : session.section.building,
+                TipoEspacio         : session.section.spaceType,
+                TamanoEspacio       : tamanoEspacio,
+                TipoSesion          : session.name,
+                Cupos               : session.section.quota,
+                Profesor            : profesorStr,
+                Espacio             : session.spaceId,
+                Estado              : estado,
+                Detalle             : detalle
+            });
+        }
+
+        return results;
+    }
+
+
+    /**
+     * Public method to assign registered values to sections
+     * This performs the actual database updates
+     */
+    async assignRegistered( sectionDataList: SectionDataDto[] ) {
+        return this.#calculateRegistered( sectionDataList );
+    }
+
+
     #calculateRegistered(
         sectionDataList : SectionDataDto[]
     ) {
         return this.$transaction( async prisma => {
+            // 1. Create map of unique sections
             const uniqueSectionsMap = new Map<string, SectionDataDto>();
 
             for ( const item of sectionDataList ) {
@@ -1671,6 +1852,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
             const sectionIds = Array.from( uniqueSectionsMap.keys() );
 
+            if ( sectionIds.length === 0 ) {
+                return [];
+            }
+
+            // 2. Verify sections exist
             const sections = await prisma.section.findMany({
                 where   : { id: { in: sectionIds }},
                 select  : { id: true }
@@ -1680,21 +1866,25 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 return [];
             }
 
-            for ( const section of sections ) {
+            // 3. Update all sections in parallel using Promise.all
+            const sectionUpdatePromises = sections.map( section => {
                 const inputData = uniqueSectionsMap.get( section.id );
 
                 if ( !inputData ) {
-                    continue;
+                    return Promise.resolve();
                 }
 
-                await prisma.section.update({
+                return prisma.section.update({
                     where   : { id: section.id },
                     data    : {
                         registered  : inputData.registered,
                     }
                 });
-            }
+            });
 
+            await Promise.all( sectionUpdatePromises );
+
+            // 4. Get all sessions for these sections
             const sessions = await prisma.session.findMany({
                 where   : { sectionId: { in: sectionIds }},
                 select  : {
@@ -1704,6 +1894,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 }
             });
 
+            // 5. Get all spaces and create maps
             const allSpaces      = await this.spacesService.getSpaces();
             const spacesMap      = new Map( allSpaces.map( space => [space.name, space] ));
             const registeredMap  = new Map<string, number>();
@@ -1716,27 +1907,27 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 }
             }
 
-            for ( const session of sessions ) {
-                const registered = registeredMap.get( session.sectionId );
+            // 6. Update all sessions in parallel using Promise.all
+            const sessionUpdatePromises = sessions
+                .filter( session => {
+                    const registered = registeredMap.get( session.sectionId );
+                    return registered !== undefined && session.spaceId !== null;
+                })
+                .map( session => {
+                    const registered   = registeredMap.get( session.sectionId )!;
+                    const space        = spacesMap.get( session.spaceId! );
+                    const capacity     = space ? space.capacity : -1;
+                    const chairsAvail  = capacity - registered;
 
-                if ( registered === undefined ) {
-                    continue;
-                }
-
-                if ( !session.spaceId ) {
-                    continue;
-                }
-
-                const space        = spacesMap.get( session.spaceId );
-                const capacity     = space ? space.capacity : -1;
-                const chairsAvail  = capacity - registered;
-
-                await prisma.session.updateMany({
-                    where   : { id: session.id },
-                    data    : { chairsAvailable: chairsAvail }
+                    return prisma.session.update({
+                        where   : { id: session.id },
+                        data    : { chairsAvailable: chairsAvail }
+                    });
                 });
-            }
 
+            await Promise.all( sessionUpdatePromises );
+
+            // 7. Get updated sections
             const updatedSections = await prisma.section.findMany({
                 where   : { id: { in: sectionIds }},
                 select  : this.#selectSection,
@@ -1753,7 +1944,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     ): Promise<ExcelSessionDto[] | any[]> {
         try {
             if ( type === Type.REGISTERED ) {
-                return this.#calculateRegistered( sessionDataList as SectionDataDto[] );
+                return this.#calculateRegisteredPreview( sessionDataList as SectionDataDto[] );
             }
 
             // 1. Extraer todos los sessionIds
