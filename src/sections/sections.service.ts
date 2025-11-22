@@ -21,6 +21,8 @@ import { SectionDto }               from '@sections/dto/section.dto';
 import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
 import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 import { PrismaException }          from '@config/prisma-catch';
+import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
+import { Type }                     from '@sessions/interfaces/excelSession.dto';
 
 
 @Injectable()
@@ -529,6 +531,40 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    async clean( type: Type, cleanSectionDto: CleanSectionDto ) {
+        if ( type === Type.REGISTERED ) {
+            throw new BadRequestException( 'Type not allowed' );
+        }
+
+        const sections = await this.section.findMany({
+            select  : this.#selectSection,
+            where   : {
+                id: {
+                    in: cleanSectionDto.ids,
+                },
+            }
+        });
+
+        if ( !sections || sections.length === 0 ) {
+            throw new BadRequestException( 'Sections not found' );
+        }
+
+        await this.session.updateMany({
+            data: {
+                ...( type === Type.SPACE        ? { spaceId: null }     : {} ),
+                ...( type === Type.PROFESSOR    ? { professorId: null } : {} ),
+            },
+            where: {
+                sectionId: {
+                    in: sections.map( s => s.id ),
+                },
+            },
+        });
+
+        return sections.map( section => this.#convertToSectionDto( section ));
+    }
+
+
     async remove( id: string ) {
         try {
             const section = await this.section.delete({
@@ -588,142 +624,143 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     // }
 
 
-    #getCapacity( capacity: number, sizes: {
-        id          : $Enums.SizeValue;
-        min         : number | null;
-        max         : number | null;
-        lessThan    : number | null;
-        greaterThan : number | null;
-    }[] ): $Enums.SizeValue {
-        for ( const size of sizes ) {
-            if ( size.min && capacity < size.min ) return size.id;
-            if ( size.max && capacity > size.max ) return size.id;
-            if ( size.lessThan && capacity < size.lessThan ) return size.id;
-            if ( size.greaterThan && capacity > size.greaterThan ) return size.id;
-        }
+    // #getCapacity( capacity: number, sizes: {
+    //     id          : $Enums.SizeValue;
+    //     min         : number | null;
+    //     max         : number | null;
+    //     lessThan    : number | null;
+    //     greaterThan : number | null;
+    // }[] ): $Enums.SizeValue {
+    //     for ( const size of sizes ) {
+    //         if ( size.min && capacity < size.min ) return size.id;
+    //         if ( size.max && capacity > size.max ) return size.id;
+    //         if ( size.lessThan && capacity < size.lessThan ) return size.id;
+    //         if ( size.greaterThan && capacity > size.greaterThan ) return size.id;
+    //     }
 
-        return SizeValue.XL;
-    }
-
-
-    #getSize( size: string, capacity: number ): $Enums.SizeValue {
-        return {
-            [SizeEnum.CORE]         : SizeValue.XS  as $Enums.SizeValue,
-            [SizeEnum.GARAGE]       : SizeValue.S   as $Enums.SizeValue,
-            [SizeEnum.DIS]          : SizeValue.XL  as $Enums.SizeValue,
-            [SizeEnum.AUDITORIO]    : SizeValue.XL  as $Enums.SizeValue,
-            [SizeEnum.LABPAC]       : SizeValue.XL  as $Enums.SizeValue,
-            [SizeEnum.LABPCB]       : SizeValue.L   as $Enums.SizeValue,
-            [SizeEnum.LABPCC]       : capacity === 60 ? SizeValue.L : SizeValue.S as $Enums.SizeValue,
-            [SizeEnum.LABPCE]       : SizeValue.MS  as $Enums.SizeValue,
-            [SizeEnum.LABRED]       : SizeValue.M   as $Enums.SizeValue,
-            [SizeEnum.M]            : SizeValue.M   as $Enums.SizeValue,
-            [SizeEnum.MS]           : SizeValue.MS  as $Enums.SizeValue,
-            [SizeEnum.L]            : SizeValue.L   as $Enums.SizeValue,
-            [SizeEnum.SE]           : SizeValue.S   as $Enums.SizeValue,
-            [SizeEnum.S]            : SizeValue.S   as $Enums.SizeValue,
-            [SizeEnum.XS]           : SizeValue.XS  as $Enums.SizeValue,
-        }[size] || SizeValue.L;
-    }
-
-    #getSpaceType( name: string, size: string ): $Enums.SpaceType {
-        // Comunication
-        const communications = [
-            '223-D',
-            'LAB.110-D'
-        ];
-
-        if (
-            communications.includes( name ) ||
-            size === 'LAB.RED'
-        ) return SpaceType.COMMUNIC as $Enums.SpaceType;
-
-        // DIS
-        if ( name === 'LAB.103-D' || size === SpaceType.DIS ) return SpaceType.DIS as $Enums.SpaceType;
-
-        // Laboratorio
-        const space = [
-            'Lab. Bioingeniería',
-            'Lab. Ingenieria y Ciencias',
-            'Lab. Física',
-            'Lab. Informática',
-            'Lab. Procesos Industriales'
-        ];
-
-        if ( space.includes( name )) return SpaceType.LAB as $Enums.SpaceType;
-        // Laboratorio PC
-        else if ( name.toUpperCase().includes( 'LAB' )) return SpaceType.LABPC as $Enums.SpaceType;
-
-        // Auditorio
-        if ( size === SpaceType.AUDITORIO ) return SpaceType.AUDITORIO as $Enums.SpaceType;
-
-        // Garage
-        if ( size === SpaceType.GARAGE ) return SpaceType.GARAGE as $Enums.SpaceType;
-
-        // Core
-        if ( size === SpaceType.CORE ) return SpaceType.CORE as $Enums.SpaceType;
-
-        return SpaceType.ROOM as $Enums.SpaceType;
-    }
+    //     return SizeValue.XL;
+    // }
 
 
-    #getBuilding( name: string ): Building {
-        const space = [
-            'GARAGE EXTRAPROG.',
-            'Lab. Bioingeniería',
-            'Lab. Ingenieria y Ciencias',
-            'Lab. Física',
-            'Lab. Informática',
-            'Lab. Procesos Industriales'
-        ];
+    // #getSize( size: string, capacity: number ): $Enums.SizeValue {
+    //     return {
+    //         [SizeEnum.CORE]         : SizeValue.XS  as $Enums.SizeValue,
+    //         [SizeEnum.GARAGE]       : SizeValue.S   as $Enums.SizeValue,
+    //         [SizeEnum.DIS]          : SizeValue.XL  as $Enums.SizeValue,
+    //         [SizeEnum.AUDITORIO]    : SizeValue.XL  as $Enums.SizeValue,
+    //         [SizeEnum.LABPAC]       : SizeValue.XL  as $Enums.SizeValue,
+    //         [SizeEnum.LABPCB]       : SizeValue.L   as $Enums.SizeValue,
+    //         [SizeEnum.LABPCC]       : capacity === 60 ? SizeValue.L : SizeValue.S as $Enums.SizeValue,
+    //         [SizeEnum.LABPCE]       : SizeValue.MS  as $Enums.SizeValue,
+    //         [SizeEnum.LABRED]       : SizeValue.M   as $Enums.SizeValue,
+    //         [SizeEnum.M]            : SizeValue.M   as $Enums.SizeValue,
+    //         [SizeEnum.MS]           : SizeValue.MS  as $Enums.SizeValue,
+    //         [SizeEnum.L]            : SizeValue.L   as $Enums.SizeValue,
+    //         [SizeEnum.SE]           : SizeValue.S   as $Enums.SizeValue,
+    //         [SizeEnum.S]            : SizeValue.S   as $Enums.SizeValue,
+    //         [SizeEnum.XS]           : SizeValue.XS  as $Enums.SizeValue,
+    //     }[size] || SizeValue.L;
+    // }
 
-        const buildingList = [
-            Building.B,
-            Building.F,
-            Building.F,
-            Building.F,
-            Building.F,
-            Building.E
-        ];
+    // #getSpaceType( name: string, size: string ): $Enums.SpaceType {
+    //     // Comunication
+    //     const communications = [
+    //         '223-D',
+    //         'LAB.110-D'
+    //     ];
 
-        if ( space.includes( name )) return buildingList[ space.indexOf( name )];
+    //     if (
+    //         communications.includes( name ) ||
+    //         size === 'LAB.RED'
+    //     ) return SpaceType.COMMUNIC as $Enums.SpaceType;
 
-        return ( name.split( '-' )[1]?.[0]?.toUpperCase() as Building ) || Building.Z;
-    }
+    //     // DIS
+    //     if ( name === 'LAB.103-D' || size === SpaceType.DIS ) return SpaceType.DIS as $Enums.SpaceType;
+
+    //     // Laboratorio
+    //     const space = [
+    //         'Lab. Bioingeniería',
+    //         'Lab. Ingenieria y Ciencias',
+    //         'Lab. Física',
+    //         'Lab. Informática',
+    //         'Lab. Procesos Industriales'
+    //     ];
+
+    //     if ( space.includes( name )) return SpaceType.LAB as $Enums.SpaceType;
+    //     // Laboratorio PC
+    //     else if ( name.toUpperCase().includes( 'LAB' )) return SpaceType.LABPC as $Enums.SpaceType;
+
+    //     // Auditorio
+    //     if ( size === SpaceType.AUDITORIO ) return SpaceType.AUDITORIO as $Enums.SpaceType;
+
+    //     // Garage
+    //     if ( size === SpaceType.GARAGE ) return SpaceType.GARAGE as $Enums.SpaceType;
+
+    //     // Core
+    //     if ( size === SpaceType.CORE ) return SpaceType.CORE as $Enums.SpaceType;
+
+    //     return SpaceType.ROOM as $Enums.SpaceType;
+    // }
 
 
-    async #getNewEntitiesToCreate<
-        TInputEntity extends Record<string, any>,
-        TDbModel extends {
-            findMany    : ( args: any ) => Promise<any[]>;
-            createMany  : ( args: any ) => Promise<any>;
-        },
-        TUniqueKey extends keyof TInputEntity
-    >(
-        entities    : TInputEntity[],
-        uniqueKey   : TUniqueKey,
-        prismaModel : TDbModel,
-        dbSearchKey : string,
-        mapper: ( entity: TInputEntity ) => any
-    ): Promise<any> {
-        const uniqueKeysInExcel     = entities.map( e => e[ uniqueKey ]) as Array<string | number | boolean>;
-        const existingDbEntities    = await prismaModel.findMany({
-            where: {
-                [dbSearchKey]: {
-                    in: uniqueKeysInExcel,
-                },
-            },
-            select: {
-                [dbSearchKey]: true,
-            },
-        });
+    // #getBuilding( name: string ): Building {
+    //     const space = [
+    //         'GARAGE EXTRAPROG.',
+    //         'Lab. Bioingeniería',
+    //         'Lab. Ingenieria y Ciencias',
+    //         'Lab. Física',
+    //         'Lab. Informática',
+    //         'Lab. Procesos Industriales'
+    //     ];
 
-        const existingDbKeys = new Set( existingDbEntities.map( e => e[ dbSearchKey ]));
+    //     const buildingList = [
+    //         Building.B,
+    //         Building.F,
+    //         Building.F,
+    //         Building.F,
+    //         Building.F,
+    //         Building.E
+    //     ];
 
-        return entities
-            .filter( entity => !existingDbKeys.has( entity[ uniqueKey ]))
-            .map( mapper );
-    }
+    //     if ( space.includes( name )) return buildingList[ space.indexOf( name )];
+
+    //     return ( name.split( '-' )[1]?.[0]?.toUpperCase() as Building ) || Building.Z;
+    // }
+
+
+    // async #getNewEntitiesToCreate<
+    //     TInputEntity extends Record<string, any>,
+    //     TDbModel extends {
+    //         findMany    : ( args: any ) => Promise<any[]>;
+    //         createMany  : ( args: any ) => Promise<any>;
+    //     },
+    //     TUniqueKey extends keyof TInputEntity
+    // >(
+    //     entities    : TInputEntity[],
+    //     uniqueKey   : TUniqueKey,
+    //     prismaModel : TDbModel,
+    //     dbSearchKey : string,
+    //     mapper: ( entity: TInputEntity ) => any
+    // ): Promise<any> {
+    //     const uniqueKeysInExcel     = entities.map( e => e[ uniqueKey ]) as Array<string | number | boolean>;
+    //     const existingDbEntities    = await prismaModel.findMany({
+    //         where: {
+    //             [dbSearchKey]: {
+    //                 in: uniqueKeysInExcel,
+    //             },
+    //         },
+    //         select: {
+    //             [dbSearchKey]: true,
+    //         },
+    //     });
+
+    //     const existingDbKeys = new Set( existingDbEntities.map( e => e[ dbSearchKey ]));
+
+    //     return entities
+    //         .filter( entity => !existingDbKeys.has( entity[ uniqueKey ]))
+    //         .map( mapper );
+    // }
+
 
     /**
      * Process raw data from Excel file
