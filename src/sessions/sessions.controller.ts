@@ -290,4 +290,17 @@ export class SessionsController {
         );
     }
 
+
+    @Patch( 'availability/assign-registered' )
+    @ApiBody({
+        description : 'Listado de secciones con los registrados a asignar',
+        type        : SectionDataDto,
+        isArray     : true
+    })
+    assignRegistered(
+        @Body() sectionDataList: SectionDataDto[]
+    ) {
+        return this.sessionsService.assignRegistered( sectionDataList );
+    }
+
 }
