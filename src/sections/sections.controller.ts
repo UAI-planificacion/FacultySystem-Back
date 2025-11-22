@@ -23,16 +23,18 @@ import { FileInterceptor }  from '@nestjs/platform-express';
 
 import * as XLSX from 'xlsx';
 
-import { SectionsService }          from '@sections/sections.service';
-import { CreateSectionDto }         from '@sections/dto/create-section.dto';
-import { UpdateSectionDto }         from '@sections/dto/update-section.dto';
-import { SectionDto }               from '@sections/dto/section.dto';
-import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
-import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 import {
     BulkCreateSectionDto,
     IExcelSection
-}                                   from '@sections/dto/excel-section.dto';
+}                           from '@sections/dto/excel-section.dto';
+import { SectionsService }  from '@sections/sections.service';
+import { CreateSectionDto } from '@sections/dto/create-section.dto';
+import { UpdateSectionDto } from '@sections/dto/update-section.dto';
+import { SectionDto }       from '@sections/dto/section.dto';
+import { CleanSectionDto }  from '@sections/dto/clean-section.dto';
+import { Type }             from '@sessions/interfaces/excelSession.dto';
+// import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
+// import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 
 @ApiTags( 'Sections' )
 @Controller( 'sections' )
@@ -243,7 +245,19 @@ export class SectionsController {
     }
 
 
-    @Patch( 'changeStatus/:id' )
+    @Patch( 'clean/:type' )
+    @ApiOperation({ summary: 'Update a section' })
+    @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
+    @ApiResponse({ status: 404, description: 'Section not found' })
+    clean(
+        @Param( 'type' ) type: Type,
+        @Body() resetSectionDto: CleanSectionDto,
+    ) {
+        return this.sectionsService.clean( type, resetSectionDto );
+    }
+
+
+    @Patch( 'changeStatusGroup/:id' )
     @ApiOperation({ summary: 'Update a section' })
     @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
     @ApiResponse({ status: 404, description: 'Section not found' })
