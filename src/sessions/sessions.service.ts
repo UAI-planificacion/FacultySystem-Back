@@ -18,6 +18,7 @@ import {
 	AssignSessionAvailabilityDto
 }                                   from '@sessions/dto/assign-session-availability.dto';
 import {
+    AssignmentDto,
     ExcelSessionDto,
     SectionDataDto,
     SessionAvailabilityResult,
@@ -1657,14 +1658,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         return excelBuffer;
     }
 
-
     /**
      * Calculate registered preview without updating database
      * Returns ExcelSessionDto[] with Estado and Detalle for user review
      */
     async #calculateRegisteredPreview(
         sectionDataList : SectionDataDto[]
-    ): Promise<ExcelSessionDto[]> {
+    ): Promise<AssignmentDto> {
         // 1. Create map of unique sections
         const uniqueSectionsMap = new Map<string, SectionDataDto>();
 
@@ -1677,23 +1677,28 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         const sectionIds = Array.from( uniqueSectionsMap.keys() );
 
         if ( sectionIds.length === 0 ) {
-            return [];
+            return {
+                type: Type.REGISTERED,
+                data: []
+            };
         }
 
         // 2. Get all sessions for these sections
         const sessions = await this.session.findMany({
             where   : { sectionId: { in: sectionIds }},
             select  : {
-                id          : true,
-                name        : true,
-                date        : true,
-                spaceId     : true,
-                sectionId   : true,
-                section     : {
+                id              : true,
+                name            : true,
+                date            : true,
+                spaceId         : true,
+                sectionId       : true,
+                chairsAvailable : true,
+                section         : {
                     select: {
                         id          : true,
                         code        : true,
                         quota       : true,
+                        registered  : true,
                         building    : true,
                         spaceType   : true,
                         subject     : {
@@ -1780,6 +1785,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             let estado  : 'Available' | 'Unavailable' | 'Probable';
             let detalle : string;
 
+            let availableCapacity : number | null = null;
+
             if ( !session.spaceId ) {
                 estado  = 'Unavailable';
                 detalle = 'Esta sesión no tiene un espacio asignado.';
@@ -1790,7 +1797,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     estado  = 'Unavailable';
                     detalle = `Espacio "${ session.spaceId }" no encontrado en el sistema.`;
                 } else {
-                    const availableCapacity = space.capacity - registered;
+                    availableCapacity = space.capacity - registered;
 
                     if ( availableCapacity >= 0 ) {
                         estado  = 'Available';
@@ -1817,6 +1824,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 TamanoEspacio       : tamanoEspacio,
                 TipoSesion          : session.name,
                 Cupos               : session.section.quota,
+                Inscritos           : registered,
+                SillasDisponibles   : availableCapacity,
                 Profesor            : profesorStr,
                 Espacio             : session.spaceId,
                 Estado              : estado,
@@ -1824,7 +1833,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
         }
 
-        return results;
+        return {
+            type: Type.REGISTERED,
+            data: results
+        };
     }
 
 
@@ -1941,7 +1953,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     async calculateSessionAvailabilitySpaceOrProfessorOrRegister(
         type            : Type,
         sessionDataList : SessionDataDto[] | SectionDataDto[]
-    ): Promise<ExcelSessionDto[] | any[]> {
+    ): Promise<AssignmentDto> {
         try {
             if ( type === Type.REGISTERED ) {
                 return this.#calculateRegisteredPreview( sessionDataList as SectionDataDto[] );
@@ -2384,7 +2396,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 }
             }
 
-            return results;
+            return {
+                type: type,
+                data: results
+            };
         } catch (error) {
             throw PrismaException.catch(error, 'Error al calcular disponibilidad de sesiones');
         }
