@@ -1,7 +1,13 @@
 
 type Status = 'Available' | 'Unavailable' | 'Probable';
 
-export class ExcelSessionDto {
+export interface AssignmentDto {
+    type : Type;
+    data : ExcelSessionDto[]
+}
+
+
+export interface ExcelSessionDto {
     SSEC                : string;
     SesionId            : string;
     Numero              : number;
@@ -16,8 +22,10 @@ export class ExcelSessionDto {
     TamanoEspacio       : string | null;
     TipoSesion          : string;
     Cupos               : number;
+    Inscritos?          : number;
     Profesor            : string | null;
     Espacio             : string | null;
+    SillasDisponibles?  : number | null;
     Estado?             : Status;
     Detalle?            : string;
 }
