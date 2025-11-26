@@ -33,6 +33,7 @@ import { MassiveUpdateSessionDto }      from '@sessions/dto/massive-update-sessi
 import { CalculateAvailabilityDto }     from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }          from '@sessions/dto/available-session.dto';
 import { AssignSessionAvailabilityDto } from '@sessions/dto/assign-session-availability.dto';
+import { AssignSessionRegisteredDto }   from '@sessions/dto/assign-session-registered.dto';
 
 
 @Controller( 'sessions' )
@@ -294,13 +295,13 @@ export class SessionsController {
     @Patch( 'availability/assign-registered' )
     @ApiBody({
         description : 'Listado de secciones con los registrados a asignar',
-        type        : SectionDataDto,
+        type        : AssignSessionRegisteredDto,
         isArray     : true
     })
     assignRegistered(
-        @Body() sectionDataList: SectionDataDto[]
+        @Body() assignSessionRegisteredList: AssignSessionRegisteredDto[]
     ) {
-        return this.sessionsService.assignRegistered( sectionDataList );
+        return this.sessionsService.assignRegistered( assignSessionRegisteredList );
     }
 
 }
