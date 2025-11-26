@@ -13,7 +13,7 @@ export class AssignSessionAvailabilityDto {
 		example     : '01HKXYZ123ABC456DEF789'
 	})
 	@IsString()
-	sessionId   : string;
+	sessionId: string;
 
 
 	@ApiPropertyOptional({
@@ -22,7 +22,7 @@ export class AssignSessionAvailabilityDto {
 	})
 	@IsOptional()
 	@IsString()
-	spaceId     ?: string;
+	spaceId?: string;
 
 
 	@ApiPropertyOptional({
@@ -31,6 +31,6 @@ export class AssignSessionAvailabilityDto {
 	})
 	@IsOptional()
 	@IsString()
-	professorId ?: string;
+	professorId?: string;
 
 }
