@@ -18,11 +18,15 @@ import {
 	AssignSessionAvailabilityDto
 }                                   from '@sessions/dto/assign-session-availability.dto';
 import {
+	AssignSessionRegisteredDto
+}                                   from '@sessions/dto/assign-session-registered.dto';
+import {
     AssignmentDto,
     ExcelSessionDto,
     SectionDataDto,
     SessionAvailabilityResult,
     SessionDataDto,
+    Status,
     Type
 }                                   from '@sessions/interfaces/excelSession.dto';
 import { Space, SpacesService }     from '@commons/services/spaces.service';
@@ -1782,29 +1786,28 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 : null;
 
             // Calculate Estado and Detalle based on space capacity
-            let estado  : 'Available' | 'Unavailable' | 'Probable';
-            let detalle : string;
-
-            let availableCapacity : number | null = null;
+            let status              : Status;
+            let detail              : string;
+            let availableCapacity   : number | null = null;
 
             if ( !session.spaceId ) {
-                estado  = 'Unavailable';
-                detalle = 'Esta sesión no tiene un espacio asignado.';
+                status  = Status.AVAILABLE;
+                detail  = 'Sin espacio asignado.';
             } else {
                 const space = spacesMap.get( session.spaceId );
 
                 if ( !space ) {
-                    estado  = 'Unavailable';
-                    detalle = `Espacio "${ session.spaceId }" no encontrado en el sistema.`;
+                    status  = Status.UNAVAILABLE;
+                    detail  = `Espacio "${ session.spaceId }" no encontrado en el sistema.`;
                 } else {
                     availableCapacity = space.capacity - registered;
 
                     if ( availableCapacity >= 0 ) {
-                        estado  = 'Available';
-                        detalle = 'Se puede realizar el registro';
+                        status  = Status.AVAILABLE;
+                        detail  = 'Válido para asignación.';
                     } else {
-                        estado  = 'Unavailable';
-                        detalle = 'La capacidad del espacio no es suficiente.';
+                        status  = Status.UNAVAILABLE;
+                        detail  = 'Capacidad insuficiente.';
                     }
                 }
             }
@@ -1812,6 +1815,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             results.push({
                 SSEC,
                 SesionId            : session.id,
+                SectionId           : session.sectionId,
                 Numero              : session.section.code,
                 NombreAsignatura    : session.section.subject.name,
                 Fecha               : session.date,
@@ -1828,8 +1832,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 SillasDisponibles   : availableCapacity,
                 Profesor            : profesorStr,
                 Espacio             : session.spaceId,
-                Estado              : estado,
-                Detalle             : detalle
+                Estado              : status,
+                Detalle             : detail
             });
         }
 
@@ -1839,113 +1843,136 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         };
     }
 
-
     /**
      * Public method to assign registered values to sections
      * This performs the actual database updates
      */
-    async assignRegistered( sectionDataList: SectionDataDto[] ) {
-        return this.#calculateRegistered( sectionDataList );
+    async assignRegistered( assignSessionRegisteredList: AssignSessionRegisteredDto[] ) {
+        return this.#calculateRegistered( assignSessionRegisteredList );
     }
 
 
     #calculateRegistered(
-        sectionDataList : SectionDataDto[]
+        assignSessionRegisteredList : AssignSessionRegisteredDto[]
     ) {
         return this.$transaction( async prisma => {
-            // 1. Create map of unique sections
-            const uniqueSectionsMap = new Map<string, SectionDataDto>();
+            try {
+                // 1. Create map of unique sections with their registered values
+                const uniqueSectionsMap = new Map<string, number>();
 
-            for ( const item of sectionDataList ) {
-                if ( !uniqueSectionsMap.has( item.sectionId )) {
-                    uniqueSectionsMap.set( item.sectionId, item );
-                }
-            }
-
-            const sectionIds = Array.from( uniqueSectionsMap.keys() );
-
-            if ( sectionIds.length === 0 ) {
-                return [];
-            }
-
-            // 2. Verify sections exist
-            const sections = await prisma.section.findMany({
-                where   : { id: { in: sectionIds }},
-                select  : { id: true }
-            });
-
-            if ( sections.length === 0 ) {
-                return [];
-            }
-
-            // 3. Update all sections in parallel using Promise.all
-            const sectionUpdatePromises = sections.map( section => {
-                const inputData = uniqueSectionsMap.get( section.id );
-
-                if ( !inputData ) {
-                    return Promise.resolve();
-                }
-
-                return prisma.section.update({
-                    where   : { id: section.id },
-                    data    : {
-                        registered  : inputData.registered,
+                for ( const item of assignSessionRegisteredList ) {
+                    if ( !uniqueSectionsMap.has( item.sectionId )) {
+                        uniqueSectionsMap.set( item.sectionId, item.registered );
                     }
+                }
+
+                const sectionIds = Array.from( uniqueSectionsMap.keys() );
+
+                if ( sectionIds.length === 0 ) {
+                    return [];
+                }
+
+                // 2. Verify sections exist
+                const sections = await prisma.section.findMany({
+                    where   : { id: { in: sectionIds }},
+                    select  : { id: true }
                 });
-            });
 
-            await Promise.all( sectionUpdatePromises );
-
-            // 4. Get all sessions for these sections
-            const sessions = await prisma.session.findMany({
-                where   : { sectionId: { in: sectionIds }},
-                select  : {
-                    id          : true,
-                    sectionId   : true,
-                    spaceId     : true,
+                if ( sections.length === 0 ) {
+                    return [];
                 }
-            });
 
-            // 5. Get all spaces and create maps
-            const allSpaces      = await this.spacesService.getSpaces();
-            const spacesMap      = new Map( allSpaces.map( space => [space.name, space] ));
-            const registeredMap  = new Map<string, number>();
+                // 3. Update all sections in parallel using Promise.all
+                const sectionUpdatePromises = sections.map( section => {
+                    const registered = uniqueSectionsMap.get( section.id );
 
-            for ( const section of sections ) {
-                const inputData = uniqueSectionsMap.get( section.id );
+                    if ( registered === undefined ) {
+                        return Promise.resolve();
+                    }
 
-                if ( inputData ) {
-                    registeredMap.set( section.id, inputData.registered );
-                }
-            }
-
-            // 6. Update all sessions in parallel using Promise.all
-            const sessionUpdatePromises = sessions
-                .filter( session => {
-                    const registered = registeredMap.get( session.sectionId );
-                    return registered !== undefined && session.spaceId !== null;
-                })
-                .map( session => {
-                    const registered   = registeredMap.get( session.sectionId )!;
-                    const space        = spacesMap.get( session.spaceId! );
-                    const capacity     = space ? space.capacity : -1;
-                    const chairsAvail  = capacity - registered;
-
-                    return prisma.session.update({
-                        where   : { id: session.id },
-                        data    : { chairsAvailable: chairsAvail }
+                    return prisma.section.update({
+                        where   : { id: section.id },
+                        data    : { registered }
                     });
                 });
 
-            await Promise.all( sessionUpdatePromises );
+                await Promise.all( sectionUpdatePromises );
 
-            // 7. Get updated sections
-            const updatedSections = await prisma.section.findMany({
-                where   : { id: { in: sectionIds }},
-                select  : this.#selectSection,
-            });
+                // 4. Get all sessions for these sections
+                const sessions = await prisma.session.findMany({
+                    where   : { sectionId: { in: sectionIds }},
+                    select  : {
+                        id          : true,
+                        sectionId   : true,
+                        spaceId     : true,
+                    }
+                });
 
-            return updatedSections.map( section => this.#convertToSectionDto( section ));
+                // 5. Get all spaces and create maps
+                const allSpaces      = await this.spacesService.getSpaces();
+                const spacesMap      = new Map( allSpaces.map( space => [space.name, space] ));
+                const registeredMap  = new Map<string, number>();
+
+                for ( const section of sections ) {
+                    const registered = uniqueSectionsMap.get( section.id );
+
+                    if ( registered !== undefined ) {
+                        registeredMap.set( section.id, registered );
+                    }
+                }
+
+                // 6. Group sessions by (spaceId, registered) for optimized updateMany
+                const groupedSessions = new Map<string, string[]>();
+
+                for ( const session of sessions ) {
+                    // Ignorar sesiones sin espacio asignado
+                    if ( !session.spaceId ) continue;
+
+                    const registered = registeredMap.get( session.sectionId );
+                    if ( registered === undefined ) continue;
+
+                    // Crear clave única para agrupar: "spaceId|registered"
+                    const key = `${ session.spaceId }|${ registered }`;
+
+                    if ( !groupedSessions.has( key )) {
+                        groupedSessions.set( key, [] );
+                    }
+
+                    groupedSessions.get( key )!.push( session.id );
+                }
+
+                // 7. Update sessions using updateMany for each group
+                const sessionUpdatePromises = Array.from( groupedSessions.entries() )
+                    .filter(([key]) => {
+                        const [spaceId] = key.split( '|' );
+                        const space     = spacesMap.get( spaceId );
+                        // Solo procesar si el espacio existe en el mapa
+                        return space !== undefined;
+                    })
+                    .map(([key, sessionIds]) => {
+                        const [spaceId, registeredStr]  = key.split( '|' );
+                        const registered                = parseInt( registeredStr );
+                        const space                     = spacesMap.get( spaceId )!;
+                        const chairsAvail               = space.capacity - registered;
+
+                        return prisma.session.updateMany({
+                            where   : { id: { in: sessionIds }},
+                            data    : { chairsAvailable: chairsAvail }
+                        });
+                    });
+
+                await Promise.all( sessionUpdatePromises );
+
+                // 8. Get updated sections
+                const updatedSections = await prisma.section.findMany({
+                    where   : { id: { in: sectionIds }},
+                    select  : this.#selectSection,
+                });
+
+                return updatedSections.map( section => this.#convertToSectionDto( section ));
+            } catch ( error ) {
+                throw PrismaException.catch( error, 'Failed to calculate registered' );
+            }
         });
     }
 
@@ -2088,7 +2115,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         Cupos               : 0,
                         Profesor            : null,
                         Espacio             : type === Type.SPACE ? ( data.spaceId || null ) : null,
-                        Estado              : 'Unavailable',
+                        Estado              : Status.UNAVAILABLE,
                         Detalle             : `Sesión con ID ${ data.sessionId } no encontrada en la base de datos`
                     });
 
@@ -2129,7 +2156,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : profesorStr,
                             Espacio             : null,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : 'No se especificó un espacio'
                         });
 
@@ -2157,7 +2184,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : profesorStr,
                             Espacio             : spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : `Espacio "${spaceId}" no encontrado en el sistema`
                         });
 
@@ -2182,7 +2209,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : profesorStr,
                             Espacio             : spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : `Espacio "${spaceId}" está inactivo`
                         });
 
@@ -2217,7 +2244,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : profesorStr,
                             Espacio             : spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : `Espacio "${spaceId}" ya está ocupado en esta fecha y horario`
                         });
 
@@ -2245,7 +2272,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : profesorStr,
                             Espacio             : spaceId,
-                            Estado              : 'Probable',
+                            Estado              : Status.PROBABLE,
                             Detalle             : `Capacidad del espacio (${space.capacity}) es menor que el cupo de la sección (${quota})`
                         });
 
@@ -2276,7 +2303,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         Cupos               : session.section.quota,
                         Profesor            : profesorStr,
                         Espacio             : spaceId,
-                        Estado              : 'Available',
+                        Estado              : Status.AVAILABLE,
                         Detalle             : message
                     });
                 }
@@ -2303,7 +2330,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : null,
                             Espacio             : session.spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : 'No se especificó un profesor'
                         });
 
@@ -2330,7 +2357,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : `${ professorId }-`,
                             Espacio             : session.spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : `Profesor con ID "${professorId}" no encontrado en la base de datos`
                         });
 
@@ -2365,7 +2392,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             Cupos               : session.section.quota,
                             Profesor            : `${ professor.id }-${ professor.name }`,
                             Espacio             : session.spaceId,
-                            Estado              : 'Unavailable',
+                            Estado              : Status.UNAVAILABLE,
                             Detalle             : `Profesor "${professor.name}" ya está ocupado en esta fecha y horario`
                         });
 
@@ -2390,7 +2417,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         Cupos               : session.section.quota,
                         Profesor            : `${ professor.id }-${ professor.name }`,
                         Espacio             : session.spaceId,
-                        Estado              : 'Available',
+                        Estado              : Status.AVAILABLE,
                         Detalle             : 'Profesor disponible para asignación'
                     });
                 }
