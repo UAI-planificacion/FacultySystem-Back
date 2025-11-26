@@ -1,5 +1,5 @@
 
-type Status = 'Available' | 'Unavailable' | 'Probable';
+// type Status = 'Available' | 'Unavailable' | 'Probable';
 
 export interface AssignmentDto {
     type : Type;
@@ -10,6 +10,7 @@ export interface AssignmentDto {
 export interface ExcelSessionDto {
     SSEC                : string;
     SesionId            : string;
+    SectionId?          : string;
     Numero              : number;
     NombreAsignatura    : string;
     Fecha               : Date;
@@ -83,4 +84,11 @@ export interface SessionAvailabilityResult {
     status      : Status;
     detalle     : string;
     sessionId   : string;
+}
+
+
+export enum Status {
+    AVAILABLE   = 'Available',
+    UNAVAILABLE = 'Unavailable',
+    PROBABLE    = 'Probable'
 }
