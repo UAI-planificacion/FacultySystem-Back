@@ -293,6 +293,20 @@ export class SectionDto {
 
 
     @ApiPropertyOptional({
+        description : 'Number of quota students in the section.',
+        example     : 20,
+    })
+    quota: number
+
+
+    @ApiPropertyOptional({
+        description : 'Number of quota students in the section.',
+        example     : 20,
+    })
+    registered: number;
+
+
+    @ApiPropertyOptional({
         description : 'Session details including spaces, days, modules and professors.',
         example     : {
             ids         : [ 'clx15746g000008l3f1z9h8y7' ],
