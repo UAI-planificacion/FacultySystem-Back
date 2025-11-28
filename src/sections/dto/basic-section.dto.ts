@@ -1,4 +1,4 @@
-import { ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, IntersectionType } from '@nestjs/swagger';
 
 import {
     IsDate,
@@ -49,6 +49,16 @@ export class BasicSectionDto extends IntersectionType(
     @IsOptional()
     @IsEnum($Enums.Building, { message: 'Section building must be a valid building.' })
     building?: $Enums.Building;
+
+
+    @ApiProperty({
+        description: 'The quota of the section.',
+        example: 10,
+    })
+    @IsNumber()
+    @Min( 1 )
+    @Max( 1000 )
+    quota: number;
 
 
     @ApiPropertyOptional({
