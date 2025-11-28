@@ -23,10 +23,16 @@ import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 import { PrismaException }          from '@config/prisma-catch';
 import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
 import { Type }                     from '@sessions/interfaces/excelSession.dto';
+import { SpacesService }            from '@commons/services/spaces.service';
 
 
 @Injectable()
 export class SectionsService extends PrismaClient implements OnModuleInit {
+
+	constructor( private readonly spacesService: SpacesService ) {
+		super();
+	}
+
 
     onModuleInit() {
 		this.$connect();
@@ -163,6 +169,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 },
                 select  : {
                     id              : true,
+                    quota           : true,
                     lecture         : true,
                     workshop        : true,
                     tutoringSession : true,
@@ -527,6 +534,11 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             if ( !sectionUpdated ) throw new BadRequestException( 'Error updating section' );
 
+            // Si se actualizó quota o registered, recalcular chairsAvailable de las sesiones
+            if ( updateSectionDto.quota !== undefined || updateSectionDto.registered !== undefined ) {
+                await this.#updateSessionsChairsAvailable( id, sectionUpdated.quota, sectionUpdated.registered );
+            }
+
             return this.#convertToSectionDto( sectionUpdated );
         } catch ( error ) {
             console.error( 'Error updating section:', error );
@@ -580,6 +592,70 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             throw PrismaException.catch( error, 'Failed to delete section' );
         }
     }
+
+
+	/**
+	 * Updates chairsAvailable for all sessions of a section based on space capacity and quota/registered
+	 * @param sectionId - The ID of the section
+	 * @param quota - The quota value from the section
+	 * @param registered - The registered value from the section (optional, takes priority over quota)
+	 */
+	async #updateSessionsChairsAvailable( sectionId: string, quota: number, registered?: number | null ) {
+		try {
+			// 1. Obtener todas las sesiones de esta sección que tengan un spaceId asignado
+			const sessions = await this.session.findMany({
+				where: {
+					sectionId,
+					spaceId: {
+						not: null
+					}
+				},
+				select: {
+					id      : true,
+					spaceId : true,
+				}
+			});
+
+			// Si no hay sesiones con espacios asignados, no hay nada que actualizar
+			if ( sessions.length === 0 ) {
+				return;
+			}
+
+			// 2. Obtener todos los espacios del servicio externo
+			const allSpaces = await this.spacesService.getSpaces();
+
+			// 3. Crear un mapa de espacios por ID para acceso rápido
+			const spacesMap = new Map( allSpaces.map( space => [space.id.toString(), space] ));
+
+			// 4. Determinar el valor a usar: registered tiene prioridad sobre quota
+			const capacityToUse = ( registered !== null && registered !== undefined && registered > 0 ) ? registered : quota;
+
+			// 5. Preparar las actualizaciones para cada sesión
+			const updatePromises = sessions.map( async ( session ) => {
+				const space = spacesMap.get( session.spaceId! );
+
+				if ( !space ) {
+					console.warn( `Space ${session.spaceId} not found for session ${session.id}` );
+					return;
+				}
+
+				// Calcular chairsAvailable = capacidad del espacio - (registered o quota)
+				const chairsAvailable = space.capacity - capacityToUse;
+
+				// Actualizar la sesión
+				return this.session.update({
+					where   : { id: session.id },
+					data    : { chairsAvailable }
+				});
+			});
+
+			// 6. Ejecutar todas las actualizaciones en paralelo
+			await Promise.all( updatePromises );
+		} catch ( error ) {
+			console.error( 'Error updating sessions chairsAvailable:', error );
+			throw new BadRequestException( 'Failed to update sessions chairsAvailable' );
+		}
+	}
 
 
     /**
