@@ -417,17 +417,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    // async #getSectionData(): Promise<SectionDto[]> {
-    //     const sections = await this.section.findMany({
-    //         select: this.#selectSection
-    //     });
-
-    //     if ( sections.length === 0 ) return [];
-
-    //     return sections.map( section => this.#convertToSectionDto( section ));
-    // }
-
-
     async findAll() {
         const sections = await this.section.findMany({
             select: this.#selectSection,
@@ -442,22 +431,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
         return sections.map( section => this.#convertToSectionDto( section ));
     }
-
-
-    // async findAllBySubjectId( subjectId: string ) {
-    //     const sections = await this.section.findMany({
-    //         where: {
-    //             subjectSections: {
-    //                 every: {
-    //                     subjectId
-    //                 }
-    //             }
-    //         },
-    //         select: this.#selectSection
-    //     });
-
-    //     return sections.map( section => this.#convertToSectionDto( section ));
-    // }
 
 
     async findOne( id: string ) {
