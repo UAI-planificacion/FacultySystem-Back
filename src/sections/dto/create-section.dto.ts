@@ -25,14 +25,4 @@ export class CreateSectionDto extends IntersectionType(
     @IsNotEmpty()
     numberOfSections: number;
 
-
-    @ApiProperty({
-        description: 'The quota of the section.',
-        example: 10,
-    })
-    @IsNumber()
-    @Min( 1 )
-    @Max( 1000 )
-    quota: number;
-
 }
