@@ -257,11 +257,11 @@ export class SectionsController {
     }
 
 
-    @Patch( 'changeStatusGroup/:id' )
-    @ApiOperation({ summary: 'Update a section' })
-    @ApiResponse({ status: 200, description: 'The section has been successfully updated.' })
+    @Patch( 'changeStatus/:id' )
+    @ApiOperation({ summary: 'Change section status (open/closed)' })
+    @ApiResponse({ status: 200, description: 'The section status has been successfully updated.' })
     @ApiResponse({ status: 404, description: 'Section not found' })
-    changeStatusGroup(
+    changeStatus(
         @Param( 'id' ) id: string,
     ) {
         return this.sectionsService.changeStatusSection( id );
