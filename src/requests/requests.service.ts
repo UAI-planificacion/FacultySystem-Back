@@ -47,10 +47,10 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
             spaceSizeId     : request.section.spaceSizeId,
             spaceType       : request.section.spaceType,
             building        : request.section.building,
-            professor       : {
+            professor       : request.section.professor ? {
                 id              : request.section.professor.id,
                 name            : request.section.professor.name
-            },
+            } : null,
             period: {
                 id      : request.section.period.id,
                 name    : request.section.period.name
@@ -198,10 +198,12 @@ export class RequestsService extends PrismaClient implements OnModuleInit {
                 data : sessionDayModulesData
             });
 
-            const requestMapped = await this.request.findUnique({
+            const requestSelected = await this.request.findUnique({
                 where : { id : request.id },
                 select: this.#selectRequest
             });
+
+            const requestMapped = this.#requestMap( requestSelected );
 
             this.sseService.emitEvent({
                 message : requestMapped,
