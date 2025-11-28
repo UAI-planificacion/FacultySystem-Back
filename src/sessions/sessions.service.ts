@@ -542,12 +542,18 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     id          : true,
                     professorId : true,
                     quota       : true,
+                    registered  : true,
                     period      : {
                         select : {
                             startDate   : true,
                             endDate     : true,
                             openingDate : true,
                             closingDate : true,
+                        }
+                    },
+                    _count: {
+                        select: {
+                            sessions: true
                         }
                     }
                 }
@@ -557,9 +563,13 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 throw new NotFoundException( `Section with id ${sectionId} not found` );
             }
 
+            if ( section._count.sessions > 0 ) {
+                throw new BadRequestException( 'Esta sección ya ha sido planificada.' );
+            }
+
             const startDate = section.period.openingDate || section.period.startDate;
             const endDate   = section.period.closingDate || section.period.endDate;
-            const quota     = Number( section.quota || 0 );
+            const quota     = section.registered || section.quota;
 
             // const { startDate, endDate } = section;
             const currentDate = new Date();
@@ -645,7 +655,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                             professorId     : professorId   || null,
                             isEnglish       : isEnglish     || false,
                             date,
-                            chairsAvailable : chairsAvailable,
+                            chairsAvailable,
                         });
                     }
                 }
@@ -833,7 +843,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 					dayModuleId : true,
 					section     : {
 						select : {
-							quota : true
+							quota : true,
+                            registered: true
 						}
 					}
 				}
@@ -938,7 +949,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 						throw new BadRequestException( `El espacio ${spaceId} ya está reservado para este horario` );
 					}
 
-					const quota           = session.section?.quota || 0;
+					const quota           = session.section?.registered || session.section?.quota;
 					const chairsAvailable = space.capacity - quota;
 
                     // Si seamlessly es true no se puede asignar negativos
@@ -1030,7 +1041,6 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 			throw PrismaException.catch( error, 'Failed to assign session availability' );
 		}
 	}
-
 
 	/**
 	 * Calculate all dates within a range that match a specific day of the week
@@ -1211,7 +1221,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         dayModuleId : true,
                         section     : {
                             select : {
-                                quota : true
+                                quota : true,
+                                registered: true
                             }
                         }
                     }
@@ -1243,7 +1254,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     throw new BadRequestException( `El espacio ${updateSessionDto.spaceId} ya está reservado para este horario` );
                 }
 
-                const quota           = Number( currentSession.section?.quota || 0 );
+                const quota           = currentSession.section?.registered || currentSession.section?.quota;
                 const chairsAvailable = space.capacity - quota;
 
                 dataToUpdate = {
@@ -1295,7 +1306,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 						spaceId     : true,
 						section     : {
 							select : {
-								quota : true
+								quota : true,
+                                registered: true
 							}
 						}
 					}
@@ -1304,7 +1316,6 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 			// 2. Update professorId only if it comes in the DTO
 			if ( professorId ) {
-
 				// Find sessions where the new professor is already assigned
 				const professorSessions = await this.session.findMany({
 					where: {
@@ -1397,7 +1408,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 						new Set(
 							currentSessions
 								.filter( session => sessionIdsToUpdate.includes( session.id ))
-								.map( session => session.section?.quota || 0 )
+								.map( session => session.section?.registered || session.section?.quota )
 						)
 					);
 
@@ -2015,6 +2026,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         select: {
                             code        : true,
                             quota       : true,
+                            registered  : true,
                             building    : true,
                             spaceType   : true,
                             subject     : {
@@ -2256,7 +2268,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     }
 
                     // Verificar capacidad del espacio vs cupo de la sección
-                    const quota = session.section.quota || 0;
+                    const quota = session.section.registered || session.section.quota;
 
                     if ( space.capacity < quota ) {
                         results.push({
