@@ -540,7 +540,10 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
         await this.session.updateMany({
             data: {
-                ...( type === Type.SPACE        ? { spaceId: null }     : {} ),
+                ...( type === Type.SPACE        ? {
+                    spaceId: null,
+                    chairsAvailable: null
+                }     : {} ),
                 ...( type === Type.PROFESSOR    ? { professorId: null } : {} ),
             },
             where: {
