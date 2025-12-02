@@ -1784,26 +1784,49 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         for ( const session of sessions ) {
             const registered = registeredMap.get( session.sectionId );
 
-            if ( registered === undefined ) {
-                continue;
-            }
-
-            // Build common fields
+             // Build common fields
             const module        = session.dayModule.module;
             const moduleStr     = `${ module.code } - ${ module.startHour } - ${ module.endHour }`;
             const SSEC          = `${ session.section.subject.id }-${ session.section.code }`;
             const periodo       = `${ session.section.period.id }-${ session.section.period.name }`;
-            const tamanoEspacio = session.section.spaceSize
-                ? `${ session.section.spaceSize.id }-${ session.section.spaceSize.detail }`
-                : null;
-            const profesorStr   = session.professor
-                ? `${ session.professor.id }-${ session.professor.name }`
-                : null;
+            const tamanoEspacio = session.section.spaceSize ? session.section.spaceSize.id : null;
+            const tamanoDetalle = session.section.spaceSize ? session.section.spaceSize.detail : null;
+            const profesorStr   = session.professor ? `${ session.professor.id }-${ session.professor.name }` : null;
 
-            // Calculate Estado and Detalle based on space capacity
+             // Calculate Estado and Detalle based on space capacity
             let status              : Status;
             let detail              : string;
             let availableCapacity   : number | null = null;
+
+            if ( registered === undefined ) {
+                results.push({
+                    SSEC,
+                    SesionId            : session.id,
+                    SectionId           : session.sectionId,
+                    Numero              : session.section.code,
+                    NombreAsignatura    : session.section.subject.name,
+                    Fecha               : session.date,
+                    Dia                 : session.dayModule.dayId,
+                    Modulo              : moduleStr,
+                    Periodo             : periodo,
+                    TipoPeriodo         : session.section.period.type,
+                    Edificio            : session.section.building,
+                    TipoEspacio         : session.section.spaceType,
+                    TamanoEspacio       : tamanoEspacio,
+                    TamanoDetalle       : tamanoDetalle,
+                    TipoSesion          : session.name,
+                    Cupos               : session.section.quota,
+                    InscritosActuales   : session.section.registered,
+                    Inscritos           : null,
+                    SillasDisponibles   : availableCapacity,
+                    Profesor            : profesorStr,
+                    Espacio             : session.spaceId,
+                    Estado              : Status.UNAVAILABLE,
+                    Detalle             : 'Sin valor de inscritos.'
+                });
+
+                continue;
+            }
 
             if ( !session.spaceId ) {
                 status  = Status.AVAILABLE;
@@ -1820,9 +1843,17 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     if ( availableCapacity >= 0 ) {
                         status  = Status.AVAILABLE;
                         detail  = 'Válido para asignación.';
+
+                        if ( (session.section.registered ?? 0 ) > 0 ){
+                            detail  = `Se va modificar el valor de inscritos de ${session.section.registered} -> ${registered}`;
+                        }
                     } else {
-                        status  = Status.UNAVAILABLE;
+                        status  = Status.AVAILABLE;
                         detail  = 'Capacidad insuficiente.';
+
+                        if (( session.section.registered ?? 0 ) > 0 ) {
+                            detail  = `Capacidad insuficiente. Se va modificar el valor de inscritos de ${session.section.registered} -> ${registered}`;
+                        }
                     }
                 }
             }
@@ -1841,8 +1872,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 Edificio            : session.section.building,
                 TipoEspacio         : session.section.spaceType,
                 TamanoEspacio       : tamanoEspacio,
+                TamanoDetalle       : tamanoDetalle,
                 TipoSesion          : session.name,
                 Cupos               : session.section.quota,
+                InscritosActuales   : session.section.registered,
                 Inscritos           : registered,
                 SillasDisponibles   : availableCapacity,
                 Profesor            : profesorStr,
@@ -2127,6 +2160,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         Edificio            : null,
                         TipoEspacio         : null,
                         TamanoEspacio       : null,
+                        TamanoDetalle       : null,
                         TipoSesion          : 'UNKNOWN',
                         Cupos               : 0,
                         Profesor            : null,
@@ -2143,12 +2177,29 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 const moduleStr     = `${ module.code } - ${ module.startHour } - ${ module.endHour }`;
                 const SSEC          = `${ session.section.subject.id }-${ session.section.code }`;
                 const periodo       = `${ session.section.period.id }-${ session.section.period.name }`;
-                const tamanoEspacio = session.section.spaceSize
-                    ? `${ session.section.spaceSize.id }-${ session.section.spaceSize.detail }`
-                    : null;
-                const profesorStr   = session.professor
-                    ? `${ session.professor.id }-${ session.professor.name }`
-                    : null;
+                const tamanoEspacio = session.section.spaceSize?.id     ?? null;
+                const tamanoDetalle = session.section.spaceSize?.detail ?? null;
+                const profesorStr   = session.professor ? `${ session.professor.id }-${ session.professor.name }` : null;
+
+                const resultCore = {
+                    SSEC,
+                    SesionId            : session.id,
+                    Numero              : session.section.code,
+                    NombreAsignatura    : session.section.subject.name,
+                    Fecha               : session.date,
+                    Dia                 : session.dayModule.dayId,
+                    Modulo              : moduleStr,
+                    Periodo             : periodo,
+                    TipoPeriodo         : session.section.period.type,
+                    Edificio            : session.section.building,
+                    TipoEspacio         : session.section.spaceType,
+                    TamanoEspacio       : tamanoEspacio,
+                    TamanoDetalle       : tamanoDetalle,
+                    TipoSesion          : session.name,
+                    Cupos               : session.section.quota,
+                    Profesor            : profesorStr,
+                    Espacio             : null,
+                }
 
                 // --- VALIDACIÓN PARA ESPACIOS ---
                 if ( type === Type.SPACE ) {
@@ -2156,24 +2207,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( !spaceId ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : profesorStr,
-                            Espacio             : null,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : 'No se especificó un espacio'
+                            ...resultCore,
+                            EspacioActual   : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : 'No se especificó un espacio'
                         });
 
                         continue;
@@ -2184,24 +2221,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( !space ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : profesorStr,
-                            Espacio             : spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : `Espacio "${spaceId}" no encontrado en el sistema`
+                            ...resultCore,
+                            EspacioActual   : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : `Espacio "${spaceId}" no encontrado en el sistema`
                         });
 
                         continue;
@@ -2209,24 +2232,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( !space.active ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : profesorStr,
-                            Espacio             : spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : `Espacio "${spaceId}" está inactivo`
+                            ...resultCore,
+                            Espacio         : spaceId,
+                            EspacioActual   : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : `Espacio "${spaceId}" está inactivo`
                         });
 
                         continue;
@@ -2244,24 +2254,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( conflictingSession ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : profesorStr,
-                            Espacio             : spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : `Espacio "${spaceId}" ya está ocupado en esta fecha y horario`
+                            ...resultCore,
+                            Espacio         : spaceId,
+                            EspacioActual   : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : `Espacio "${spaceId}" ya está ocupado en esta fecha y horario`
                         });
 
                         continue;
@@ -2272,24 +2269,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( space.capacity < quota ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : profesorStr,
-                            Espacio             : spaceId,
-                            Estado              : Status.PROBABLE,
-                            Detalle             : `Capacidad del espacio (${space.capacity}) es menor que el cupo de la sección (${quota})`
+                            ...resultCore,
+                            Espacio         : spaceId,
+                            EspacioActual   : session.spaceId,
+                            Estado          : Status.PROBABLE,
+                            Detalle         : `Capacidad del espacio (${space.capacity}) es menor que el cupo de la sección (${quota})`
                         });
 
                         continue;
@@ -2303,78 +2287,42 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     // Todo OK
                     results.push({
-                        SSEC,
-                        SesionId            : session.id,
-                        Numero              : session.section.code,
-                        NombreAsignatura    : session.section.subject.name,
-                        Fecha               : session.date,
-                        Dia                 : session.dayModule.dayId,
-                        Modulo              : moduleStr,
-                        Periodo             : periodo,
-                        TipoPeriodo         : session.section.period.type,
-                        Edificio            : session.section.building,
-                        TipoEspacio         : session.section.spaceType,
-                        TamanoEspacio       : tamanoEspacio,
-                        TipoSesion          : session.name,
-                        Cupos               : session.section.quota,
-                        Profesor            : profesorStr,
-                        Espacio             : spaceId,
-                        Estado              : Status.AVAILABLE,
-                        Detalle             : message
+                        ...resultCore,
+                        Espacio         : spaceId,
+                        EspacioActual   : session.spaceId,
+                        Estado          : Status.AVAILABLE,
+                        Detalle         : message
                     });
                 }
 
                 // --- VALIDACIÓN PARA PROFESORES ---
                 if ( type === Type.PROFESSOR ) {
                     const professorId = data.professor?.id;
+                    const professorActual = session.professor ? `${ session.professor.id }-${ session.professor.name }` : null;
 
                     if ( !professorId ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : null,
-                            Espacio             : session.spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : 'No se especificó un profesor'
+                            ...resultCore,
+                            Profesor        : null,
+                            Espacio         : session.spaceId,
+                            ProfesorActual  : professorActual,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : 'No se especificó un profesor'
                         });
 
                         continue;
                     }
 
-                    const professor = professorMap.get(professorId);
+                    const professor = professorMap.get( professorId );
 
                     if ( !professor ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : `${ professorId }-`,
-                            Espacio             : session.spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : `Profesor con ID "${professorId}" no encontrado en la base de datos`
+                            ...resultCore,
+                            Profesor        : `${ professorId }-`,
+                            ProfesorActual  : professorActual,
+                            Espacio         : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : `Profesor con ID "${professorId}" no encontrado en la base de datos`
                         });
 
                         continue;
@@ -2392,24 +2340,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     if ( conflictingSession ) {
                         results.push({
-                            SSEC,
-                            SesionId            : session.id,
-                            Numero              : session.section.code,
-                            NombreAsignatura    : session.section.subject.name,
-                            Fecha               : session.date,
-                            Dia                 : session.dayModule.dayId,
-                            Modulo              : moduleStr,
-                            Periodo             : periodo,
-                            TipoPeriodo         : session.section.period.type,
-                            Edificio            : session.section.building,
-                            TipoEspacio         : session.section.spaceType,
-                            TamanoEspacio       : tamanoEspacio,
-                            TipoSesion          : session.name,
-                            Cupos               : session.section.quota,
-                            Profesor            : `${ professor.id }-${ professor.name }`,
-                            Espacio             : session.spaceId,
-                            Estado              : Status.UNAVAILABLE,
-                            Detalle             : `Profesor "${professor.name}" ya está ocupado en esta fecha y horario`
+                            ...resultCore,
+                            Profesor        : `${ professor.id }-${ professor.name }`,
+                            ProfesorActual  : professorActual,
+                            Espacio         : session.spaceId,
+                            Estado          : Status.UNAVAILABLE,
+                            Detalle         : `Profesor "${professor.name}" ya está ocupado en esta fecha y horario`
                         });
 
                         continue;
@@ -2417,24 +2353,12 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                     // Todo OK
                     results.push({
-                        SSEC,
-                        SesionId            : session.id,
-                        Numero              : session.section.code,
-                        NombreAsignatura    : session.section.subject.name,
-                        Fecha               : session.date,
-                        Dia                 : session.dayModule.dayId,
-                        Modulo              : moduleStr,
-                        Periodo             : periodo,
-                        TipoPeriodo         : session.section.period.type,
-                        Edificio            : session.section.building,
-                        TipoEspacio         : session.section.spaceType,
-                        TamanoEspacio       : tamanoEspacio,
-                        TipoSesion          : session.name,
-                        Cupos               : session.section.quota,
-                        Profesor            : `${ professor.id }-${ professor.name }`,
-                        Espacio             : session.spaceId,
-                        Estado              : Status.AVAILABLE,
-                        Detalle             : 'Profesor disponible para asignación'
+                        ...resultCore,
+                        Profesor        : `${ professor.id }-${ professor.name }`,
+                        ProfesorActual  : professorActual,
+                        Espacio         : session.spaceId,
+                        Estado          : Status.AVAILABLE,
+                        Detalle         : 'Profesor disponible para asignación'
                     });
                 }
             }
