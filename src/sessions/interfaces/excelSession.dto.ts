@@ -21,11 +21,15 @@ export interface ExcelSessionDto {
     Edificio            : string | null;
     TipoEspacio         : string | null;
     TamanoEspacio       : string | null;
+    TamanoDetalle       : string | null;
     TipoSesion          : string;
     Cupos               : number;
-    Inscritos?          : number;
+    Inscritos?          : number | null;
+    InscritosActuales?   : number | null;
     Profesor            : string | null;
+    ProfesorActual?     : string | null;
     Espacio             : string | null;
+    EspacioActual?      : string | null;
     SillasDisponibles?  : number | null;
     Estado?             : Status;
     Detalle?            : string;
