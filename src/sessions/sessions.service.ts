@@ -96,6 +96,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 code        : true,
                 startDate   : true,
                 endDate     : true,
+                building    : true,
                 subject     : {
                     select: {
                         id      : true,
@@ -123,6 +124,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             code                : session.section?.code || null,
             startDate           : session.section?.startDate || null,
             endDate             : session.section?.endDate || null,
+            building            : session.section?.building || null,
             subject             : {
                 id                  : session.section?.subject?.id || null,
                 name                : session.section?.subject?.name || null,
