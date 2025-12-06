@@ -470,6 +470,55 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    async changeMassiveStatusSection( sectionIds: string[] ) {
+        try {
+            // Buscar todas las secciones por sus IDs
+            const sections = await this.section.findMany({
+                where   : {
+                    id : {
+                        in : sectionIds
+                    }
+                },
+                select  : this.#selectSection
+            });
+
+            if ( !sections || sections.length === 0 ) {
+                throw new NotFoundException( 'Sections not found.' );
+            }
+
+            // Cambiar el estado de cada sección (de true a false o false a true)
+            const sectionsToUpdate = sections.map( section => ({
+                id          : section.id,
+                isClosed    : !section.isClosed
+            }));
+
+            // Actualizar todas las secciones en una sola operación masiva
+            await Promise.all(
+                sectionsToUpdate.map( section =>
+                    this.section.update({
+                        where   : { id: section.id },
+                        data    : { isClosed: section.isClosed }
+                    })
+                )
+            );
+
+            // Retornar las secciones actualizadas
+            const updatedSections = await this.section.findMany({
+                where   : {
+                    id : {
+                        in : sectionIds
+                    }
+                },
+                select  : this.#selectSection
+            });
+
+            return updatedSections.map( section => this.#convertToSectionDto( section ));
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update sections' );
+        }
+    }
+
+
     async findSectionNotPlanning() {
         return await this.section.findMany({
             where: {
