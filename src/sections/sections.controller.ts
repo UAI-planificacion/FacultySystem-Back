@@ -27,12 +27,13 @@ import {
     BulkCreateSectionDto,
     IExcelSection
 }                           from '@sections/dto/excel-section.dto';
-import { SectionsService }  from '@sections/sections.service';
-import { CreateSectionDto } from '@sections/dto/create-section.dto';
-import { UpdateSectionDto } from '@sections/dto/update-section.dto';
-import { SectionDto }       from '@sections/dto/section.dto';
-import { CleanSectionDto }  from '@sections/dto/clean-section.dto';
-import { Type }             from '@sessions/interfaces/excelSession.dto';
+import { SectionsService }          from '@sections/sections.service';
+import { CreateSectionDto }         from '@sections/dto/create-section.dto';
+import { UpdateSectionDto }         from '@sections/dto/update-section.dto';
+import { SectionDto }               from '@sections/dto/section.dto';
+import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
+import { ChangeMassiveStatusDto }   from '@sections/dto/change-massive-status.dto';
+import { Type }                     from '@sessions/interfaces/excelSession.dto';
 // import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
 // import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 
@@ -265,6 +266,21 @@ export class SectionsController {
         @Param( 'id' ) id: string,
     ) {
         return this.sectionsService.changeStatusSection( id );
+    }
+
+
+    @Patch( 'changeMassiveStatus/all' )
+    @ApiOperation({ summary: 'Change multiple sections status (open/closed)' })
+    @ApiResponse({
+        status      : 200,
+        description : 'The sections status has been successfully updated.',
+        type        : [SectionDto]
+    })
+    @ApiResponse({ status: 404, description: 'Sections not found' })
+    changeMassiveStatus(
+        @Body() changeMassiveStatusDto: ChangeMassiveStatusDto
+    ) {
+        return this.sectionsService.changeMassiveStatusSection( changeMassiveStatusDto.sectionIds );
     }
 
 
