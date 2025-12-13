@@ -22,6 +22,7 @@ import {
 }                                   from '@sessions/dto/assign-session-registered.dto';
 import {
     AssignmentDto,
+    ExcelSectionDto,
     ExcelSessionDto,
     SectionDataDto,
     SessionAvailabilityResult,
@@ -1204,36 +1205,98 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
     async update( id: string, updateSessionDto: UpdateSessionDto ) {
         try {
-            // const session = await this.session.update({
-            //     where   : { id },
-            //     data    : updateSessionDto,
-            //     select  : this.#selectSession,
-            // });
-
-            // return this.#convertToSessionDto( session );
-            let dataToUpdate = { ...updateSessionDto };
-
-            if ( updateSessionDto.spaceId ) {
-                // Obtener la sesión actual con la quota de la sección
-                const currentSession = await this.session.findUnique({
-                    where   : { id },
-                    select  : {
-                        id          : true,
-                        date        : true,
-                        dayModuleId : true,
-                        section     : {
-                            select : {
-                                quota : true,
-                                registered: true
-                            }
+            // 1. Obtener la sesión actual con todos los datos necesarios
+            const currentSession = await this.session.findUnique({
+                where   : { id },
+                select  : {
+                    id          : true,
+                    date        : true,
+                    dayModuleId : true,
+                    spaceId     : true,
+                    professorId : true,
+                    section     : {
+                        select : {
+                            quota       : true,
+                            registered  : true
                         }
+                    }
+                }
+            });
+
+            if ( !currentSession ) {
+                throw new NotFoundException( `Session with id ${id} not found` );
+            }
+
+            // 2. Determinar los valores finales después del update
+            const finalDate         = updateSessionDto.date !== undefined ? updateSessionDto.date : currentSession.date;
+            const finalDayModuleId  = updateSessionDto.dayModuleId !== undefined ? updateSessionDto.dayModuleId : currentSession.dayModuleId;
+            const finalSpaceId      = updateSessionDto.spaceId !== undefined ? updateSessionDto.spaceId : currentSession.spaceId;
+            const finalProfessorId  = updateSessionDto.professorId !== undefined ? updateSessionDto.professorId : currentSession.professorId;
+
+            // 3. Validar cambios de fecha y/o dayModuleId
+            const dateChanged       = updateSessionDto.date !== undefined && updateSessionDto.date.getTime() !== currentSession.date.getTime();
+            const dayModuleChanged  = updateSessionDto.dayModuleId !== undefined && updateSessionDto.dayModuleId !== currentSession.dayModuleId;
+
+            if ( dateChanged || dayModuleChanged ) {
+                // Si cambia la fecha o el módulo, validar que el spaceId actual (o nuevo) esté disponible
+                if ( finalSpaceId ) {
+                    const spaceConflict = await this.session.findFirst({
+                        where: {
+                            date        : finalDate,
+                            dayModuleId : finalDayModuleId,
+                            spaceId     : finalSpaceId,
+                            id          : { not: id }
+                        }
+                    });
+
+                    if ( spaceConflict ) {
+                        throw new BadRequestException( 
+                            `El espacio ${finalSpaceId} ya está reservado para la fecha ${finalDate.toISOString().split('T')[0]} y el módulo especificado` 
+                        );
+                    }
+                }
+
+                // Si cambia la fecha o el módulo, validar que el professorId actual (o nuevo) esté disponible
+                if ( finalProfessorId ) {
+                    const professorConflict = await this.session.findFirst({
+                        where: {
+                            date        : finalDate,
+                            dayModuleId : finalDayModuleId,
+                            professorId : finalProfessorId,
+                            id          : { not: id }
+                        }
+                    });
+
+                    if ( professorConflict ) {
+                        throw new BadRequestException( 
+                            `El profesor ya tiene asignada otra sesión para la fecha ${finalDate.toISOString().split('T')[0]} y el módulo especificado` 
+                        );
+                    }
+                }
+            }
+
+            // 4. Validar cambio de professorId
+            if ( updateSessionDto.professorId !== undefined && updateSessionDto.professorId !== currentSession.professorId ) {
+                const professorConflict = await this.session.findFirst({
+                    where: {
+                        date        : finalDate,
+                        dayModuleId : finalDayModuleId,
+                        professorId : updateSessionDto.professorId,
+                        id          : { not: id }
                     }
                 });
 
-                if ( !currentSession ) {
-                    throw new NotFoundException( `Session with id ${id} not found` );
+                if ( professorConflict ) {
+                    throw new BadRequestException( 
+                        `El profesor ya tiene asignada otra sesión para la fecha ${finalDate.toISOString().split('T')[0]} y el módulo especificado` 
+                    );
                 }
+            }
 
+            // 5. Validar cambio de spaceId y calcular chairsAvailable
+            let dataToUpdate = { ...updateSessionDto };
+
+            if ( updateSessionDto.spaceId !== undefined && updateSessionDto.spaceId !== currentSession.spaceId ) {
                 const allSpaces = await this.spacesService.getSpaces();
                 const spacesMap = new Map( allSpaces.map( space => [space.name, space] ));
                 const space     = spacesMap.get( updateSessionDto.spaceId );
@@ -1242,18 +1305,20 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     throw new BadRequestException( `El espacio ${updateSessionDto.spaceId} no existe o no está disponible` );
                 }
 
-                // Validar conflicto de espacio en esa fecha/módulo
-                const conflictingSession = await this.session.findFirst({
-                    where   : {
-                        date        : currentSession.date,
-                        dayModuleId : currentSession.dayModuleId,
+                // Validar conflicto de espacio en la fecha/módulo final
+                const spaceConflict = await this.session.findFirst({
+                    where: {
+                        date        : finalDate,
+                        dayModuleId : finalDayModuleId,
                         spaceId     : updateSessionDto.spaceId,
                         id          : { not: id }
                     }
                 });
 
-                if ( conflictingSession ) {
-                    throw new BadRequestException( `El espacio ${updateSessionDto.spaceId} ya está reservado para este horario` );
+                if ( spaceConflict ) {
+                    throw new BadRequestException( 
+                        `El espacio ${updateSessionDto.spaceId} ya está reservado para la fecha ${finalDate.toISOString().split('T')[0]} y el módulo especificado` 
+                    );
                 }
 
                 const quota           = currentSession.section?.registered || currentSession.section?.quota;
@@ -1265,6 +1330,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 };
             }
 
+            // 6. Realizar el update
             const session = await this.session.update({
                 where   : { id },
                 data    : dataToUpdate,
@@ -1444,7 +1510,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 		}
 	}
 
-	remove( id: string ) {
+
+    remove( id: string ) {
 		try {
 			return this.session.delete({
 				where: { id }
@@ -1458,7 +1525,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 	massiveRemove( ids: string[] ) {
 		try {
 			return this.session.deleteMany({
-				where: { id: { in: ids } }
+				where: { id: { in: ids }}
 			});
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to delete sessions' );
@@ -1680,8 +1747,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
     /**
-     * Calculate registered preview without updating database
+     * Calculate registered preview for sections
      * Returns ExcelSessionDto[] with Estado and Detalle for user review
+     * Also returns ExcelSectionDto[] with aggregated Estado and Detalle
      */
     async #calculateRegisteredPreview(
         sectionDataList : SectionDataDto[]
@@ -1699,8 +1767,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         if ( sectionIds.length === 0 ) {
             return {
-                type: Type.REGISTERED,
-                data: []
+                type        : Type.REGISTERED,
+                data        : [],
+                sections    : []
             };
         }
 
@@ -1782,6 +1851,8 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         // 5. Process each session and calculate Estado and Detalle
         const results: ExcelSessionDto[] = [];
+        // Map to track session statuses by sectionId for section-level aggregation
+        const sectionStatusMap = new Map<string, Status[]>();
 
         for ( const session of sessions ) {
             const registered = registeredMap.get( session.sectionId );
@@ -1801,6 +1872,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             let availableCapacity   : number | null = null;
 
             if ( registered === undefined ) {
+                status = Status.UNAVAILABLE;
+                detail = 'Sin valor de inscritos.';
+
                 results.push({
                     SSEC,
                     SesionId            : session.id,
@@ -1823,9 +1897,15 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     SillasDisponibles   : availableCapacity,
                     Profesor            : profesorStr,
                     Espacio             : session.spaceId,
-                    Estado              : Status.UNAVAILABLE,
-                    Detalle             : 'Sin valor de inscritos.'
+                    Estado              : status,
+                    Detalle             : detail
                 });
+
+                // Track status for section aggregation
+                if ( !sectionStatusMap.has( session.sectionId )) {
+                    sectionStatusMap.set( session.sectionId, [] );
+                }
+                sectionStatusMap.get( session.sectionId )!.push( status );
 
                 continue;
             }
@@ -1885,11 +1965,77 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 Estado              : status,
                 Detalle             : detail
             });
+
+            // Track status for section aggregation
+            if ( !sectionStatusMap.has( session.sectionId )) {
+                sectionStatusMap.set( session.sectionId, [] );
+            }
+            sectionStatusMap.get( session.sectionId )!.push( status );
+        }
+
+        // 6. Build unique sections array with aggregated Estado and Detalle
+        const uniqueSectionsSet = new Set<string>();
+        const sectionsResult: ExcelSectionDto[] = [];
+
+        for ( const session of sessions ) {
+            if ( uniqueSectionsSet.has( session.sectionId )) {
+                continue;
+            }
+
+            uniqueSectionsSet.add( session.sectionId );
+
+            const registered        = registeredMap.get( session.sectionId ) ?? session.section.registered ?? 0;
+            const SSEC              = `${ session.section.subject.id }-${ session.section.code }`;
+            const periodo           = `${ session.section.period.id }-${ session.section.period.name }`;
+            const tamanoEspacio     = session.section.spaceSize ? session.section.spaceSize.id : '';
+            const sessionStatuses   = sectionStatusMap.get( session.sectionId ) || [];
+
+            // Calculate section-level Estado based on session statuses
+            let sectionEstado: Status;
+            const availableCount    = sessionStatuses.filter( s => s === Status.AVAILABLE ).length;
+            const unavailableCount  = sessionStatuses.filter( s => s === Status.UNAVAILABLE ).length;
+            const totalSessions     = sessionStatuses.length;
+
+            if ( totalSessions === 0 ) {
+                sectionEstado = Status.UNAVAILABLE;
+            } else if ( unavailableCount === totalSessions ) {
+                sectionEstado = Status.UNAVAILABLE;
+            } else if ( availableCount === totalSessions ) {
+                sectionEstado = Status.AVAILABLE;
+            } else {
+                sectionEstado = Status.PROBABLE;
+            }
+
+            // Calculate section-level Detalle
+            let sectionDetalle: string;
+            if ( unavailableCount === 0 ) {
+                sectionDetalle = 'Todas las sesiones disponibles';
+            } else if ( unavailableCount === totalSessions ) {
+                sectionDetalle = `Existen ${unavailableCount} errores`;
+            } else {
+                sectionDetalle = `${availableCount} sesiones disponibles, ${unavailableCount} sesiones no disponibles`;
+            }
+
+            sectionsResult.push({
+                SectionId           : session.sectionId,
+                SSEC                : SSEC,
+                NombreAsignatura    : session.section.subject.name,
+                Periodo             : periodo,
+                TipoPeriodo         : session.section.period.type,
+                Edificio            : session.section.building || '',
+                TipoEspacio         : session.section.spaceType || '',
+                TamanoEspacio       : tamanoEspacio,
+                Cupos               : session.section.quota,
+                Inscritos           : registered,
+                Estado              : sectionEstado,
+                Detalle             : sectionDetalle
+            });
         }
 
         return {
-            type: Type.REGISTERED,
-            data: results
+            type        : Type.REGISTERED,
+            data        : results,
+            sections    : sectionsResult
         };
     }
 
@@ -1979,6 +2125,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                     if ( !session.spaceId ) continue;
 
                     const registered = registeredMap.get( session.sectionId );
+
                     if ( registered === undefined ) continue;
 
                     // Crear clave única para agrupar: "spaceId|registered"
