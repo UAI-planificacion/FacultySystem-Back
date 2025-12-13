@@ -1,9 +1,7 @@
-
-// type Status = 'Available' | 'Unavailable' | 'Probable';
-
 export interface AssignmentDto {
-    type : Type;
-    data : ExcelSessionDto[]
+    type        : Type;
+    data        : ExcelSessionDto[];
+    sections?   : ExcelSectionDto[];
 }
 
 
@@ -25,7 +23,7 @@ export interface ExcelSessionDto {
     TipoSesion          : string;
     Cupos               : number;
     Inscritos?          : number | null;
-    InscritosActuales?   : number | null;
+    InscritosActuales?  : number | null;
     Profesor            : string | null;
     ProfesorActual?     : string | null;
     Espacio             : string | null;
@@ -45,8 +43,11 @@ export interface ExcelSectionDto {
     Edificio            : string;
     TipoEspacio         : string;
     TamanoEspacio       : string;
-    Cupos               : string;
-    Inscritos           : string;
+    Cupos               : number;
+    Inscritos           : number;
+
+    Estado?             : Status;
+    Detalle?            : string;
 }
 
 
@@ -74,8 +75,6 @@ export enum Type {
     PROFESSOR   = 'professor',
     REGISTERED  = 'registered'
 }
-
-
 
 
 export interface SessionAvailabilityResult {
