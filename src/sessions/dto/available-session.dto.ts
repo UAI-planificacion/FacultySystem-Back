@@ -39,7 +39,8 @@ export class AvailableSessionDto {
     })
     @IsString()
     @Length( 2, 15 )
-    spaceId: string;
+    @IsOptional()
+    spaceId?: string;
 
 
     @ApiPropertyOptional({
