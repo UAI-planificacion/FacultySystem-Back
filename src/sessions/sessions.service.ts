@@ -679,9 +679,9 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 	/**
-	 * Find all available dates for a session based on dayModuleId, spaceId and professorId
-	 * @param availableSessionDto - Object containing sessionId, dayModuleId, spaceId and professorId
-	 * @returns Array of available dates or empty array if none available
+	 * Find all available dates for a session based on dayModuleId, and optionally spaceId and professorId
+	 * @param availableSessionDto - Object containing sessionId or sectionId (required), dayModuleId (required), spaceId (optional) and professorId (optional)
+	 * @returns Array of available dates. If spaceId is not provided, returns all dates calculated from dayModuleId without space conflict validation
 	 */
 	async findAvailableSessions(
         availableSessionDto: AvailableSessionDto
@@ -747,14 +747,18 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 			// 3. Calculate all possible dates for this day of the week
 			const possibleDates = this.calculateDatesForDayOfWeek( startDate, endDate, dayModule.day.id );
 
-			// 4. Find all sessions with space conflicts (1 query)
-			const spaceConflicts = await this.session.findMany({
-				where: {
-					spaceId	: spaceId,
-					date	: { in: possibleDates }
-				},
-				select: { date: true }
-			});
+			// 4. Find all sessions with space conflicts (only if spaceId is provided)
+			let spaceConflicts: { date: Date }[] = [];
+			
+			if ( spaceId ) {
+				spaceConflicts = await this.session.findMany({
+					where: {
+						spaceId	: spaceId,
+						date	: { in: possibleDates }
+					},
+					select: { date: true }
+				});
+			}
 
 			// 5. Find all sessions with professor conflicts (1 query, only if professor is different)
 			let professorConflicts: { date: Date }[] = [];
@@ -1224,18 +1228,18 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             });
 
             if ( !currentSession ) {
-                throw new NotFoundException( `Session with id ${id} not found` );
+                throw new NotFoundException( `Session with id ${ id } not found` );
             }
 
             // 2. Determinar los valores finales después del update
-            const finalDate         = updateSessionDto.date !== undefined ? updateSessionDto.date : currentSession.date;
-            const finalDayModuleId  = updateSessionDto.dayModuleId !== undefined ? updateSessionDto.dayModuleId : currentSession.dayModuleId;
-            const finalSpaceId      = updateSessionDto.spaceId !== undefined ? updateSessionDto.spaceId : currentSession.spaceId;
-            const finalProfessorId  = updateSessionDto.professorId !== undefined ? updateSessionDto.professorId : currentSession.professorId;
+            const finalDate         = updateSessionDto.date         !== undefined ? updateSessionDto.date           : currentSession.date;
+            const finalDayModuleId  = updateSessionDto.dayModuleId  !== undefined ? updateSessionDto.dayModuleId    : currentSession.dayModuleId;
+            const finalSpaceId      = updateSessionDto.spaceId      !== undefined ? updateSessionDto.spaceId        : currentSession.spaceId;
+            const finalProfessorId  = updateSessionDto.professorId  !== undefined ? updateSessionDto.professorId    : currentSession.professorId;
 
             // 3. Validar cambios de fecha y/o dayModuleId
-            const dateChanged       = updateSessionDto.date !== undefined && updateSessionDto.date.getTime() !== currentSession.date.getTime();
-            const dayModuleChanged  = updateSessionDto.dayModuleId !== undefined && updateSessionDto.dayModuleId !== currentSession.dayModuleId;
+            const dateChanged       = updateSessionDto.date         !== undefined && updateSessionDto.date.getTime()    !== currentSession.date.getTime();
+            const dayModuleChanged  = updateSessionDto.dayModuleId  !== undefined && updateSessionDto.dayModuleId       !== currentSession.dayModuleId;
 
             if ( dateChanged || dayModuleChanged ) {
                 // Si cambia la fecha o el módulo, validar que el spaceId actual (o nuevo) esté disponible
@@ -1288,7 +1292,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
                 if ( professorConflict ) {
                     throw new BadRequestException( 
-                        `El profesor ya tiene asignada otra sesión para la fecha ${finalDate.toISOString().split('T')[0]} y el módulo especificado` 
+                        `El profesor ya tiene asignada otra sesión para la fecha ${ finalDate.toISOString().split( 'T' )[0] } y el módulo especificado` 
                     );
                 }
             }
@@ -1933,8 +1937,14 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                         status  = Status.AVAILABLE;
                         detail  = 'Capacidad insuficiente.';
 
-                        if (( session.section.registered ?? 0 ) > 0 ) {
-                            detail  = `Capacidad insuficiente. Se va modificar el valor de inscritos de ${session.section.registered} -> ${registered}`;
+                        const registeredNumber = session.section.registered ?? 0;
+
+                        if ( registeredNumber > 0 && registeredNumber !== registered ) {
+                            detail  = `Capacidad insuficiente. Se va modificar el valor de inscritos de ${registeredNumber} -> ${registered}`;
+                        }
+
+                        if ( registeredNumber > 0 && registeredNumber === registered ) {
+                            detail  = `Capacidad insuficiente. El valor de inscritos es el mismo.`;
                         }
                     }
                 }
@@ -2008,6 +2018,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
             // Calculate section-level Detalle
             let sectionDetalle: string;
+
             if ( unavailableCount === 0 ) {
                 sectionDetalle = 'Todas las sesiones disponibles';
             } else if ( unavailableCount === totalSessions ) {
@@ -2016,16 +2027,25 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 sectionDetalle = `${availableCount} sesiones disponibles, ${unavailableCount} sesiones no disponibles`;
             }
 
+            if ( session.section.registered ) {
+                sectionDetalle = `Se va modificar el valor de inscritos de ${session.section.registered} -> ${registered}`;
+            }
+
+            if ( session.section.registered === registered ) {
+                sectionDetalle = `El valor de inscritos es el mismo.`;
+            }
+
             sectionsResult.push({
                 SectionId           : session.sectionId,
                 SSEC                : SSEC,
                 NombreAsignatura    : session.section.subject.name,
                 Periodo             : periodo,
                 TipoPeriodo         : session.section.period.type,
-                Edificio            : session.section.building || '',
+                Edificio            : session.section.building  || '',
                 TipoEspacio         : session.section.spaceType || '',
                 TamanoEspacio       : tamanoEspacio,
                 Cupos               : session.section.quota,
+                InscritosActuales   : session.section.registered,
                 Inscritos           : registered,
                 Estado              : sectionEstado,
                 Detalle             : sectionDetalle
