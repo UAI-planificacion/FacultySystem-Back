@@ -44,8 +44,8 @@ export interface ExcelSectionDto {
     TipoEspacio         : string;
     TamanoEspacio       : string;
     Cupos               : number;
+    InscritosActuales?  : number | null;
     Inscritos           : number;
-
     Estado?             : Status;
     Detalle?            : string;
 }
