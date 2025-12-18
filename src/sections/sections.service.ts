@@ -433,6 +433,25 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    async findAllByFacultyId( facultyId: string ) {
+        const sections = await this.section.findMany({
+            select: this.#selectSection,
+            where : {
+                period: {
+                    createdAt : {
+                        gte: new Date( new Date().getFullYear(), 0, 1 ),
+                    }
+                },
+                subject: {
+                    facultyId
+                }
+            }
+        });
+
+        return sections.map( section => this.#convertToSectionDto( section ));
+    }
+
+
     async findOne( id: string ) {
         const section = await this.section.findUnique({
             where   : { id },
