@@ -208,6 +208,21 @@ export class SectionsController {
         return this.sectionsService.findAll();
     }
 
+
+    @Get( 'faculty/:id' )
+    @ApiOperation({ summary: 'Get all sections by faculty id' })
+    @ApiResponse({
+        status      : 200,
+        description : 'Return all sections',
+        type        :  [SectionDto]
+    })
+    findAllByFacultyId(
+        @Param( 'id' ) facultyId: string
+    ) {
+        return this.sectionsService.findAllByFacultyId( facultyId );
+    }
+
+
     @Get( 'not-planning' )
     // @ApiOperation({ summary: 'Get all sections' })
     // @ApiResponse({ status: 200, description: 'Return all sections' })
