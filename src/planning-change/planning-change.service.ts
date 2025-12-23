@@ -125,11 +125,16 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
                 detail : true,
             }
         },
-        sessionId : true,
-        sectionId: true,
-        createdAt       : true,
-        updatedAt       : true,
-        staffCreate       : {
+        sessionId   : true,
+        session : { 
+            select : {
+                sectionId : true,
+            }
+        },
+        sectionId   : true,
+        createdAt   : true,
+        updatedAt   : true,
+        staffCreate : {
             select: {
                 id      : true,
                 name    : true,
@@ -241,7 +246,7 @@ export class PlanningChangeService extends PrismaClient implements OnModuleInit 
             throw new NotFoundException( `Planning change not found with faculty id: ${facultyId}` );
         }
 
-        return planningChange.map(( planningChange ) => this.#planingChangeMap ( planningChange ));
+        return planningChange.map(( planningChange ) => this.#planingChangeMap( planningChange ));
     }
 
 
