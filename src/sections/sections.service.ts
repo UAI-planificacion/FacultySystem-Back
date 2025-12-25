@@ -1,29 +1,31 @@
 import { Injectable, BadRequestException, OnModuleInit, NotFoundException }  from '@nestjs/common';
 
 import { $Enums, PrismaClient } from 'generated/prisma';
-import * as xlsx                from 'xlsx';
+// import * as xlsx                from 'xlsx';
 import { ulid }                 from 'ulid';
 
-import {
-    PeriodData,
-    ProfessorData,
-    Section,
-    SubjectData,
-    SubjectSection
-}                                   from '@sections/models/data.model';
+// import {
+//     PeriodData,
+//     ProfessorData,
+//     Section,
+//     SubjectData,
+//     SubjectSection
+// }                                   from '@sections/models/data.model';
 import { CreateSectionDto }         from '@sections/dto/create-section.dto';
 import { UpdateSectionDto }         from '@sections/dto/update-section.dto';
-import { SizeValue }                from '@sections/enums/capacity-size.enum';
-import { SpaceType }                from '@sections/enums/space-type.enum';
-import { Building }                 from '@sections/enums/building.enum';
-import { SizeEnum }                 from '@sections/enums/size.enum';
+// import { SizeValue }                from '@sections/enums/capacity-size.enum';
+// import { SpaceType }                from '@sections/enums/space-type.enum';
+// import { Building }                 from '@sections/enums/building.enum';
+// import { SizeEnum }                 from '@sections/enums/size.enum';
 import { SectionDto }               from '@sections/dto/section.dto';
-import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
-import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
+// import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
+// import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 import { PrismaException }          from '@config/prisma-catch';
 import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
 import { Type }                     from '@sessions/interfaces/excelSession.dto';
 import { SpacesService }            from '@commons/services/spaces.service';
+import { SELECT_SECTION }           from '@commons/querys/sections-query';
+import { SELECT_SESSION }           from '@commons/querys/session-query';
 
 
 @Injectable()
@@ -37,75 +39,6 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     onModuleInit() {
 		this.$connect();
 	}
-
-
-    #selectSection = {
-        id              : true,
-        code            : true,
-        isClosed        : true,
-        groupId         : true,
-        startDate       : true,
-        endDate         : true,
-        spaceSizeId     : true,
-        spaceType       : true,
-        workshop        : true,
-        lecture         : true,
-        tutoringSession : true,
-        laboratory      : true,
-        quota           : true,
-        registered      : true,
-        building        : true,
-        professor: {
-            select : {
-                id      : true,
-                name    : true,
-            }
-        },
-        subject: {
-            select: {
-                id      : true,
-                name    : true,
-            }
-        },
-        period      : {
-            select: {
-                id          : true,
-                name        : true,
-                startDate   : true,
-                endDate     : true,
-                openingDate : true,
-                closingDate : true,
-            }
-        },
-        sessions: {
-            select: {
-                id          : true,
-                spaceId     : true,
-                dayModule   : {
-                    select      : {
-                        dayId       : true,
-                        moduleId    : true,
-                    }
-                },
-                professor: {
-                    select: {
-                        id      : true,
-                        name    : true,
-                    }
-                },
-            }
-        },
-        request : {
-            select: {
-                id: true,
-            }
-        },
-        _count: {
-            select: {
-                sessions: true
-            }
-        },
-    }
 
 
     #convertToSectionDto = ( section: any ): SectionDto => ({
@@ -148,6 +81,77 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             moduleIds   : section.sessions.map(( session : any ) => session.dayModule?.moduleId ),
             professorIds: section.sessions.map(( session : any ) => session.professor?.id ),
         },
+        haveRequest: !!section.request?.id
+    });
+
+
+    convertToSessionDto = ( session: any ) => ({
+        id                  : session.id,
+        name                : session.name,
+        spaceId             : session.spaceId,
+        isEnglish           : session.isEnglish,
+        chairsAvailable     : session.chairsAvailable,
+        professor           : session.professor,
+        dayId               : session.dayModule?.dayId || null,
+        dayModuleId         : session.dayModule?.id || null,
+        date                : session.date,
+        planningChangeId    : session.planningChange?.id || null,
+        // section             : {
+        //     id                  : session.section?.id || null,
+        //     code                : session.section?.code || null,
+        //     startDate           : session.section?.startDate || null,
+        //     endDate             : session.section?.endDate || null,
+        //     building            : session.section?.building || null,
+        //     subject             : {
+        //         id                  : session.section?.subject?.id || null,
+        //         name                : session.section?.subject?.name || null,
+        //     }
+        // },
+        module: session.dayModule?.module ? {
+            id          : session.dayModule.module.id,
+            code        : session.dayModule.module.code,
+            name        : `M${session.dayModule.module.code}${session.dayModule.module.difference ? `-${session.dayModule.module.difference} ` : ''} ${session.dayModule.module.startHour}-${session.dayModule.module.endHour}`,
+            startHour   : session.dayModule.module.startHour,
+            endHour     : session.dayModule.module.endHour,
+            difference  : session.dayModule.module.difference,
+        } : null,
+    });
+
+
+    #convertToSectionDto2 = ( section: any ): SectionDto => ({
+        id              : section.id,
+        code            : section.code,
+        isClosed        : section.isClosed,
+        groupId         : section.groupId,
+        startDate       : section.startDate,
+        endDate         : section.endDate,
+        spaceSizeId     : section.spaceSizeId,
+        spaceType       : section.spaceType,
+        workshop        : section.workshop,
+        lecture         : section.lecture,
+        tutoringSession : section.tutoringSession,
+        laboratory      : section.laboratory,
+        quota           : section.quota,
+        registered      : section.registered,
+        building        : section.building,
+        professor       : section.professor?.id ? {
+            id      : section.professor?.id,
+            name    : section.professor?.name,
+        } : null,
+        subject: {
+            id      : section.subject.id,
+            name    : section.subject.name,
+        },
+        period: {
+            id          : section.period.id,
+            name        : section.period.name,
+            startDate   : section.period.startDate,
+            endDate     : section.period.endDate,
+            openingDate : section.period.openingDate,
+            closingDate : section.period.closingDate,
+        },
+        sessionsCount   : section._count.sessions,
+        sessions        : section.sessions?.map(( session : any ) => this.convertToSessionDto( session )) ?? [],
         haveRequest: !!section.request?.id
     });
 
@@ -284,7 +288,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
             // Retrieve all created sections
             const sections = await this.section.findMany({
-                select  : this.#selectSection,
+                select  : SELECT_SECTION,
                 where   : {
                     groupId : {
                         in : groupIds
@@ -404,7 +408,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             });
 
             const sections = await this.section.findMany({
-                select  : this.#selectSection,
+                select  : SELECT_SECTION,
                 where   : {
                     groupId
                 }
@@ -419,7 +423,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async findAll() {
         const sections = await this.section.findMany({
-            select: this.#selectSection,
+            select: SELECT_SECTION,
             where : {
                 period: {
                     createdAt : {
@@ -433,9 +437,66 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+    async findAllAndSessions() {
+        //TODO: Agregar con SELECT_SESSION quitando section de session
+        const query = {
+            ...SELECT_SECTION,
+            sessions : {
+                select :  {
+                    id              : true,
+                    name            : true,
+                    spaceId         : true,
+                    isEnglish       : true,
+                    chairsAvailable : true,
+                    date            : true,
+                    dayModule       : {
+                        select: {
+                            id      : true,
+                            dayId   : true,
+                            module  : {
+                                select: {
+                                    id          : true,
+                                    code        : true,
+                                    startHour   : true,
+                                    endHour     : true,
+                                    difference  : true,
+                                }
+                            }
+                        }
+                    },
+                    professor: {
+                        select: {
+                            id      : true,
+                            name    : true,
+                        }
+                    },
+                    planningChange : {
+                        select :{
+                            id: true
+                        }
+                    },
+                }
+            }
+        };
+
+        const sections = await this.section.findMany({
+            select: query,
+            where : {
+                period: {
+                    createdAt : {
+                        gte: new Date( new Date().getFullYear(), 0, 1 ),
+                    }
+                }
+            }
+        });
+
+        return sections.map( section => this.#convertToSectionDto2( section ));
+    }
+
+
     async findAllByFacultyId( facultyId: string ) {
         const sections = await this.section.findMany({
-            select: this.#selectSection,
+            select: SELECT_SECTION,
             where : {
                 period: {
                     createdAt : {
@@ -455,7 +516,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     async findOne( id: string ) {
         const section = await this.section.findUnique({
             where   : { id },
-            select  : this.#selectSection
+            select  : SELECT_SECTION
         });
 
         if ( !section ) {
@@ -498,7 +559,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                         in : sectionIds
                     }
                 },
-                select  : this.#selectSection
+                select  : SELECT_SECTION
             });
 
             if ( !sections || sections.length === 0 ) {
@@ -528,7 +589,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                         in : sectionIds
                     }
                 },
-                select  : this.#selectSection
+                select  : SELECT_SECTION
             });
 
             return updatedSections.map( section => this.#convertToSectionDto( section ));
@@ -548,7 +609,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     is: null
                 }
             },
-            select: this.#selectSection
+            select: SELECT_SECTION
         });
     }
 
@@ -560,7 +621,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     some: {}
                 }
             },
-            select: this.#selectSection
+            select: SELECT_SECTION
         });
     }
 
@@ -568,7 +629,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     async update( id: string, updateSectionDto: UpdateSectionDto ) {
         try {
             const sectionUpdated = await this.section.update({
-                select  : this.#selectSection,
+                select  : SELECT_SECTION,
                 where   : { id },
                 data    : updateSectionDto
             });
@@ -594,7 +655,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         }
 
         const sections = await this.section.findMany({
-            select  : this.#selectSection,
+            select  : SELECT_SECTION,
             where   : {
                 id: {
                     in: cleanSectionDto.ids,
@@ -701,368 +762,4 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 		}
 	}
 
-
-    /**
-     * Process an Excel file containing section data
-     * @param file The uploaded Excel file
-     * @returns Array of processed section data
-     */
-    // async processExcelFile( file: Express.Multer.File ) {
-    //     if ( !file ) {
-    //         throw new BadRequestException( 'No file uploaded' );
-    //     }
-
-    //     const fileExtension = file.originalname.split('.').pop()?.toLowerCase() || '';
-
-    //     if ( !['xlsx', 'xls'].includes( fileExtension )) {
-    //         throw new BadRequestException( 'Invalid file format. Only Excel files (.xlsx, .xls) are allowed.' );
-    //     }
-
-    //     try {
-    //         const workbook = xlsx.read( file.buffer, {
-    //             type        : 'buffer',
-    //             cellDates   : false,
-    //             cellNF      : false,
-    //             cellStyles  : false
-    //         });
-
-    //         if ( !workbook.SheetNames || workbook.SheetNames.length === 0 ) {
-    //             throw new BadRequestException( 'Excel file has no sheets' );
-    //         }
-
-    //         const sheetName = workbook.SheetNames[0];
-    //         const worksheet = workbook.Sheets[sheetName];
-
-    //         if ( !worksheet ) {
-    //             throw new BadRequestException( 'Could not read worksheet' );
-    //         }
-
-    //         const rawData       = xlsx.utils.sheet_to_json<ExcelSectionRow>( worksheet );
-    //         const processedData = await this.#processRawData( rawData );
-
-    //         return processedData;
-    //     } catch ( error ) {
-    //         console.error( 'Error processing Excel file:', error );
-    //         throw new BadRequestException( `Error processing Excel file: ${error.message}` );
-    //     }
-    // }
-
-
-    // #getCapacity( capacity: number, sizes: {
-    //     id          : $Enums.SizeValue;
-    //     min         : number | null;
-    //     max         : number | null;
-    //     lessThan    : number | null;
-    //     greaterThan : number | null;
-    // }[] ): $Enums.SizeValue {
-    //     for ( const size of sizes ) {
-    //         if ( size.min && capacity < size.min ) return size.id;
-    //         if ( size.max && capacity > size.max ) return size.id;
-    //         if ( size.lessThan && capacity < size.lessThan ) return size.id;
-    //         if ( size.greaterThan && capacity > size.greaterThan ) return size.id;
-    //     }
-
-    //     return SizeValue.XL;
-    // }
-
-
-    // #getSize( size: string, capacity: number ): $Enums.SizeValue {
-    //     return {
-    //         [SizeEnum.CORE]         : SizeValue.XS  as $Enums.SizeValue,
-    //         [SizeEnum.GARAGE]       : SizeValue.S   as $Enums.SizeValue,
-    //         [SizeEnum.DIS]          : SizeValue.XL  as $Enums.SizeValue,
-    //         [SizeEnum.AUDITORIO]    : SizeValue.XL  as $Enums.SizeValue,
-    //         [SizeEnum.LABPAC]       : SizeValue.XL  as $Enums.SizeValue,
-    //         [SizeEnum.LABPCB]       : SizeValue.L   as $Enums.SizeValue,
-    //         [SizeEnum.LABPCC]       : capacity === 60 ? SizeValue.L : SizeValue.S as $Enums.SizeValue,
-    //         [SizeEnum.LABPCE]       : SizeValue.MS  as $Enums.SizeValue,
-    //         [SizeEnum.LABRED]       : SizeValue.M   as $Enums.SizeValue,
-    //         [SizeEnum.M]            : SizeValue.M   as $Enums.SizeValue,
-    //         [SizeEnum.MS]           : SizeValue.MS  as $Enums.SizeValue,
-    //         [SizeEnum.L]            : SizeValue.L   as $Enums.SizeValue,
-    //         [SizeEnum.SE]           : SizeValue.S   as $Enums.SizeValue,
-    //         [SizeEnum.S]            : SizeValue.S   as $Enums.SizeValue,
-    //         [SizeEnum.XS]           : SizeValue.XS  as $Enums.SizeValue,
-    //     }[size] || SizeValue.L;
-    // }
-
-    // #getSpaceType( name: string, size: string ): $Enums.SpaceType {
-    //     // Comunication
-    //     const communications = [
-    //         '223-D',
-    //         'LAB.110-D'
-    //     ];
-
-    //     if (
-    //         communications.includes( name ) ||
-    //         size === 'LAB.RED'
-    //     ) return SpaceType.COMMUNIC as $Enums.SpaceType;
-
-    //     // DIS
-    //     if ( name === 'LAB.103-D' || size === SpaceType.DIS ) return SpaceType.DIS as $Enums.SpaceType;
-
-    //     // Laboratorio
-    //     const space = [
-    //         'Lab. Bioingeniería',
-    //         'Lab. Ingenieria y Ciencias',
-    //         'Lab. Física',
-    //         'Lab. Informática',
-    //         'Lab. Procesos Industriales'
-    //     ];
-
-    //     if ( space.includes( name )) return SpaceType.LAB as $Enums.SpaceType;
-    //     // Laboratorio PC
-    //     else if ( name.toUpperCase().includes( 'LAB' )) return SpaceType.LABPC as $Enums.SpaceType;
-
-    //     // Auditorio
-    //     if ( size === SpaceType.AUDITORIO ) return SpaceType.AUDITORIO as $Enums.SpaceType;
-
-    //     // Garage
-    //     if ( size === SpaceType.GARAGE ) return SpaceType.GARAGE as $Enums.SpaceType;
-
-    //     // Core
-    //     if ( size === SpaceType.CORE ) return SpaceType.CORE as $Enums.SpaceType;
-
-    //     return SpaceType.ROOM as $Enums.SpaceType;
-    // }
-
-
-    // #getBuilding( name: string ): Building {
-    //     const space = [
-    //         'GARAGE EXTRAPROG.',
-    //         'Lab. Bioingeniería',
-    //         'Lab. Ingenieria y Ciencias',
-    //         'Lab. Física',
-    //         'Lab. Informática',
-    //         'Lab. Procesos Industriales'
-    //     ];
-
-    //     const buildingList = [
-    //         Building.B,
-    //         Building.F,
-    //         Building.F,
-    //         Building.F,
-    //         Building.F,
-    //         Building.E
-    //     ];
-
-    //     if ( space.includes( name )) return buildingList[ space.indexOf( name )];
-
-    //     return ( name.split( '-' )[1]?.[0]?.toUpperCase() as Building ) || Building.Z;
-    // }
-
-
-    // async #getNewEntitiesToCreate<
-    //     TInputEntity extends Record<string, any>,
-    //     TDbModel extends {
-    //         findMany    : ( args: any ) => Promise<any[]>;
-    //         createMany  : ( args: any ) => Promise<any>;
-    //     },
-    //     TUniqueKey extends keyof TInputEntity
-    // >(
-    //     entities    : TInputEntity[],
-    //     uniqueKey   : TUniqueKey,
-    //     prismaModel : TDbModel,
-    //     dbSearchKey : string,
-    //     mapper: ( entity: TInputEntity ) => any
-    // ): Promise<any> {
-    //     const uniqueKeysInExcel     = entities.map( e => e[ uniqueKey ]) as Array<string | number | boolean>;
-    //     const existingDbEntities    = await prismaModel.findMany({
-    //         where: {
-    //             [dbSearchKey]: {
-    //                 in: uniqueKeysInExcel,
-    //             },
-    //         },
-    //         select: {
-    //             [dbSearchKey]: true,
-    //         },
-    //     });
-
-    //     const existingDbKeys = new Set( existingDbEntities.map( e => e[ dbSearchKey ]));
-
-    //     return entities
-    //         .filter( entity => !existingDbKeys.has( entity[ uniqueKey ]))
-    //         .map( mapper );
-    // }
-
-
-    /**
-     * Process raw data from Excel file
-     * @param rawData Raw data from Excel file
-     * @returns Processed section data
-     */
-    // async #processRawData( rawData: ExcelSectionRow[] ) {
-    //     if ( !rawData || rawData.length === 0 ) {
-    //         throw new BadRequestException( 'Excel file is empty or has no valid data' );
-    //     }
-
-    //     const dayModules = await this.dayModule.findMany({});
-
-    //     if ( !dayModules || dayModules.length === 0 ) {
-    //         throw new BadRequestException( 'No day modules found' );
-    //     }
-
-    //     // const uniqueRoomsMap       = new Map<string, RoomData>();
-    //     const uniqueProfessorsMap  = new Map<string, ProfessorData>();
-    //     const uniqueSubjectsMap    = new Map<string, SubjectData>();
-    //     const uniquePeriodsMap     = new Map<string, PeriodData>();
-
-    //     const sectionList   : Section[] = [];
-    //     const ssecList      : SubjectSection[] = [];
-
-    //     const sizes = await this.size.findMany({
-    //         select: {
-    //             id          : true,
-    //             min         : true,
-    //             max         : true,
-    //             lessThan    : true,
-    //             greaterThan : true,
-    //         }
-    //     });
-
-    //     for ( const row of rawData ) {
-    //         // Rooms
-    //         // const roomName = row.Sala?.trim();
-    //         // if ( roomName && !uniqueRoomsMap.has( roomName )) {
-    //         //     uniqueRoomsMap.set( roomName, {
-    //         //         id        : roomName,
-    //         //         building    : this.#getBuilding( roomName ),
-    //         //         capacity    : row.Capacidad,
-    //         //         sizeValue   : this.#getCapacity( row.Capacidad, sizes ),
-    //         //         spaceType   : this.#getSpaceType( roomName, row.Talla ),
-    //         //     });
-    //         // }
-
-    //         // Professors
-    //         const professorId = row.ProfesorId;
-    //         if ( professorId && !uniqueProfessorsMap.has( professorId )) {
-    //             uniqueProfessorsMap.set( professorId, {
-    //                 id      : professorId.toString(),
-    //                 name    : row.PROF.trim(),
-    //             });
-    //         }
-
-    //         // Subjects
-    //         const subjectCode = row.Sigla?.trim();
-    //         if ( subjectCode && !uniqueSubjectsMap.has( subjectCode )) {
-    //             uniqueSubjectsMap.set( subjectCode, {
-    //                 id          : subjectCode,
-    //                 name        : row.NombreAsignatura?.trim(),
-    //                 startDate   : new Date( row.FechaInicio ),
-    //             });
-    //         }
-
-    //         // Periods
-    //         const periodName = `${row.PeriodoAcademicoId}-${row.TipoPeriodo?.trim()}`;
-    //         if ( periodName && !uniquePeriodsMap.has( periodName )) {
-    //             uniquePeriodsMap.set( periodName, {
-    //                 id : row.PeriodoAcademicoId.toString(),
-    //                 name: row.TipoPeriodo?.trim()
-    //             });
-    //         }
-
-    //         // Sections
-    //         const sectionId = ulid();
-
-    //         sectionList.push({
-    //             id                      : sectionId,
-    //             code                    : row['Sec.'],
-    //             session                 : row.Tipo as $Enums.Session,
-    //             size                    : this.#getSize( row.Size, row.Capacidad ),
-    //             correctedRegistrants    : row.Inscritos,
-    //             realRegistrants         : row.InscritosOriginal,
-    //             plannedBuilding         : row.Edificio,
-    //             chairsAvailable         : row.SillasDisp,
-    //             roomId                  : row.Sala,
-    //             dayModuleId             : dayModules.find( dm => dm.dayId === row.Dia && dm.moduleId === row.Modulo )?.id || 1,
-    //             professorId             : row.ProfesorId?.toString() || null,
-    //             groupId                 : ulid()
-    //         });
-
-    //         // SSEC
-    //         ssecList.push({
-    //             sectionId,
-    //             subjectId   : row.Sigla?.trim(),
-    //             periodId    : row.PeriodoAcademicoId.toString(),
-    //         });
-    //     }
-
-    //     // const newRoomsToCreate = await this.#getNewEntitiesToCreate(
-    //     //     Array.from( uniqueRoomsMap.values() ),
-    //     //     'id',
-    //     //     this.room,
-    //     //     'id',
-    //     //     ( rData: RoomData ) => ({
-    //     //         id          : rData.id,
-    //     //         building    : rData.building,
-    //     //         capacity    : rData.capacity,
-    //     //         sizeId      : rData.sizeValue,
-    //     //         type        : rData.spaceType,
-    //     //     })
-    //     // );
-
-    //     // if ( newRoomsToCreate.length > 0 ) {
-    //     //     await this.room.createMany({ data: newRoomsToCreate, skipDuplicates: true });
-    //     // }
-
-    //     const newProfessorsToCreate = await this.#getNewEntitiesToCreate(
-    //         Array.from( uniqueProfessorsMap.values() ),
-    //         'id',
-    //         this.professor,
-    //         'id',
-    //         ( pData: ProfessorData ) => ({
-    //             id      : pData.id,
-    //             name    : pData.name,
-    //         })
-    //     );
-
-    //     if ( newProfessorsToCreate.length > 0 ) {
-    //         await this.professor.createMany({ data: newProfessorsToCreate, skipDuplicates: true });
-    //     }
-
-    //     const newPeriodsToCreate = await this.#getNewEntitiesToCreate(
-    //         Array.from( uniquePeriodsMap.values() ),
-    //         'id',
-    //         this.period,
-    //         'id',
-    //         ( pData: PeriodData ) => ({
-    //             id      : pData.id,
-    //             name    : pData.name,
-    //         })
-    //     );
-
-    //     if ( newPeriodsToCreate.length > 0 ) {
-    //         await this.period.createMany({ data: newPeriodsToCreate, skipDuplicates: true });
-    //     }
-
-    //     const newSubjectsToCreate = await this.#getNewEntitiesToCreate(
-    //         Array.from( uniqueSubjectsMap.values() ),
-    //         'id',
-    //         this.subject,
-    //         'id',
-    //         (sData: SubjectData) => ({
-    //             id          : sData.id,
-    //             name        : sData.name,
-    //             startDate   : sData.startDate,
-    //         })
-    //     );
-
-    //     if ( newSubjectsToCreate.length > 0 ) {
-    //         await this.subject.createMany({ data: newSubjectsToCreate, skipDuplicates: true });
-    //     }
-
-    //     if ( sectionList.length > 0 ) {
-    //         const inserted = await this.section.createMany({ data: sectionList, skipDuplicates: true });
-
-    //         if ( inserted.count === 0 ) {
-    //             throw new BadRequestException( 'No sections were inserted' );
-    //         }
-
-    //         if ( ssecList.length > 0 ) {
-    //             await this.subjectSection.createMany({ data: ssecList });
-    //         }
-    //     }
-
-    //     return this.#getSectionData();
-    // }
 }
