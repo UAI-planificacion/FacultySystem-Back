@@ -40,6 +40,8 @@ import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.d
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
 import { SectionsService }          from '@sections/sections.service';
 import { SectionDto }               from '@sections/dto/section.dto';
+import { SELECT_SECTION }           from '@commons/querys/sections-query';
+import { SELECT_SESSION }           from '@commons/querys/session-query';
 
 
 @Injectable()
@@ -58,58 +60,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    #selectSession = {
-        id              : true,
-        name            : true,
-        spaceId         : true,
-        isEnglish       : true,
-        chairsAvailable : true,
-        date            : true,
-        dayModule       : {
-            select: {
-                id      : true,
-                dayId   : true,
-                module  : {
-                    select: {
-                        id          : true,
-                        code        : true,
-                        startHour   : true,
-                        endHour     : true,
-                        difference  : true,
-                    }
-                }
-            }
-        },
-        professor: {
-            select: {
-                id      : true,
-                name    : true,
-            }
-        },
-        planningChange : {
-            select :{
-                id: true
-            }
-        },
-        section : {
-            select : {
-                id          : true,
-                code        : true,
-                startDate   : true,
-                endDate     : true,
-                building    : true,
-                subject     : {
-                    select: {
-                        id      : true,
-                        name    : true,
-                    }
-                }
-            }
-        }
-    }
-
-
-    #convertToSessionDto = ( session: any ) => ({
+    convertToSessionDto = ( session: any ) => ({
         id                  : session.id,
         name                : session.name,
         spaceId             : session.spaceId,
@@ -140,75 +91,6 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             difference  : session.dayModule.module.difference,
         } : null,
     });
-
-
-    #selectSection = {
-        id              : true,
-        code            : true,
-        isClosed        : true,
-        groupId         : true,
-        startDate       : true,
-        endDate         : true,
-        spaceSizeId     : true,
-        spaceType       : true,
-        workshop        : true,
-        lecture         : true,
-        tutoringSession : true,
-        laboratory      : true,
-        quota           : true,
-        registered      : true,
-        building        : true,
-        professor: {
-            select : {
-                id      : true,
-                name    : true,
-            }
-        },
-        subject: {
-            select: {
-                id      : true,
-                name    : true,
-            }
-        },
-        period      : {
-            select: {
-                id          : true,
-                name        : true,
-                startDate   : true,
-                endDate     : true,
-                openingDate : true,
-                closingDate : true,
-            }
-        },
-        sessions: {
-            select: {
-                id          : true,
-                spaceId     : true,
-                dayModule   : {
-                    select      : {
-                        dayId       : true,
-                        moduleId    : true,
-                    }
-                },
-                professor: {
-                    select: {
-                        id      : true,
-                        name    : true,
-                    }
-                },
-            }
-        },
-        request : {
-            select: {
-                id: true,
-            }
-        },
-        _count: {
-            select: {
-                sessions: true
-            }
-        },
-    }
 
 
     #convertToSectionDto = ( section: any ): SectionDto => ({
@@ -259,10 +141,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
         try {
             const session = await this.session.create({
                 data: createSessionDto,
-                select: this.#selectSession,
+                select: SELECT_SESSION,
             });
 
-            return this.#convertToSessionDto( session );
+            return this.convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create session' );
         }
@@ -1031,7 +913,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 			const updatedSessions = await this.session.findMany({
 				where   : { id: { in: sessionIds }},
-				select  : this.#selectSession
+				select  : SELECT_SESSION
 			});
 
 			const orderMap = new Map( sessionIds.map(( sessionId, index ) => [sessionId, index] ));
@@ -1043,7 +925,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 				return firstIndex - secondIndex;
 			});
 
-			return updatedSessions.map( session => this.#convertToSessionDto( session ));
+			return updatedSessions.map( session => this.convertToSessionDto( session ));
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to assign session availability' );
 		}
@@ -1167,7 +1049,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
     async findAll() {
         const sessions = await this.session.findMany({
-            select: this.#selectSession,
+            select: SELECT_SESSION,
             // where : {
             //     createdAt: {
             //         gte: new Date( new Date().setDate( new Date().getDate() - 7 ) ),
@@ -1177,33 +1059,33 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
         if ( sessions?.length === 0 ) return [];
 
-        return sessions.map( this.#convertToSessionDto );
+        return sessions.map( this.convertToSessionDto );
     }
 
 
     async findOne( id: string ) {
         const session = await this.session.findUnique({
             where   : { id },
-            select  : this.#selectSession,
+            select  : SELECT_SESSION,
         });
 
         if ( !session ) {
             throw new NotFoundException( `Session with id ${id} not found` );
         }
 
-        return this.#convertToSessionDto( session );
+        return this.convertToSessionDto( session );
     }
 
 
     async findBySectionId( sectionId : string ) {
         const session = await this.session.findMany({
             where: { sectionId },
-            select: this.#selectSession,
+            select: SELECT_SESSION,
         });
 
         if ( session.length === 0 ) return [];
 
-        return session.map( this.#convertToSessionDto );
+        return session.map( this.convertToSessionDto );
     }
 
 
@@ -1338,10 +1220,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             const session = await this.session.update({
                 where   : { id },
                 data    : dataToUpdate,
-                select  : this.#selectSession,
+                select  : SELECT_SESSION,
             });
 
-            return this.#convertToSessionDto( session );
+            return this.convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update session' );
         }
@@ -1503,11 +1385,11 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
 			// 4. Return all updated sessions
 			const sessionsData = await this.session.findMany({
-				select	: this.#selectSession,
+				select	: SELECT_SESSION,
 				where	: { id: { in: ids }}
 			});
 
-			return sessionsData.map( session => this.#convertToSessionDto( session ));
+			return sessionsData.map( session => this.convertToSessionDto( session ));
 		} catch ( error ) {
 			console.error( 'Error updating section:', error );
 			throw PrismaException.catch( error, 'Failed to update section' );
@@ -2183,7 +2065,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
                 // 8. Get updated sections
                 const updatedSections = await prisma.section.findMany({
                     where   : { id: { in: sectionIds }},
-                    select  : this.#selectSection,
+                    select  : SELECT_SECTION,
                 });
 
                 return updatedSections.map( section => this.#convertToSectionDto( section ));
