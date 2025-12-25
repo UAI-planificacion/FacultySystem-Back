@@ -208,6 +208,17 @@ export class SectionsController {
         return this.sectionsService.findAll();
     }
 
+    @Get( 'sessions' )
+    @ApiOperation({ summary: 'Get all sections' })
+    @ApiResponse({
+        status      : 200,
+        description : 'Return all sections',
+        type        :  [SectionDto]
+    })
+    findAllAndSessions() {
+        return this.sectionsService.findAllAndSessions();
+    }
+
 
     @Get( 'faculty/:id' )
     @ApiOperation({ summary: 'Get all sections by faculty id' })
