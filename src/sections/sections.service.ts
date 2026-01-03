@@ -212,7 +212,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 const period = periodsMap.get( sectionOffer.periodId );
 
                 if ( !period ) {
-                    console.warn( `Period ${sectionOffer.periodId} not found, skipping section offer` );
+                    console.log( `Period ${sectionOffer.periodId} not found, skipping section offer` );
                     continue;
                 }
 
@@ -225,13 +225,13 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
                 // Validate current date is within the allowed range
                 if ( currentDate < effectiveOpeningDate ) {
-                    console.warn( `Current date is before period opening date, skipping section offer` );
+                    console.log( `Current date is before period opening date, skipping section offer` );
                     continue;
                 }
 
                 // Don't allow creating sections if current date is past or equal to closing date
                 if ( currentDate >= effectiveClosingDate ) {
-                    console.warn( `Current date is past or equal to period closing date, skipping section offer` );
+                    console.log( `Current date is past or equal to period closing date, skipping section offer` );
                     continue;
                 }
 
@@ -422,13 +422,34 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAll() {
+        const currentYear = new Date().getFullYear();
+
+        // Inicio del año actual (1 de enero)
+        const startOfYear = new Date(currentYear, 0, 1);
+        // Fin del año actual (31 de diciembre)
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
         const sections = await this.section.findMany({
             select: SELECT_SECTION,
             where : {
+                // period: {
+                //     createdAt : {
+                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
+                //     }
+                // }
                 period: {
-                    createdAt : {
-                        gte: new Date( new Date().getFullYear(), 0, 1 ),
-                    }
+                    // Filtramos por las fechas de vigencia, no por createdAt
+                    AND: [
+                        {
+                            endDate: {
+                                gte: startOfYear, // Debe terminar después de que empezó el año
+                            },
+                        },
+                        {
+                            startDate: {
+                                lte: endOfYear, // Debe empezar antes de que termine el año
+                            }
+                        }
+                    ]
                 }
             }
         });
@@ -438,6 +459,12 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAllAndSessions() {
+        const currentYear = new Date().getFullYear();
+
+        // Inicio del año actual (1 de enero)
+        const startOfYear = new Date(currentYear, 0, 1);
+        // Fin del año actual (31 de diciembre)
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
         //TODO: Agregar con SELECT_SESSION quitando section de session
         const query = {
             ...SELECT_SECTION,
@@ -482,10 +509,25 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
         const sections = await this.section.findMany({
             select: query,
             where : {
+                // period: {
+                //     createdAt : {
+                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
+                //     }
+                // }
                 period: {
-                    createdAt : {
-                        gte: new Date( new Date().getFullYear(), 0, 1 ),
-                    }
+                    // Filtramos por las fechas de vigencia, no por createdAt
+                    AND: [
+                        {
+                            endDate: {
+                                gte: startOfYear, // Debe terminar después de que empezó el año
+                            },
+                        },
+                        {
+                            startDate: {
+                                lte: endOfYear, // Debe empezar antes de que termine el año
+                            }
+                        }
+                    ]
                 }
             }
         });
@@ -495,13 +537,34 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAllByFacultyId( facultyId: string ) {
+        const currentYear = new Date().getFullYear();
+
+        // Inicio del año actual (1 de enero)
+        const startOfYear = new Date(currentYear, 0, 1);
+        // Fin del año actual (31 de diciembre)
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
         const sections = await this.section.findMany({
             select: SELECT_SECTION,
             where : {
+                // period: {
+                //     createdAt : {
+                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
+                //     }
+                // },
                 period: {
-                    createdAt : {
-                        gte: new Date( new Date().getFullYear(), 0, 1 ),
-                    }
+                    // Filtramos por las fechas de vigencia, no por createdAt
+                    AND: [
+                        {
+                            endDate: {
+                                gte: startOfYear, // Debe terminar después de que empezó el año
+                            },
+                        },
+                        {
+                            startDate: {
+                                lte: endOfYear, // Debe empezar antes de que termine el año
+                            }
+                        }
+                    ]
                 },
                 subject: {
                     facultyId
