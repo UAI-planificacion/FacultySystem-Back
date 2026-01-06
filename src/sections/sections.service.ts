@@ -421,36 +421,38 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async findAll() {
+    #calculateCurrentYear() {
         const currentYear = new Date().getFullYear();
-
         // Inicio del año actual (1 de enero)
-        const startOfYear = new Date(currentYear, 0, 1);
+        const startOfYear = new Date( currentYear, 0, 1 );
         // Fin del año actual (31 de diciembre)
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+        const endOfYear = new Date( currentYear, 11, 31, 23, 59, 59 );
+
+        return {
+            period: {
+                // Filtramos por las fechas de vigencia, no por createdAt
+                AND: [
+                    {
+                        endDate: {
+                            gte: startOfYear, // Debe terminar después de que empezó el año
+                        },
+                    },
+                    {
+                        startDate: {
+                            lte: endOfYear, // Debe empezar antes de que termine el año
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+
+    async findAll() {
         const sections = await this.section.findMany({
             select: SELECT_SECTION,
             where : {
-                // period: {
-                //     createdAt : {
-                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
-                //     }
-                // }
-                period: {
-                    // Filtramos por las fechas de vigencia, no por createdAt
-                    AND: [
-                        {
-                            endDate: {
-                                gte: startOfYear, // Debe terminar después de que empezó el año
-                            },
-                        },
-                        {
-                            startDate: {
-                                lte: endOfYear, // Debe empezar antes de que termine el año
-                            }
-                        }
-                    ]
-                }
+                ...this.#calculateCurrentYear(),
             }
         });
 
@@ -459,16 +461,13 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAllAndSessions() {
-        const currentYear = new Date().getFullYear();
+        // const { section, ...rest } = SELECT_SESSION;
 
-        // Inicio del año actual (1 de enero)
-        const startOfYear = new Date(currentYear, 0, 1);
-        // Fin del año actual (31 de diciembre)
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
-        //TODO: Agregar con SELECT_SESSION quitando section de session
-        const query = {
-            ...SELECT_SECTION,
-            sessions : {
+
+        const sections = await this.section.findMany({
+            select: {
+                ...SELECT_SECTION,
+                sessions : {
                 select :  {
                     id              : true,
                     name            : true,
@@ -504,31 +503,9 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     },
                 }
             }
-        };
-
-        const sections = await this.section.findMany({
-            select: query,
+            },
             where : {
-                // period: {
-                //     createdAt : {
-                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
-                //     }
-                // }
-                period: {
-                    // Filtramos por las fechas de vigencia, no por createdAt
-                    AND: [
-                        {
-                            endDate: {
-                                gte: startOfYear, // Debe terminar después de que empezó el año
-                            },
-                        },
-                        {
-                            startDate: {
-                                lte: endOfYear, // Debe empezar antes de que termine el año
-                            }
-                        }
-                    ]
-                }
+                ...this.#calculateCurrentYear(),
             }
         });
 
@@ -537,35 +514,10 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
 
     async findAllByFacultyId( facultyId: string ) {
-        const currentYear = new Date().getFullYear();
-
-        // Inicio del año actual (1 de enero)
-        const startOfYear = new Date(currentYear, 0, 1);
-        // Fin del año actual (31 de diciembre)
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
         const sections = await this.section.findMany({
             select: SELECT_SECTION,
             where : {
-                // period: {
-                //     createdAt : {
-                //         gte: new Date( new Date().getFullYear(), 0, 1 ),
-                //     }
-                // },
-                period: {
-                    // Filtramos por las fechas de vigencia, no por createdAt
-                    AND: [
-                        {
-                            endDate: {
-                                gte: startOfYear, // Debe terminar después de que empezó el año
-                            },
-                        },
-                        {
-                            startDate: {
-                                lte: endOfYear, // Debe empezar antes de que termine el año
-                            }
-                        }
-                    ]
-                },
+                ...this.#calculateCurrentYear(),
                 subject: {
                     facultyId
                 }
