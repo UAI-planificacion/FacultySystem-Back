@@ -25,7 +25,8 @@ import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
 import { Type }                     from '@sessions/interfaces/excelSession.dto';
 import { SpacesService }            from '@commons/services/spaces.service';
 import { SELECT_SECTION }           from '@commons/querys/sections-query';
-import { SELECT_SESSION }           from '@commons/querys/session-query';
+// import { SELECT_SESSION }           from '@commons/querys/session-query';
+import { SectionQuery }             from '@sections/dto/querys.dto';
 
 
 @Injectable()
@@ -448,11 +449,25 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async findAll() {
+    async findAll( query: SectionQuery ) {
+        const { onlyWithSessions } = query;
+
+        const sessionWhere = onlyWithSessions 
+        ?  {
+            sessions: {
+                some: {}
+            }
+        }
+        : undefined;
+
         const sections = await this.section.findMany({
             select: SELECT_SECTION,
             where : {
                 ...this.#calculateCurrentYear(),
+                ...sessionWhere,
+                // sessions: {
+                //     some: {}
+                // }
             }
         });
 
@@ -460,10 +475,17 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async findAllAndSessions() {
+    async findAllAndSessions( query: SectionQuery  ) {
         // const { section, ...rest } = SELECT_SESSION;
+        const { onlyWithSessions } = query;
 
-
+        const sessionWhere = onlyWithSessions 
+        ?  {
+            sessions: {
+                some: {}
+            }
+        }
+        : undefined;
         const sections = await this.section.findMany({
             select: {
                 ...SELECT_SECTION,
@@ -506,6 +528,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             },
             where : {
                 ...this.#calculateCurrentYear(),
+                ...sessionWhere
             }
         });
 
