@@ -10,7 +10,8 @@ import {
     Delete,
     UseInterceptors,
     UploadedFile,
-    BadRequestException
+    BadRequestException,
+    Query
 }                           from '@nestjs/common';
 import {
     ApiTags,
@@ -34,6 +35,7 @@ import { SectionDto }               from '@sections/dto/section.dto';
 import { CleanSectionDto }          from '@sections/dto/clean-section.dto';
 import { ChangeMassiveStatusDto }   from '@sections/dto/change-massive-status.dto';
 import { Type }                     from '@sessions/interfaces/excelSession.dto';
+import { SectionQuery }             from '@sections/dto/querys.dto';
 // import { CreateInitialSectionDto }  from '@sections/dto/initial-section.dto';
 // import { UpdateGroupDto }           from '@sections/dto/update-group.dto';
 
@@ -204,9 +206,12 @@ export class SectionsController {
         description : 'Return all sections',
         type        :  [SectionDto]
     })
-    findAll() {
-        return this.sectionsService.findAll();
+    findAll(
+        @Query() query: SectionQuery
+    ) {
+        return this.sectionsService.findAll( query );
     }
+
 
     @Get( 'sessions' )
     @ApiOperation({ summary: 'Get all sections' })
@@ -215,8 +220,10 @@ export class SectionsController {
         description : 'Return all sections',
         type        :  [SectionDto]
     })
-    findAllAndSessions() {
-        return this.sectionsService.findAllAndSessions();
+    findAllAndSessions(
+        @Query() query: SectionQuery
+    ) {
+        return this.sectionsService.findAllAndSessions( query );
     }
 
 
