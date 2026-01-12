@@ -28,12 +28,14 @@ import {
 import { SessionsService }              from '@sessions/sessions.service';
 import { CreateSessionDto }             from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }             from '@sessions/dto/update-session.dto';
+import { UpdateSessionTimesDto }        from '@sessions/dto/update-session-times.dto';
 import { CreateMassiveSessionDto }      from '@sessions/dto/create-massive-session.dto';
 import { MassiveUpdateSessionDto }      from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto }     from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }          from '@sessions/dto/available-session.dto';
 import { AssignSessionAvailabilityDto } from '@sessions/dto/assign-session-availability.dto';
 import { AssignSessionRegisteredDto }   from '@sessions/dto/assign-session-registered.dto';
+import { SectionSession }               from '@sessions/dto/session-update-times.dto';
 
 
 @Controller( 'sessions' )
@@ -124,6 +126,15 @@ export class SessionsController {
         @Body() updateSessionDto: UpdateSessionDto
     ) {
         return this.sessionsService.update( id, updateSessionDto );
+    }
+
+
+    @Patch( ':id/space-dayModule' )
+    updateSessionTimes(
+        @Param( 'id' ) id: string,
+        @Body() updateSessionTimesDto: UpdateSessionTimesDto
+    ): Promise<SectionSession> {
+        return this.sessionsService.updateSessionTimes( id, updateSessionTimesDto );
     }
 
 
