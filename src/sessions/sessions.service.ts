@@ -34,10 +34,12 @@ import { Space, SpacesService }     from '@commons/services/spaces.service';
 import { PrismaException }          from '@config/prisma-catch';
 import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
+import { UpdateSessionTimesDto }    from '@sessions/dto/update-session-times.dto';
 import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
 import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
 import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
+import { SectionSession }           from '@sessions/dto/session-update-times.dto';
 import { SectionsService }          from '@sections/sections.service';
 import { SectionDto }               from '@sections/dto/section.dto';
 import { SELECT_SECTION }           from '@commons/querys/sections-query';
@@ -1226,6 +1228,259 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             return this.convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update session' );
+        }
+    }
+
+
+    async updateSessionTimes( id: string, updateSessionTimesDto: UpdateSessionTimesDto ): Promise<SectionSession> {
+        try {
+            const { spaceId, dayModuleId } = updateSessionTimesDto;
+
+            // 1. Get current session with all necessary data
+            const currentSession = await this.session.findUnique({
+                where   : { id },
+                select  : {
+                    id          : true,
+                    date        : true,
+                    dayModuleId : true,
+                    spaceId     : true,
+                    professorId : true,
+                    section     : {
+                        select : {
+                            quota       : true,
+                            registered  : true
+                        }
+                    }
+                }
+            });
+
+            if ( !currentSession ) {
+                throw new NotFoundException( `Session with id ${ id } not found` );
+            }
+
+            // 2. Validate that the new spaceId exists
+            const allSpaces = await this.spacesService.getSpaces();
+            const spacesMap = new Map( allSpaces.map( space => [space.name, space] ));
+            const space     = spacesMap.get( spaceId );
+
+            if ( !space ) {
+                throw new NotFoundException( `El espacio ${spaceId} no existe o no está disponible` );
+            }
+
+            // 3. Validate that the new dayModuleId exists and get day information
+            const dayModule = await this.dayModule.findUnique({
+                where   : { id: dayModuleId },
+                select  : {
+                    id      : true,
+                    dayId   : true,
+                    day     : {
+                        select : {
+                            id      : true,
+                            name    : true
+                        }
+                    },
+                    module  : {
+                        select : {
+                            id          : true,
+                            code        : true,
+                            startHour   : true,
+                            endHour     : true,
+                            difference  : true
+                        }
+                    }
+                }
+            });
+
+            if ( !dayModule ) {
+                throw new NotFoundException( `DayModule with id ${dayModuleId} not found` );
+            }
+
+            // 4. Calculate new date within the same week
+            // Week starts on Monday (ISO 8601)
+            const currentDate = new Date( currentSession.date );
+            const currentDayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            
+            // Convert to ISO day (1 = Monday, 7 = Sunday)
+            const currentISODay = currentDayOfWeek === 0 ? 7 : currentDayOfWeek;
+            
+            // Get the new day of week from dayModule.dayId (assuming it's ISO format: 1 = Monday, 7 = Sunday)
+            const newISODay = dayModule.dayId;
+            
+            // Calculate the difference in days
+            const dayDifference = newISODay - currentISODay;
+            
+            // Calculate the new date by adding the day difference
+            const newDate = new Date( currentDate );
+            newDate.setDate( currentDate.getDate() + dayDifference );
+
+            // 5. Validate space availability for the new date + dayModuleId
+            const spaceConflict = await this.session.findFirst({
+                where: {
+                    date        : newDate,
+                    dayModuleId : dayModuleId,
+                    spaceId     : spaceId,
+                    id          : { not: id }
+                }
+            });
+
+            if ( spaceConflict ) {
+                throw new BadRequestException( 
+                    `El espacio ${spaceId} ya está reservado para la fecha ${newDate.toISOString().split('T')[0]} y el módulo especificado` 
+                );
+            }
+
+            // 6. Validate professor availability if professor is assigned
+            if ( currentSession.professorId ) {
+                const professorConflict = await this.session.findFirst({
+                    where: {
+                        date        : newDate,
+                        dayModuleId : dayModuleId,
+                        professorId : currentSession.professorId,
+                        id          : { not: id }
+                    }
+                });
+
+                if ( professorConflict ) {
+                    throw new BadRequestException( 
+                        `El profesor ya tiene asignada otra sesión para la fecha ${newDate.toISOString().split('T')[0]} y el módulo especificado` 
+                    );
+                }
+            }
+
+            // 7. Recalculate chairsAvailable
+            const quota             = currentSession.section.registered || currentSession.section.quota;
+            const chairsAvailable   = space.capacity - quota;
+
+            // Optional validation: uncomment if client wants to prevent negative chairs
+            // if ( chairsAvailable < 0 ) {
+            //     throw new BadRequestException( 'Las sillas disponibles no son suficientes' );
+            // }
+
+            // 8. Update the session
+            await this.session.update({
+                where   : { id },
+                data    : {
+                    spaceId         : spaceId,
+                    dayModuleId     : dayModuleId,
+                    date            : newDate,
+                    chairsAvailable : chairsAvailable
+                }
+            });
+
+            // 9. Fetch the updated session with all necessary relations for SectionSession response
+            const updatedSession = await this.session.findUnique({
+                where   : { id },
+                select  : {
+                    id              : true,
+                    name            : true,
+                    spaceId         : true,
+                    isEnglish       : true,
+                    chairsAvailable : true,
+                    date            : true,
+                    dayModuleId     : true,
+                    professor       : {
+                        select : {
+                            id      : true,
+                            name    : true
+                        }
+                    },
+                    dayModule       : {
+                        select : {
+                            id      : true,
+                            dayId   : true,
+                            module  : {
+                                select : {
+                                    id          : true,
+                                    code        : true,
+                                    startHour   : true,
+                                    endHour     : true,
+                                    difference  : true
+                                }
+                            }
+                        }
+                    },
+                    section         : {
+                        select : {
+                            id          : true,
+                            code        : true,
+                            isClosed    : true,
+                            startDate   : true,
+                            endDate     : true,
+                            quota       : true,
+                            registered  : true,
+                            subject     : {
+                                select : {
+                                    id      : true,
+                                    name    : true
+                                }
+                            },
+                            period      : {
+                                select : {
+                                    id          : true,
+                                    name        : true,
+                                    startDate   : true,
+                                    endDate     : true,
+                                    openingDate : true,
+                                    closingDate : true
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if ( !updatedSession ) {
+                throw new NotFoundException( `Session with id ${ id } not found after update` );
+            }
+
+            // 10. Map to SectionSession response
+            const response: SectionSession = {
+                id          : updatedSession.section.id,
+                code        : updatedSession.section.code,
+                isClosed    : updatedSession.section.isClosed,
+                startDate   : updatedSession.section.startDate,
+                endDate     : updatedSession.section.endDate,
+                subject     : {
+                    id      : updatedSession.section.subject.id,
+                    name    : updatedSession.section.subject.name
+                },
+                period      : {
+                    id          : updatedSession.section.period.id,
+                    name        : updatedSession.section.period.name,
+                    startDate   : updatedSession.section.period.startDate,
+                    endDate     : updatedSession.section.period.endDate,
+                    openingDate : updatedSession.section.period.openingDate,
+                    closingDate : updatedSession.section.period.closingDate
+                },
+                quota       : updatedSession.section.quota,
+                registered  : updatedSession.section.registered ?? 0,
+                session     : {
+                    id              : updatedSession.id,
+                    name            : updatedSession.name as any,
+                    spaceId         : updatedSession.spaceId,
+                    isEnglish       : updatedSession.isEnglish,
+                    chairsAvailable : updatedSession.chairsAvailable ?? 0,
+                    professor       : updatedSession.professor ? {
+                        id      : updatedSession.professor.id,
+                        name    : updatedSession.professor.name
+                    } : null,
+                    module          : {
+                        id          : updatedSession.dayModule.module.id.toString(),
+                        code        : updatedSession.dayModule.module.code || '',
+                        name        : `M${updatedSession.dayModule.module.code}${updatedSession.dayModule.module.difference ? `-${updatedSession.dayModule.module.difference}` : ''} ${updatedSession.dayModule.module.startHour}-${updatedSession.dayModule.module.endHour}`,
+                        startHour   : updatedSession.dayModule.module.startHour,
+                        endHour     : updatedSession.dayModule.module.endHour,
+                        difference  : updatedSession.dayModule.module.difference as any
+                    },
+                    date            : updatedSession.date,
+                    dayId           : updatedSession.dayModule.dayId,
+                    dayModuleId     : updatedSession.dayModuleId
+                }
+            };
+
+            return response;
+        } catch ( error ) {
+            throw PrismaException.catch( error, 'Failed to update session times' );
         }
     }
 
