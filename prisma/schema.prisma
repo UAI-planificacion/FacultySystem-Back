@@ -160,7 +160,7 @@ model Session {
     dayModuleId             Int
     dayModule               DayModule @relation(fields: [dayModuleId], references: [id])
 
-    planningChange           PlanningChange?
+    planningChange          PlanningChange?
 }
 
 
