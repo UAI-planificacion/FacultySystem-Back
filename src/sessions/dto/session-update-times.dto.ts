@@ -24,7 +24,7 @@ export class OfferModule {
 }
 
 
-export class SessionSec {
+export class Session {
     id              : string;
     name            : SessionType;
     spaceId         : string | null;
@@ -63,5 +63,5 @@ export class SectionSession {
     period      : SectionPeriod;
     quota       : number;
     registered  : number;
-    session     : SessionSec;
+    session     : Session;
 }
