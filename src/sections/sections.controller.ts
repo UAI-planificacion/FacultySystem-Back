@@ -27,7 +27,7 @@ import * as XLSX from 'xlsx';
 import {
     BulkCreateSectionDto,
     IExcelSection
-}                           from '@sections/dto/excel-section.dto';
+}                                   from '@sections/dto/excel-section.dto';
 import { SectionsService }          from '@sections/sections.service';
 import { CreateSectionDto }         from '@sections/dto/create-section.dto';
 import { UpdateSectionDto }         from '@sections/dto/update-section.dto';
