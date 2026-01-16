@@ -8,4 +8,9 @@ export class SectionQuery {
     @Type(() => Boolean)
     onlyWithSessions?: boolean;
 
+    @IsBoolean()
+    @IsOptional()
+    @Type(() => Boolean)
+    canConsecutiveId?: boolean;
+
 }
