@@ -86,7 +86,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     });
 
 
-    convertToSessionDto = ( session: any ) => ({
+    convertToSessionDto = ( session: any, consecutiveId: string | null = null ) => ({
         id                  : session.id,
         name                : session.name,
         spaceId             : session.spaceId,
@@ -116,45 +116,133 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             endHour     : session.dayModule.module.endHour,
             difference  : session.dayModule.module.difference,
         } : null,
+        consecutiveId: consecutiveId
     });
 
 
-    #convertToSectionDto2 = ( section: any ): SectionDto => ({
-        id              : section.id,
-        code            : section.code,
-        isClosed        : section.isClosed,
-        groupId         : section.groupId,
-        startDate       : section.startDate,
-        endDate         : section.endDate,
-        spaceSizeId     : section.spaceSizeId,
-        spaceType       : section.spaceType,
-        workshop        : section.workshop,
-        lecture         : section.lecture,
-        tutoringSession : section.tutoringSession,
-        laboratory      : section.laboratory,
-        quota           : section.quota,
-        registered      : section.registered,
-        building        : section.building,
-        professor       : section.professor?.id ? {
-            id      : section.professor?.id,
-            name    : section.professor?.name,
-        } : null,
-        subject: {
-            id      : section.subject.id,
-            name    : section.subject.name,
-        },
-        period: {
-            id          : section.period.id,
-            name        : section.period.name,
-            startDate   : section.period.startDate,
-            endDate     : section.period.endDate,
-            openingDate : section.period.openingDate,
-            closingDate : section.period.closingDate,
-        },
-        sessionsCount   : section._count.sessions,
-        sessions        : section.sessions?.map(( session : any ) => this.convertToSessionDto( session )) ?? [],
-        haveRequest: !!section.request?.id
-    });
+    /**
+     * Calculate consecutive IDs for sessions based on grouping criteria
+     * Sessions are consecutive if they share: sectionId, spaceId, dayId, date, and have consecutive order values
+     * @param sessions - Array of sessions with dayModule information
+     * @returns Map of sessionId to consecutiveId (null for non-consecutive sessions)
+     */
+    #calculateConsecutiveIds( sessions: any[] ): Map<string, string | null> {
+        const consecutiveIdMap = new Map<string, string | null>();
+
+        // Group sessions by: sectionId, spaceId, dayId, and date
+        const groups = new Map<string, any[]>();
+
+        for ( const session of sessions ) {
+            // Skip sessions without required data
+            if ( !session.dayModule?.dayId || !session.dayModule?.order || !session.date ) {
+                consecutiveIdMap.set( session.id, null );
+                continue;
+            }
+
+            // Create a unique key for grouping
+            const dateStr = session.date.toISOString().split('T')[0]; // YYYY-MM-DD
+            const groupKey = `${session.sectionId || 'null'}_${session.spaceId || 'null'}_${session.dayModule.dayId}_${dateStr}`;
+
+            if ( !groups.has( groupKey ) ) {
+                groups.set( groupKey, [] );
+            }
+
+            groups.get( groupKey )!.push( session );
+        }
+
+        // Process each group to find consecutive sequences
+        for ( const [groupKey, groupSessions] of groups.entries() ) {
+            // Sort sessions by order
+            groupSessions.sort(( a, b ) => a.dayModule.order - b.dayModule.order );
+
+            // Find consecutive sequences within the group
+            const consecutiveSequences: any[][] = [];
+            let currentSequence: any[] = [groupSessions[0]];
+
+            for ( let i = 1; i < groupSessions.length; i++ ) {
+                const prevOrder = groupSessions[i - 1].dayModule.order;
+                const currOrder = groupSessions[i].dayModule.order;
+
+                // Check if current session is consecutive to the previous one
+                if ( currOrder === prevOrder + 1 ) {
+                    currentSequence.push( groupSessions[i] );
+                } else {
+                    // Save current sequence and start a new one
+                    consecutiveSequences.push( currentSequence );
+                    currentSequence = [groupSessions[i]];
+                }
+            }
+
+            // Don't forget to add the last sequence
+            consecutiveSequences.push( currentSequence );
+
+            // Assign consecutive IDs
+            for ( const sequence of consecutiveSequences ) {
+                if ( sequence.length > 1 ) {
+                    // Multiple sessions in sequence - assign same ULID
+                    const consecutiveId = ulid();
+                    for ( const session of sequence ) {
+                        consecutiveIdMap.set( session.id, consecutiveId );
+                    }
+                } else {
+                    // Single session - no consecutive ID
+                    consecutiveIdMap.set( sequence[0].id, null );
+                }
+            }
+        }
+
+        return consecutiveIdMap;
+    }
+
+
+    #convertToSectionDto2 = ( section: any, canConsecutiveId: boolean = false ): SectionDto => {
+        // Calculate consecutive IDs if requested
+        let consecutiveIdMap: Map<string, string | null> | null = null;
+        
+        if ( canConsecutiveId && section.sessions && section.sessions.length > 0 ) {
+            consecutiveIdMap = this.#calculateConsecutiveIds( section.sessions );
+        }
+
+        return {
+            id              : section.id,
+            code            : section.code,
+            isClosed        : section.isClosed,
+            groupId         : section.groupId,
+            startDate       : section.startDate,
+            endDate         : section.endDate,
+            spaceSizeId     : section.spaceSizeId,
+            spaceType       : section.spaceType,
+            workshop        : section.workshop,
+            lecture         : section.lecture,
+            tutoringSession : section.tutoringSession,
+            laboratory      : section.laboratory,
+            quota           : section.quota,
+            registered      : section.registered,
+            building        : section.building,
+            professor       : section.professor?.id ? {
+                id      : section.professor?.id,
+                name    : section.professor?.name,
+            } : null,
+            subject: {
+                id      : section.subject.id,
+                name    : section.subject.name,
+            },
+            period: {
+                id          : section.period.id,
+                name        : section.period.name,
+                startDate   : section.period.startDate,
+                endDate     : section.period.endDate,
+                openingDate : section.period.openingDate,
+                closingDate : section.period.closingDate,
+            },
+            sessionsCount   : section._count.sessions,
+            sessions        : section.sessions?.map(( session : any ) => {
+                const consecutiveId = consecutiveIdMap?.get( session.id ) ?? null;
+                return this.convertToSessionDto( session, consecutiveId );
+            }) ?? [],
+            haveRequest: !!section.request?.id
+        };
+    };
 
 
     async createMassiveOfferSections( createSectionDto: CreateSectionDto[] ) {
@@ -475,9 +563,10 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
     }
 
 
+
     async findAllAndSessions( query: SectionQuery  ) {
         // const { section, ...rest } = SELECT_SESSION;
-        const { onlyWithSessions } = query;
+        const { onlyWithSessions, canConsecutiveId } = query;
 
         const sessionWhere = onlyWithSessions 
         ?  {
@@ -497,10 +586,12 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                     isEnglish       : true,
                     chairsAvailable : true,
                     date            : true,
+                    sectionId       : true,
                     dayModule       : {
                         select: {
                             id      : true,
                             dayId   : true,
+                            order   : true,
                             module  : {
                                 select: {
                                     id          : true,
@@ -532,8 +623,9 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             }
         });
 
-        return sections.map( section => this.#convertToSectionDto2( section ));
+        return sections.map( section => this.#convertToSectionDto2( section, canConsecutiveId ?? false ));
     }
+
 
 
     async findAllByFacultyId( facultyId: string ) {
