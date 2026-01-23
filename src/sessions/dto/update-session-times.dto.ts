@@ -3,17 +3,17 @@ import { IsInt, IsNotEmpty, IsString, Length, Max, Min } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 
-export class UpdateSessionTimesDto {
+export class UpdateMultipleSessionTimesDto {
 
     @ApiProperty({
         type        : String,
-        description : 'ID del espacio a asignar',
-        example     : 'A101'
+        description : 'ID de la sesión',
+        example     : '1'
     })
-    @IsNotEmpty({ message: 'El spaceId es requerido' })
-    @IsString({ message: 'El spaceId debe ser un string' })
-    @Length(1, 50, { message: 'El spaceId debe tener entre 1 y 50 caracteres' })
-    spaceId: string;
+    @IsNotEmpty({ message: 'El sessionId es requerido' })
+    @IsString({ message: 'El sessionId debe ser un string' })
+    @Length(1, 50, { message: 'El sessionId debe tener entre 1 y 50 caracteres' })
+    sessionId: string;
 
 
     @ApiProperty({
