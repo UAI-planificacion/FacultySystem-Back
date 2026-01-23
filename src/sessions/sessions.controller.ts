@@ -28,7 +28,7 @@ import {
 import { SessionsService }              from '@sessions/sessions.service';
 import { CreateSessionDto }             from '@sessions/dto/create-session.dto';
 import { UpdateSessionDto }             from '@sessions/dto/update-session.dto';
-import { UpdateSessionTimesDto }        from '@sessions/dto/update-session-times.dto';
+import { UpdateMultipleSessionTimesDto } from '@sessions/dto/update-session-times.dto';
 import { CreateMassiveSessionDto }      from '@sessions/dto/create-massive-session.dto';
 import { MassiveUpdateSessionDto }      from '@sessions/dto/massive-update-session.dto';
 import { CalculateAvailabilityDto }     from '@sessions/dto/calculate-availability.dto';
@@ -129,12 +129,13 @@ export class SessionsController {
     }
 
 
-    @Patch( ':id/space-dayModule' )
+    @Patch( 'update-times/:spaceId' )
     updateSessionTimes(
-        @Param( 'id' ) id: string,
-        @Body() updateSessionTimesDto: UpdateSessionTimesDto
-    ): Promise<SectionSession> {
-        return this.sessionsService.updateSessionTimes( id, updateSessionTimesDto );
+        @Param( 'spaceId' ) spaceId: string,
+        @Query( 'isNegativeChairs' ) isNegativeChairs: boolean = false,
+        @Body() updateSessionTimesDto: UpdateMultipleSessionTimesDto[]
+    ): Promise<SectionSession[]> {
+        return this.sessionsService.updateSessionTimes( spaceId, updateSessionTimesDto, isNegativeChairs );
     }
 
 
