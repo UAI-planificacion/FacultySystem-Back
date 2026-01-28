@@ -566,7 +566,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async findAllAndSessions( query: SectionQuery  ) {
         // const { section, ...rest } = SELECT_SESSION;
-        const { onlyWithSessions, canConsecutiveId } = query;
+        const { onlyWithSessions, canConsecutiveId, periodId } = query;
 
         const sessionWhere = onlyWithSessions 
         ?  {
@@ -575,6 +575,73 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             }
         }
         : undefined;
+
+        let periodWhere: object | undefined = undefined;
+
+        if ( periodId ) {
+            // Buscar el período específico para obtener su rango de fechas
+            const specificPeriod = await this.period.findUnique({
+                where: { id: periodId },
+                select: {
+                    startDate: true,
+                    endDate: true,
+                }
+            });
+
+            if ( !specificPeriod ) {
+                throw new NotFoundException( `Period with id ${periodId} not found` );
+            }
+
+            // Fecha actual para validar períodos activos
+            const currentDate = new Date();
+
+            // Buscar todos los períodos activos en el mismo rango de fechas
+            // Condiciones:
+            // 1. status debe ser 'InProgress' o 'Opened'
+            // 2. La fecha actual debe estar entre startDate y endDate
+            const activePeriods = await this.period.findMany({
+                where: {
+                    status: {
+                        in: ['InProgress', 'Opened']
+                    },
+                    AND: [
+                        {
+                            startDate: {
+                                lte: currentDate // startDate <= fechaActual
+                            }
+                        },
+                        {
+                            endDate: {
+                                gte: currentDate // endDate >= fechaActual
+                            }
+                        }
+                    ]
+                },
+                select: {
+                    id: true
+                }
+            });
+
+            // Extraer los IDs de los períodos activos
+            const activePeriodIds = activePeriods.map( period => period.id );
+
+            // Si no hay períodos activos, retornar un array vacío
+            if ( activePeriodIds.length === 0 ) {
+                periodWhere = {
+                    periodId: {
+                        in: [] // Esto hará que no se encuentren secciones
+                    }
+                };
+            } else {
+                // Filtrar secciones que pertenezcan a cualquiera de los períodos activos
+                periodWhere = {
+                    periodId: {
+                        in: activePeriodIds
+                    }
+                };
+            }
+        }
+
         const sections = await this.section.findMany({
             select: {
                 ...SELECT_SECTION,
@@ -619,7 +686,8 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
             },
             where : {
                 ...this.#calculateCurrentYear(),
-                ...sessionWhere
+                ...sessionWhere,
+                ...periodWhere
             }
         });
 
