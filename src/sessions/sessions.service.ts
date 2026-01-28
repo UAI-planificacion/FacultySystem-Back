@@ -25,25 +25,26 @@ import {
     ExcelSectionDto,
     ExcelSessionDto,
     SectionDataDto,
-    SessionAvailabilityResult,
+    // SessionAvailabilityResult,
     SessionDataDto,
     Status,
     Type
-}                                   from '@sessions/interfaces/excelSession.dto';
-import { Space, SpacesService }     from '@commons/services/spaces.service';
-import { PrismaException }          from '@config/prisma-catch';
-import { CreateSessionDto }         from '@sessions/dto/create-session.dto';
-import { UpdateSessionDto }         from '@sessions/dto/update-session.dto';
-import { UpdateMultipleSessionTimesDto } from '@sessions/dto/update-session-times.dto';
-import { CreateMassiveSessionDto }  from '@sessions/dto/create-massive-session.dto';
-import { MassiveUpdateSessionDto }  from '@sessions/dto/massive-update-session.dto';
-import { CalculateAvailabilityDto } from '@sessions/dto/calculate-availability.dto';
-import { AvailableSessionDto }      from '@sessions/dto/available-session.dto';
-import { SectionSession }           from '@sessions/dto/session-update-times.dto';
-import { SectionsService }          from '@sections/sections.service';
-import { SectionDto }               from '@sections/dto/section.dto';
-import { SELECT_SECTION }           from '@commons/querys/sections-query';
-import { SELECT_SESSION }           from '@commons/querys/session-query';
+}                                           from '@sessions/interfaces/excelSession.dto';
+import { Space, SpacesService }             from '@commons/services/spaces.service';
+import { PrismaException }                  from '@config/prisma-catch';
+import { CreateSessionDto }                 from '@sessions/dto/create-session.dto';
+import { UpdateSessionDto }                 from '@sessions/dto/update-session.dto';
+import { UpdateMultipleSessionTimesDto }    from '@sessions/dto/update-session-times.dto';
+import { CreateMassiveSessionDto }          from '@sessions/dto/create-massive-session.dto';
+import { MassiveUpdateSessionDto }          from '@sessions/dto/massive-update-session.dto';
+import { CalculateAvailabilityDto }         from '@sessions/dto/calculate-availability.dto';
+import { AvailableSessionDto }              from '@sessions/dto/available-session.dto';
+import { SectionSession }                   from '@sessions/dto/session-update-times.dto';
+import { SectionsService }                  from '@sections/sections.service';
+import { SectionDto }                       from '@sections/dto/section.dto';
+import { SELECT_SECTION }                   from '@commons/querys/sections-query';
+import { SELECT_SESSION }                   from '@commons/querys/session-query';
+import { SELECT_SECTION_TIME }              from '@commons/querys/section-time-query';
 
 
 @Injectable()
@@ -139,14 +140,14 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     });
 
 
-    async create( createSessionDto: CreateSessionDto ) {
+    async create( createSessionDto: CreateSessionDto, isTime: boolean ) {
         try {
             const session = await this.session.create({
                 data: createSessionDto,
-                select: SELECT_SESSION,
+                select: isTime ? SELECT_SECTION_TIME : SELECT_SESSION,
             });
 
-            return this.convertToSessionDto( session );
+            return isTime ? this.#convertTime( session ) : this.convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to create session' );
         }
@@ -1091,7 +1092,7 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
     }
 
 
-    async update( id: string, updateSessionDto: UpdateSessionDto ) {
+    async update( id: string, updateSessionDto: UpdateSessionDto, isTime: boolean ) {
         try {
             // 1. Obtener la sesión actual con todos los datos necesarios
             const currentSession = await this.session.findUnique({
@@ -1222,14 +1223,59 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             const session = await this.session.update({
                 where   : { id },
                 data    : dataToUpdate,
-                select  : SELECT_SESSION,
+                select  : isTime ? SELECT_SECTION_TIME : SELECT_SESSION,
             });
 
-            return this.convertToSessionDto( session );
+            return isTime ? this.#convertTime( session ) : this.convertToSessionDto( session );
         } catch ( error ) {
             throw PrismaException.catch( error, 'Failed to update session' );
         }
     }
+
+
+    #convertTime = ( updatedSession: any ) => ({
+        id          : updatedSession.section.id,
+        code        : updatedSession.section.code,
+        isClosed    : updatedSession.section.isClosed,
+        startDate   : updatedSession.section.startDate,
+        endDate     : updatedSession.section.endDate,
+        subject     : {
+            id          : updatedSession.section.subject.id,
+            name        : updatedSession.section.subject.name
+        },
+        period: {
+            id          : updatedSession.section.period.id,
+            name        : updatedSession.section.period.name,
+            startDate   : updatedSession.section.period.startDate,
+            endDate     : updatedSession.section.period.endDate,
+            openingDate : updatedSession.section.period.openingDate,
+            closingDate : updatedSession.section.period.closingDate
+        },
+        quota       : updatedSession.section.quota,
+        registered  : updatedSession.section.registered ?? 0,
+        session     : {
+            id              : updatedSession.id,
+            name            : updatedSession.name as any,
+            spaceId         : updatedSession.spaceId,
+            isEnglish       : updatedSession.isEnglish,
+            chairsAvailable : updatedSession.chairsAvailable ?? 0,
+            professor       : updatedSession.professor ? {
+                id          : updatedSession.professor.id,
+                name        : updatedSession.professor.name
+            } : null,
+            module: {
+                id          : updatedSession.dayModule.module.id.toString(),
+                code        : updatedSession.dayModule.module.code || '',
+                name        : `M${updatedSession.dayModule.module.code}${updatedSession.dayModule.module.difference ? `-${updatedSession.dayModule.module.difference}` : ''} ${updatedSession.dayModule.module.startHour}-${updatedSession.dayModule.module.endHour}`,
+                startHour   : updatedSession.dayModule.module.startHour,
+                endHour     : updatedSession.dayModule.module.endHour,
+                difference  : updatedSession.dayModule.module.difference as any
+            },
+            date        : updatedSession.date,
+            dayId       : updatedSession.dayModule.dayId,
+            dayModuleId : updatedSession.dayModuleId
+        }
+    });
 
 
     async updateSessionTimes(
@@ -1342,48 +1388,48 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             const dayModuleMap = new Map(dayModules.map(dm => [dm.id, dm]));
 
             // Validate all dayModules exist
-            for (const dayModuleId of dayModuleIds) {
-                if (!dayModuleMap.has(dayModuleId)) {
-                    throw new NotFoundException(`DayModule with id ${dayModuleId} not found`);
+            for ( const dayModuleId of dayModuleIds ) {
+                if ( !dayModuleMap.has( dayModuleId )) {
+                    throw new NotFoundException( `DayModule with id ${dayModuleId} not found` );
                 }
             }
 
             // 5. Process each session update
-            for (const dto of updateSessionTimesDtos) {
-                const currentSession = sessionMap.get(dto.sessionId)!;
-                const newDayModuleId = dto.dayModuleId;
-                const dayModule = dayModuleMap.get(newDayModuleId)!;
+            for ( const dto of updateSessionTimesDtos ) {
+                const currentSession    = sessionMap.get( dto.sessionId )!;
+                const newDayModuleId    = dto.dayModuleId;
+                const dayModule         = dayModuleMap.get( newDayModuleId )!;
 
                 let newDate: Date;
                 let needsDateRecalculation = false;
 
                 // Check if dayModuleId changed
-                if (currentSession.dayModuleId !== newDayModuleId) {
+                if ( currentSession.dayModuleId !== newDayModuleId ) {
                     needsDateRecalculation = true;
-                    
+
                     // Calculate new date within the same week
-                    const currentDate = new Date(currentSession.date);
-                    const currentDayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-                    const currentISODay = currentDayOfWeek === 0 ? 7 : currentDayOfWeek;
-                    const newISODay = dayModule.dayId;
-                    const dayDifference = newISODay - currentISODay;
-                    
-                    newDate = new Date(currentDate);
-                    newDate.setDate(currentDate.getDate() + dayDifference);
+                    const currentDate       = new Date( currentSession.date );
+                    const currentDayOfWeek  = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+                    const currentISODay     = currentDayOfWeek === 0 ? 7 : currentDayOfWeek;
+                    const newISODay         = dayModule.dayId;
+                    const dayDifference     = newISODay - currentISODay;
+
+                    newDate = new Date( currentDate );
+                    newDate.setDate( currentDate.getDate() + dayDifference );
                 } else {
                     // dayModuleId hasn't changed, keep the same date
                     newDate = currentSession.date;
                 }
 
                 // Calculate chairsAvailable
-                const quota = currentSession.section.registered || currentSession.section.quota;
-                const chairsAvailable = space.capacity - quota;
+                const quota             = currentSession.section.registered || currentSession.section.quota;
+                const chairsAvailable   = space.capacity - quota;
 
                 // Check if spaceId is changing
                 const spaceIdChanged = currentSession.spaceId !== spaceId;
 
                 // Validate isNegativeChairs only when spaceId is changing
-                if (spaceIdChanged && chairsAvailable < 0 && !isNegativeChairs) {
+                if ( spaceIdChanged && chairsAvailable < 0 && !isNegativeChairs ) {
                     throw new BadRequestException(
                         `El espacio ${spaceId} no tiene capacidad suficiente para la sesión ${dto.sessionId}. ` +
                         `Capacidad: ${space.capacity}, Requerido: ${quota}, Disponible: ${chairsAvailable}`
@@ -1400,26 +1446,26 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             }
 
             // 6. Validate space availability for all sessions (excluding the sessions being updated)
-            for (const update of sessionUpdates) {
-                const currentSession = sessionMap.get(update.sessionId)!;
-                
+            for ( const update of sessionUpdates ) {
+                const currentSession = sessionMap.get( update.sessionId )!;
+
                 // Skip validation if both dayModuleId and spaceId haven't changed
-                if (currentSession.dayModuleId === update.newDayModuleId && 
-                    currentSession.spaceId === update.newSpaceId) {
+                if ( currentSession.dayModuleId === update.newDayModuleId && 
+                    currentSession.spaceId === update.newSpaceId ) {
                     continue;
                 }
 
                 const spaceConflict = await this.session.findFirst({
                     where: {
-                        date: update.newDate,
-                        dayModuleId: update.newDayModuleId,
-                        spaceId: update.newSpaceId,
-                        id: { notIn: sessionIds } // Exclude all sessions being updated
+                        date        : update.newDate,
+                        dayModuleId : update.newDayModuleId,
+                        spaceId     : update.newSpaceId,
+                        id          : { notIn: sessionIds } // Exclude all sessions being updated
                     },
                     select: { id: true }
                 });
 
-                if (spaceConflict) {
+                if ( spaceConflict ) {
                     throw new BadRequestException(
                         `El espacio ${update.newSpaceId} ya está reservado para la fecha ${update.newDate.toISOString().split('T')[0]} ` +
                         `y el módulo especificado (sesión ${update.sessionId})`
@@ -1428,25 +1474,25 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             }
 
             // 7. Validate professor availability for sessions where dayModuleId changed
-            for (const update of sessionUpdates) {
-                const currentSession = sessionMap.get(update.sessionId)!;
-                
+            for ( const update of sessionUpdates ) {
+                const currentSession = sessionMap.get( update.sessionId )!;
+
                 // Skip if dayModuleId hasn't changed or session has no professor
-                if (currentSession.dayModuleId === update.newDayModuleId || !currentSession.professorId) {
+                if ( currentSession.dayModuleId === update.newDayModuleId || !currentSession.professorId ) {
                     continue;
                 }
 
                 const professorConflict = await this.session.findFirst({
                     where: {
-                        date: update.newDate,
-                        dayModuleId: update.newDayModuleId,
-                        professorId: currentSession.professorId,
-                        id: { notIn: sessionIds } // Exclude all sessions being updated
+                        date        : update.newDate,
+                        dayModuleId : update.newDayModuleId,
+                        professorId : currentSession.professorId,
+                        id          : { notIn: sessionIds } // Exclude all sessions being updated
                     },
                     select: { id: true }
                 });
 
-                if (professorConflict) {
+                if ( professorConflict ) {
                     throw new BadRequestException(
                         `El profesor ya tiene asignada otra sesión para la fecha ${update.newDate.toISOString().split('T')[0]} ` +
                         `y el módulo especificado (sesión ${update.sessionId})`
@@ -1456,14 +1502,14 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 
             // 8. Update all sessions in a transaction
             await this.$transaction(async (prisma) => {
-                for (const update of sessionUpdates) {
+                for ( const update of sessionUpdates ) {
                     await prisma.session.update({
-                        where: { id: update.sessionId },
-                        data: {
-                            spaceId: update.newSpaceId,
-                            dayModuleId: update.newDayModuleId,
-                            date: update.newDate,
-                            chairsAvailable: update.chairsAvailable
+                        where   : { id: update.sessionId },
+                        data    : {
+                            spaceId         : update.newSpaceId,
+                            dayModuleId     : update.newDayModuleId,
+                            date            : update.newDate,
+                            chairsAvailable : update.chairsAvailable
                         }
                     });
                 }
@@ -1472,111 +1518,10 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
             // 9. Fetch all updated sessions with full relations
             const updatedSessions = await this.session.findMany({
                 where: { id: { in: sessionIds } },
-                select: {
-                    id: true,
-                    name: true,
-                    spaceId: true,
-                    isEnglish: true,
-                    chairsAvailable: true,
-                    date: true,
-                    dayModuleId: true,
-                    professor: {
-                        select: {
-                            id: true,
-                            name: true
-                        }
-                    },
-                    dayModule: {
-                        select: {
-                            id: true,
-                            dayId: true,
-                            module: {
-                                select: {
-                                    id: true,
-                                    code: true,
-                                    startHour: true,
-                                    endHour: true,
-                                    difference: true
-                                }
-                            }
-                        }
-                    },
-                    section: {
-                        select: {
-                            id: true,
-                            code: true,
-                            isClosed: true,
-                            startDate: true,
-                            endDate: true,
-                            quota: true,
-                            registered: true,
-                            subject: {
-                                select: {
-                                    id: true,
-                                    name: true
-                                }
-                            },
-                            period: {
-                                select: {
-                                    id: true,
-                                    name: true,
-                                    startDate: true,
-                                    endDate: true,
-                                    openingDate: true,
-                                    closingDate: true
-                                }
-                            }
-                        }
-                    }
-                }
+                select: SELECT_SECTION_TIME
             });
 
-            // 10. Map to SectionSession[] response
-            const responses: SectionSession[] = updatedSessions.map(updatedSession => ({
-                id: updatedSession.section.id,
-                code: updatedSession.section.code,
-                isClosed: updatedSession.section.isClosed,
-                startDate: updatedSession.section.startDate,
-                endDate: updatedSession.section.endDate,
-                subject: {
-                    id: updatedSession.section.subject.id,
-                    name: updatedSession.section.subject.name
-                },
-                period: {
-                    id: updatedSession.section.period.id,
-                    name: updatedSession.section.period.name,
-                    startDate: updatedSession.section.period.startDate,
-                    endDate: updatedSession.section.period.endDate,
-                    openingDate: updatedSession.section.period.openingDate,
-                    closingDate: updatedSession.section.period.closingDate
-                },
-                quota: updatedSession.section.quota,
-                registered: updatedSession.section.registered ?? 0,
-                session: {
-                    id: updatedSession.id,
-                    name: updatedSession.name as any,
-                    spaceId: updatedSession.spaceId,
-                    isEnglish: updatedSession.isEnglish,
-                    chairsAvailable: updatedSession.chairsAvailable ?? 0,
-                    professor: updatedSession.professor ? {
-                        id: updatedSession.professor.id,
-                        name: updatedSession.professor.name
-                    } : null,
-                    module: {
-                        id: updatedSession.dayModule.module.id.toString(),
-                        code: updatedSession.dayModule.module.code || '',
-                        name: `M${updatedSession.dayModule.module.code}${updatedSession.dayModule.module.difference ? `-${updatedSession.dayModule.module.difference}` : ''} ${updatedSession.dayModule.module.startHour}-${updatedSession.dayModule.module.endHour}`,
-                        startHour: updatedSession.dayModule.module.startHour,
-                        endHour: updatedSession.dayModule.module.endHour,
-                        difference: updatedSession.dayModule.module.difference as any
-                    },
-                    date: updatedSession.date,
-                    dayId: updatedSession.dayModule.dayId,
-                    dayModuleId: updatedSession.dayModuleId
-                }
-            }));
-
-            return responses;
+            return updatedSessions.map( this.#convertTime );
         } catch (error) {
             throw PrismaException.catch(error, 'Failed to update session times');
         }
