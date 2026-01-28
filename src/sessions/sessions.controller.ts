@@ -48,9 +48,10 @@ export class SessionsController {
 
     @Post()
     create(
+        @Query( 'isTime' ) isTime: boolean = false,
         @Body() createSessionDto: CreateSessionDto
     ) {
-        return this.sessionsService.create( createSessionDto );
+        return this.sessionsService.create( createSessionDto, isTime );
     }
 
 
@@ -122,10 +123,11 @@ export class SessionsController {
 
     @Patch( ':id' )
     update(
+        @Query( 'isTime' ) isTime: boolean = false,
         @Param( 'id' ) id: string,
         @Body() updateSessionDto: UpdateSessionDto
     ) {
-        return this.sessionsService.update( id, updateSessionDto );
+        return this.sessionsService.update( id, updateSessionDto, isTime );
     }
 
 
