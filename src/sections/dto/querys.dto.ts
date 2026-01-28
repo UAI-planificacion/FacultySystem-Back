@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsBoolean, IsOptional } from "class-validator";
+import { IsBoolean, IsOptional, IsString, Length } from "class-validator";
 
 export class SectionQuery {
 
@@ -12,5 +12,11 @@ export class SectionQuery {
     @IsOptional()
     @Type(() => Boolean)
     canConsecutiveId?: boolean;
+
+    @IsString()
+    @IsOptional()
+    @Type( () => String )
+    @Length( 1, 10 )
+    periodId?: string;
 
 }
