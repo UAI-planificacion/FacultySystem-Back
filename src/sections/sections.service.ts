@@ -566,7 +566,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
     async findAllAndSessions( query: SectionQuery  ) {
         // const { section, ...rest } = SELECT_SESSION;
-        const { onlyWithSessions, canConsecutiveId, periodId } = query;
+        const { onlyWithSessions, canConsecutiveId, periodIds } = query;
 
         const sessionWhere = onlyWithSessions 
         ?  {
@@ -578,6 +578,16 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
 
         let periodWhere: object | undefined = undefined;
 
+        // Nueva lógica simplificada: el usuario envía manualmente los IDs de los períodos que quiere ver
+        if ( periodIds && periodIds.length > 0 ) {
+            periodWhere = {
+                periodId: {
+                    in: periodIds
+                }
+            };
+        }
+
+        /* LÓGICA ANTERIOR COMENTADA - Búsqueda automática de períodos solapados por fecha
         if ( periodId ) {
             // Buscar el período específico para obtener su rango de fechas
             const specificPeriod = await this.period.findUnique({
@@ -641,6 +651,7 @@ export class SectionsService extends PrismaClient implements OnModuleInit {
                 };
             }
         }
+        */
 
         const sections = await this.section.findMany({
             select: {
