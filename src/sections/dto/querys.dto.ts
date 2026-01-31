@@ -1,5 +1,5 @@
-import { Type } from "class-transformer";
-import { IsBoolean, IsOptional, IsString, Length } from "class-validator";
+import { Transform, Type } from "class-transformer";
+import { ArrayMinSize, ArrayMaxSize, IsBoolean, IsOptional, IsString, Length } from "class-validator";
 
 export class SectionQuery {
 
@@ -13,10 +13,23 @@ export class SectionQuery {
     @Type(() => Boolean)
     canConsecutiveId?: boolean;
 
-    @IsString()
+    @IsString({ each: true })
     @IsOptional()
-    @Type( () => String )
-    @Length( 1, 10 )
-    periodId?: string;
+    @Transform(({ value }) => {
+        // Si viene como string separado por comas, convertirlo a array
+        if (typeof value === 'string') {
+            return value.split(',').map(id => id.trim()).filter(id => id.length > 0);
+        }
+        // Si ya es un array, devolverlo tal cual
+        if (Array.isArray(value)) {
+            return value;
+        }
+        // Si es undefined o null, devolver undefined
+        return value;
+    })
+    @ArrayMinSize( 1 )
+    @ArrayMaxSize( 10 )
+    @Length( 1, 10, { each: true } )
+    periodIds?: string[];
 
 }
