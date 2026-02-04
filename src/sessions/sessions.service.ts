@@ -1706,11 +1706,17 @@ export class SessionsService extends PrismaClient implements OnModuleInit {
 	}
 
 
-	massiveRemove( ids: string[] ) {
+	async massiveRemove( ids: string[] ) {
 		try {
-			return this.session.deleteMany({
+			const sessionsDeleted = await this.session.deleteMany({
 				where: { id: { in: ids }}
 			});
+
+            if (  sessionsDeleted.count ===  0 )  {
+                throw new BadRequestException( 'No se eliminaron sesiones' );
+            }
+
+            return sessionsDeleted.count;
 		} catch ( error ) {
 			throw PrismaException.catch( error, 'Failed to delete sessions' );
 		}
